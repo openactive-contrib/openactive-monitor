@@ -38,6 +38,6 @@ def run_get_feeds():
 if (__name__ == '__main__'):
     try:
         run_get_feeds()
-    except Exception as e:
-        print('ERROR:', e)
+    except Exception as error:
+        print('ERROR:', error)
         sys.exit(1)
