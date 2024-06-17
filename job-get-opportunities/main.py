@@ -214,8 +214,8 @@ from time import sleep
 # --------------------------------------------------------------------------------------------------
 
 FILENAME_FEEDS = 'feeds.pickle'
-FILENAME_SUFFIX = '.pickle.xz'
-LEN_FILENAME_SUFFIX = len(FILENAME_SUFFIX)
+FILENAME_OPPORTUNITIES_SUFFIX = '.pickle.xz'
+LEN_FILENAME_OPPORTUNITIES_SUFFIX = len(FILENAME_OPPORTUNITIES_SUFFIX)
 
 # These folders must have been made via the Google Cloud browser console under Cloud Storage for this
 # project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. With
@@ -270,11 +270,11 @@ def get_filenames():
     global filenames_with_infostamp
     # global filenames_without_infostamp
     filenames_with_infostamp = sorted([
-        i[:-LEN_FILENAME_SUFFIX]
+        i[:-LEN_FILENAME_OPPORTUNITIES_SUFFIX]
         for i in listdir(FILEPATH_RELATIVE_OPPORTUNITIES)
         if (    (isfile(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + i))
-            and (len(i) > LEN_FILENAME_SUFFIX)
-            and (i[-LEN_FILENAME_SUFFIX:] == FILENAME_SUFFIX)
+            and (len(i) > LEN_FILENAME_OPPORTUNITIES_SUFFIX)
+            and (i[-LEN_FILENAME_OPPORTUNITIES_SUFFIX:] == FILENAME_OPPORTUNITIES_SUFFIX)
         )
     ])
     # filenames_without_infostamp = sorted(set([
@@ -344,13 +344,12 @@ def harvester(idx_feed_url, feed_url, refresh=True):
 
         # --------------------------------------------------------------------------------------------------
 
+        opportunities_in = None
         if (len(filenames_with_infostamp_current) == 0):
             opportunities_in = feed_url
         elif (refresh):
-            with lzma.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_SUFFIX, 'rb') as file_in:
+            with lzma.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_OPPORTUNITIES_SUFFIX, 'rb') as file_in:
                 opportunities_in = pickle.load(file_in)
-        else:
-            opportunities_in = None
 
         # --------------------------------------------------------------------------------------------------
 
@@ -383,12 +382,12 @@ def harvester(idx_feed_url, feed_url, refresh=True):
                 infostamp = set_infostamp(opportunities_out, t1, t2)
                 filenames_with_infostamp_current.append(filename_without_infostamp_current + infostamp)
 
-                with lzma.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_SUFFIX, 'wb') as file_out:
+                with lzma.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_OPPORTUNITIES_SUFFIX, 'wb') as file_out:
                     pickle.dump(opportunities_out, file_out)
 
                 if (len(filenames_with_infostamp_current) > NUM_FEED_VERSIONS_TO_STORE_MAX):
                     for filename_with_infostamp_current in filenames_with_infostamp_current[:-NUM_FEED_VERSIONS_TO_STORE_MAX]:
-                        remove(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filename_with_infostamp_current + FILENAME_SUFFIX)
+                        remove(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filename_with_infostamp_current + FILENAME_OPPORTUNITIES_SUFFIX)
 
             # --------------------------------------------------------------------------------------------------
 
