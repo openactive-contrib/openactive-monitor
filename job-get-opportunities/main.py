@@ -253,14 +253,38 @@ feed_urls_retry = {}
 
 # --------------------------------------------------------------------------------------------------
 
-def set_infostamp(opportunities_out, t1, t2):
-    time_delta = t2 - t1
-    return \
-        f"--status-{opportunities_out['status']}" + \
-        f"--urls-{len(opportunities_out['urls'])}" + \
-        f"--items-{len(opportunities_out['items'].keys())}" + \
-        f"--timeFinish-{t2.year}-{t2.month:02}-{t2.day:02}-{t2.hour:02}-{t2.minute:02}-{t2.second:02}-{t2.microsecond:06}" + \
-        f"--timeTaken-{time_delta.seconds}-{time_delta.microseconds}"
+class Infostamp:
+    # Files of the same filename prefix are later grouped and alphabetically sorted to determine the order
+    # in which they were made, and to then delete earlier ones. It's therefore important that 'timeFinish'
+    # is the first part of the filename infostamp suffix. Other parts can appear in any order. The alternative
+    # would be to break down the infostamp and seek the 'timeFinish' part when sorting, which is a bit
+    # more work and not necessary at the time of writing (2024-06-20):
+    parts = [
+        'timeFinish',
+        'timeTaken',
+        'numItems',
+        'numUrls',
+        'status',
+    ]
+
+    # This is important to know outside of this class for when the filename is broken into parts, in order
+    # to know how many of the parts form the infostamp suffix:
+    num_parts = len(parts)
+
+    def __init__(self, opportunities, t1, t2):
+        time_delta = t2 - t1
+        self.value = ''
+        for part in Infostamp.parts:
+            if (part == 'numItems'):
+                self.value += f"--{part}-{len(opportunities['items'].keys())}"
+            elif (part == 'numUrls'):
+                self.value += f"--{part}-{len(opportunities['urls'])}"
+            elif (part == 'status'):
+                self.value += f"--{part}-{opportunities['status']}"
+            elif (part == 'timeFinish'):
+                self.value += f"--{part}-{t2.year}-{t2.month:02}-{t2.day:02}-{t2.hour:02}-{t2.minute:02}-{t2.second:02}-{t2.microsecond:06}"
+            elif (part == 'timeTaken'):
+                self.value += f"--{part}-{time_delta.seconds}-{time_delta.microseconds}"
 
 # --------------------------------------------------------------------------------------------------
 
@@ -278,7 +302,7 @@ def get_filenames():
         )
     ])
     # filenames_without_infostamp = sorted(set([
-    #     '--'.join(i.split('--')[:-5])
+    #     '--'.join(i.split('--')[:-Infostamp.num_parts])
     #     for i in filenames_with_infostamp
     # ]))
 
@@ -339,7 +363,7 @@ def harvester(idx_feed_url, feed_url, refresh=True):
         filenames_with_infostamp_current = sorted([
             filename_with_infostamp
             for filename_with_infostamp in filenames_with_infostamp
-            if ('--'.join(filename_with_infostamp.split('--')[:-5]) == filename_without_infostamp_current)
+            if ('--'.join(filename_with_infostamp.split('--')[:-Infostamp.num_parts]) == filename_without_infostamp_current)
         ])
 
         # --------------------------------------------------------------------------------------------------
@@ -379,7 +403,7 @@ def harvester(idx_feed_url, feed_url, refresh=True):
                 if (timeout):
                     opportunities_out['status'] = 'TIMEOUT'
 
-                infostamp = set_infostamp(opportunities_out, t1, t2)
+                infostamp = Infostamp(opportunities_out, t1, t2).value
                 filenames_with_infostamp_current.append(filename_without_infostamp_current + infostamp)
 
                 with lzma.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_OPPORTUNITIES_SUFFIX, 'wb') as file_out:
