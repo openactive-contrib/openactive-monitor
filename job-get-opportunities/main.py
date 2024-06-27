@@ -117,6 +117,7 @@ def get_opportunities(arg, **kwargs):
 
     try:
         while (True):
+            feed_url = opportunities['nextUrl']
             opportunities, get_opportunities_helper_done = get_opportunities_helper(opportunities, **kwargs)
             if (not get_opportunities_helper_done):
                 sleep(seconds_wait_next)
@@ -125,7 +126,7 @@ def get_opportunities(arg, **kwargs):
         opportunities['status'] = 'COMPLETE'
     except:
         opportunities['status'] = 'ERROR'
-        set_message('Can\'t get feed: {}'.format(opportunities['nextUrl']), 'error')
+        set_message('Issue encountered when getting feed: {}'.format(feed_url), 'error')
 
     return opportunities
 
@@ -135,7 +136,9 @@ def get_opportunities_helper(opportunities, **kwargs):
     feed_url = opportunities['nextUrl']
     feed_page, num_tries = try_requests(feed_url, **kwargs)
 
-    if (feed_page.status_code != 200):
+    if (    (feed_page is None)
+        or  (feed_page.status_code != 200)
+    ):
         raise Exception()
 
     for item in feed_page.json()['items']:
@@ -201,6 +204,7 @@ def get_opportunities_next_url(next_url_original, opportunities):
 
 import func_timeout
 # import gc # 2024-06-14 Not currently using this as forced garbage collection is suspected of affecting Google Cloud memory performance
+import gzip
 import lzma
 import pickle
 import sys
@@ -213,10 +217,6 @@ from time import sleep
 
 # --------------------------------------------------------------------------------------------------
 
-FILENAME_FEEDS = 'feeds.pickle'
-FILENAME_OPPORTUNITIES_SUFFIX = '.pickle.xz'
-LEN_FILENAME_OPPORTUNITIES_SUFFIX = len(FILENAME_OPPORTUNITIES_SUFFIX)
-
 # These folders must have been made via the Google Cloud browser console under Cloud Storage for this
 # project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. With
 # this job called 'get-opportunities', this was done as follows (note that the volume and its mount-path
@@ -224,32 +224,35 @@ LEN_FILENAME_OPPORTUNITIES_SUFFIX = len(FILENAME_OPPORTUNITIES_SUFFIX)
 #   $ gcloud beta run jobs update get-opportunities \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-all-data-harvester_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
-FILEPATH_RELATIVE_FEEDS = getenv('FILEPATH_RELATIVE_FEEDS', '../volume-1/data-feeds')
-FILEPATH_RELATIVE_OPPORTUNITIES = getenv('FILEPATH_RELATIVE_OPPORTUNITIES', '../volume-1/data-opportunities')
+RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
+RELATIVE_FILEPATH_OPPORTUNITIES = getenv('RELATIVE_FILEPATH_OPPORTUNITIES', '../volume-1/data-opportunities')
 
-NUM_FEED_TRIES_MAX = 3 # Initial try plus retries
-NUM_FEED_VERSIONS_TO_STORE_MAX = 1
-NUM_FEEDS_MAX = int(getenv('NUM_FEEDS_MAX', '-1'))
-NUM_FEEDS_MAX = None if NUM_FEEDS_MAX < 0 else NUM_FEEDS_MAX
-SECONDS_PER_FEED_MAX = int(getenv('SECONDS_PER_FEED_MAX', '600'))
+FILENAME_FEEDS = 'feeds.pickle' # Located in RELATIVE_FILEPATH_FEEDS
+FILENAME_FEEDS_SEEN = '000_feeds_seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
+FILENAME_FEEDS_CRASHED = '000_feeds_crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
+FILENAMES_SKIP = [FILENAME_FEEDS_SEEN, FILENAME_FEEDS_CRASHED] # Filenames to skip when checking for opportunity files in RELATIVE_FILEPATH_OPPORTUNITIES
+FORMAT_FILE_OPPORTUNITIES = 'pickle'
+COMPRESSION_FILE_OPPORTUNITIES = getenv('COMPRESSION_FILE_OPPORTUNITIES', 'none').lower() # 'none' / 'gzip' / 'xz'
+SUFFIX_FILENAME_OPPORTUNITIES = '.' + FORMAT_FILE_OPPORTUNITIES + (('.' + COMPRESSION_FILE_OPPORTUNITIES) if (COMPRESSION_FILE_OPPORTUNITIES != 'none') else '')
+LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
 
-print('FILEPATH_RELATIVE_FEEDS:', FILEPATH_RELATIVE_FEEDS)
-print('FILEPATH_RELATIVE_OPPORTUNITIES:', FILEPATH_RELATIVE_OPPORTUNITIES)
-print('NUM_FEEDS_MAX:', NUM_FEEDS_MAX)
-print('SECONDS_PER_FEED_MAX:', SECONDS_PER_FEED_MAX)
+MAX_NUM_FEEDS = int(getenv('MAX_NUM_FEEDS', '-1'))
+MAX_NUM_FEEDS = None if (MAX_NUM_FEEDS < 0) else MAX_NUM_FEEDS # Negative indicates to do all feeds, otherwise cap at the stated number of feeds. This is useful for testing on a subset of all feeds.
+MAX_NUM_FEED_SECONDS = int(getenv('MAX_NUM_FEED_SECONDS', '600'))
+MAX_NUM_FEED_TRIES = int(getenv('MAX_NUM_FEED_TRIES', '3')) # Initial try plus retries in one run of this code
+MAX_NUM_FEED_FILES = int(getenv('MAX_NUM_FEED_FILES', '1')) # Number of historical outputs to keep for each feed, including the latest output
+VERBOSE = getenv('VERBOSE', 'False').title()
+VERBOSE = True if (VERBOSE == 'True') else False
 
-# --------------------------------------------------------------------------------------------------
-
-with open(FILEPATH_RELATIVE_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in:
-    feeds = pickle.load(file_in)
-
-# --------------------------------------------------------------------------------------------------
-
-feed_urls_skip = [
-    # 'https://opendata.leisurecloud.live/api/feeds/EveryoneActive-test-slots', # Crashed Jupyter one time, before timeout code was present
-]
-# For feeds that error during get_opportunities():
-feed_urls_retry = {}
+print('Environment variables:')
+print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
+print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
+print('COMPRESSION_FILE_OPPORTUNITIES:', COMPRESSION_FILE_OPPORTUNITIES)
+print('MAX_NUM_FEEDS:', MAX_NUM_FEEDS)
+print('MAX_NUM_FEED_SECONDS:', MAX_NUM_FEED_SECONDS)
+print('MAX_NUM_FEED_TRIES:', MAX_NUM_FEED_TRIES)
+print('MAX_NUM_FEED_FILES:', MAX_NUM_FEED_FILES)
+print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -282,7 +285,7 @@ class Infostamp:
             elif (part == 'status'):
                 self.value += f"--{part}-{opportunities['status']}"
             elif (part == 'timeFinish'):
-                self.value += f"--{part}-{t2.year}-{t2.month:02}-{t2.day:02}-{t2.hour:02}-{t2.minute:02}-{t2.second:02}-{t2.microsecond:06}"
+                self.value += f"--{part}-{t2.year}-{t2.month:02}-{t2.day:02}-{t2.hour:02}-{t2.minute:02}-{t2.second:02}-{t2.microsecond:06}-UTC"
             elif (part == 'timeTaken'):
                 self.value += f"--{part}-{time_delta.seconds}-{time_delta.microseconds}"
 
@@ -294,11 +297,12 @@ def get_filenames():
     global filenames_with_infostamp
     # global filenames_without_infostamp
     filenames_with_infostamp = sorted([
-        i[:-LEN_FILENAME_OPPORTUNITIES_SUFFIX]
-        for i in listdir(FILEPATH_RELATIVE_OPPORTUNITIES)
-        if (    (isfile(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + i))
-            and (len(i) > LEN_FILENAME_OPPORTUNITIES_SUFFIX)
-            and (i[-LEN_FILENAME_OPPORTUNITIES_SUFFIX:] == FILENAME_OPPORTUNITIES_SUFFIX)
+        i[:-LEN_SUFFIX_FILENAME_OPPORTUNITIES]
+        for i in listdir(RELATIVE_FILEPATH_OPPORTUNITIES)
+        if (    (isfile(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + i))
+            and (i not in FILENAMES_SKIP)
+            and (len(i) > LEN_SUFFIX_FILENAME_OPPORTUNITIES)
+            and (i[-LEN_SUFFIX_FILENAME_OPPORTUNITIES:] == SUFFIX_FILENAME_OPPORTUNITIES)
         )
     ])
     # filenames_without_infostamp = sorted(set([
@@ -329,30 +333,26 @@ class Test_get_opportunities_done:
 # to access this output even if the function is timed out, as func_timeout would otherwise lose
 # the output if it wrapped get_opportunities directly:
 opportunities_out = None
-@func_timeout.func_set_timeout(SECONDS_PER_FEED_MAX)
+@func_timeout.func_set_timeout(MAX_NUM_FEED_SECONDS)
 def run_get_opportunities(opportunities_in):
     global opportunities_out
     opportunities_out = None
     with Test_get_opportunities_done():
-        opportunities_out = get_opportunities(opportunities_in)
+        opportunities_out = get_opportunities(opportunities_in, verbose=VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
+
+feed_urls_skip = [
+    # 'https://opendata.leisurecloud.live/api/feeds/EveryoneActive-test-slots', # Crashed Jupyter one time, before timeout code was present
+]
+# For feeds that error during get_opportunities():
+feed_urls_retry = {}
 
 # The refresh keyword means whether or not a given feed_url will be run again if it already has a file
 # present from a previous run. It's useful to set this to False if a run fails part-way through the
 # full list of feed_urls, and you want to start again but without redoing the ones that were already
 # dealt with.
 def harvester(idx_feed_url, feed_url, refresh=True):
-    print(datetime.now(), idx_feed_url, feed_url)
-
-    # --------------------------------------------------------------------------------------------------
-
-    if (feed_url in feed_urls_skip):
-        print('Feed URL is in skip list, skipping')
-        return
-
-    # --------------------------------------------------------------------------------------------------
-
     global get_opportunities_done
     global opportunities_out
 
@@ -372,8 +372,16 @@ def harvester(idx_feed_url, feed_url, refresh=True):
         if (len(filenames_with_infostamp_current) == 0):
             opportunities_in = feed_url
         elif (refresh):
-            with lzma.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_OPPORTUNITIES_SUFFIX, 'rb') as file_in:
-                opportunities_in = pickle.load(file_in)
+            relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
+            if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
+                with open(relative_filepath_opportunities_in, 'rb') as file_in:
+                    opportunities_in = pickle.load(file_in)
+            elif (COMPRESSION_FILE_OPPORTUNITIES == 'gzip'):
+                with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
+                    opportunities_in = pickle.load(file_in)
+            elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
+                with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
+                    opportunities_in = pickle.load(file_in)
 
         # --------------------------------------------------------------------------------------------------
 
@@ -403,27 +411,34 @@ def harvester(idx_feed_url, feed_url, refresh=True):
                 if (timeout):
                     opportunities_out['status'] = 'TIMEOUT'
 
-                infostamp = Infostamp(opportunities_out, t1, t2).value
-                filenames_with_infostamp_current.append(filename_without_infostamp_current + infostamp)
+                filenames_with_infostamp_current.append(filename_without_infostamp_current + Infostamp(opportunities_out, t1, t2).value)
+                relative_filepath_opportunities_out = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
 
-                with lzma.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_OPPORTUNITIES_SUFFIX, 'wb') as file_out:
-                    pickle.dump(opportunities_out, file_out)
+                if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
+                    with open(relative_filepath_opportunities_out, 'wb') as file_out:
+                        pickle.dump(opportunities_out, file_out)
+                elif (COMPRESSION_FILE_OPPORTUNITIES == 'gzip'):
+                    with gzip.open(relative_filepath_opportunities_out, 'wb') as file_out:
+                        pickle.dump(opportunities_out, file_out)
+                elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
+                    with lzma.open(relative_filepath_opportunities_out, 'wb') as file_out:
+                        pickle.dump(opportunities_out, file_out)
 
-                if (len(filenames_with_infostamp_current) > NUM_FEED_VERSIONS_TO_STORE_MAX):
-                    for filename_with_infostamp_current in filenames_with_infostamp_current[:-NUM_FEED_VERSIONS_TO_STORE_MAX]:
-                        remove(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filename_with_infostamp_current + FILENAME_OPPORTUNITIES_SUFFIX)
+                if (len(filenames_with_infostamp_current) > MAX_NUM_FEED_FILES):
+                    for filename_with_infostamp_current in filenames_with_infostamp_current[:-MAX_NUM_FEED_FILES]:
+                        remove(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filename_with_infostamp_current + SUFFIX_FILENAME_OPPORTUNITIES)
 
             # --------------------------------------------------------------------------------------------------
 
             # Not currently retrying feeds that timeout, only retrying regular errors:
-            if (NUM_FEED_TRIES_MAX > 1):
+            if (MAX_NUM_FEED_TRIES > 1):
                 if (    (opportunities_out is None)
                     or  (opportunities_out['status'] == 'ERROR')
                 ):
                     if (feed_url not in feed_urls_retry.keys()):
                         feed_urls_retry[feed_url] = {
                             'idx_feed_url': idx_feed_url,
-                            'num_feed_tries_remaining': NUM_FEED_TRIES_MAX - 1,
+                            'num_feed_tries_remaining': MAX_NUM_FEED_TRIES - 1,
                             'status': 'ERROR',
                         }
                     else:
@@ -434,7 +449,7 @@ def harvester(idx_feed_url, feed_url, refresh=True):
 
             # --------------------------------------------------------------------------------------------------
 
-            print(datetime.now(), opportunities_out['status'] if opportunities_out is not None else 'ERROR')
+            print(idx_feed_url, feed_url, opportunities_out['status'] if (opportunities_out is not None) else 'ERROR')
 
     except Exception as error:
         print('ERROR:', error)
@@ -451,28 +466,79 @@ def harvester(idx_feed_url, feed_url, refresh=True):
 
 if (__name__ == '__main__'):
     try:
-        print('Running first attempt of all feed URLs')
+        print('Started first attempt of all feed URLs')
+
+        with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in:
+            feeds = pickle.load(file_in)
+
         get_filenames()
-        for idx_feed_url, feed_url in enumerate([feed['url'] for feed in feeds['feeds'][0:NUM_FEEDS_MAX]]):
-            harvester(idx_feed_url, feed_url, True)
+
+        # FILENAME_FEEDS_SEEN is deleted at the end of a full successful run of harvesting all feeds, so if
+        # this file exists at this point it means that this is not the first time we've run the code, which
+        # in turn means that we had a forced stop during the previous run, either because of manual intervention
+        # or a crash. Taking the latter as the standard production scenario, as manual intervention should
+        # only be done when testing, we then have that the last feed to be written to FILENAME_FEEDS_SEEN may
+        # itself have been the ultimate cause of the crash. We therefore add that feed to FILENAME_FEEDS_CRASHED
+        # and ignore these feeds in further processing attempts.
+        if (FILENAME_FEEDS_SEEN in listdir(RELATIVE_FILEPATH_OPPORTUNITIES)):
+            with open(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + FILENAME_FEEDS_SEEN, 'r') as file_in:
+                date_time_feed_urls_seen = file_in.read().strip('\n').split('\n')
+                feed_urls_seen = [date_time_feed_url_seen.split()[2] for date_time_feed_url_seen in date_time_feed_urls_seen]
+            with open(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + FILENAME_FEEDS_CRASHED, 'a') as file_out:
+                file_out.write(date_time_feed_urls_seen[-1] + '\n')
+        else:
+            feed_urls_seen = []
+
+        for idx_feed_url, feed_url in enumerate([feed['url'] for feed in feeds['feeds'][0:MAX_NUM_FEEDS]]):
+            print(idx_feed_url, feed_url, 'START')
+
+            if (feed_url in feed_urls_skip):
+                print('Feed URL in skip list, skipping')
+                continue
+
+            if (feed_url not in feed_urls_seen):
+                with open(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + FILENAME_FEEDS_SEEN, 'a') as file_out:
+                    file_out.write(str(datetime.now()) + ' ' + feed_url + '\n')
+                harvester(idx_feed_url, feed_url, True)
+            else:
+                feed_urls_seen.remove(feed_url)
+                print('Feed URL seen, skipping')
+
+        if (FILENAME_FEEDS_SEEN in listdir(RELATIVE_FILEPATH_OPPORTUNITIES)):
+            remove(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + FILENAME_FEEDS_SEEN)
+        # if (FILENAME_FEEDS_CRASHED in listdir(RELATIVE_FILEPATH_OPPORTUNITIES)):
+        #     remove(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + FILENAME_FEEDS_CRASHED)
+
+        print('Finished first attempt of all feed URLs')
+
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
 
+    # --------------------------------------------------------------------------------------------------
+
     try:
         num_feed_urls_retry_remaining = len(feed_urls_retry.keys())
+
         if (num_feed_urls_retry_remaining > 0):
-            print(f'\nRunning retries ({num_feed_urls_retry_remaining})')
+
+            print(f'\nStarted retries ({num_feed_urls_retry_remaining})')
             print(feed_urls_retry.keys())
+
             while (num_feed_urls_retry_remaining > 0):
                 get_filenames()
-                for feed_url,feed_url_info in feed_urls_retry.items():
+                for feed_url, feed_url_info in feed_urls_retry.items():
                     if (feed_url_info['num_feed_tries_remaining'] > 0):
                         harvester(feed_url_info['idx_feed_url'], feed_url, True)
                         if (feed_url_info['num_feed_tries_remaining'] == 0):
                             num_feed_urls_retry_remaining -= 1
+
+            print('Finished retries')
+
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
+
+    # --------------------------------------------------------------------------------------------------
 
     print('Finished')

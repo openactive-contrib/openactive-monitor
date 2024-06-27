@@ -1,4 +1,4 @@
-# import gzip
+import gzip
 import lzma
 import pickle
 import sys
@@ -14,18 +14,6 @@ geolocator = Nominatim(user_agent='OpenActive All Data Harvester', timeout=None)
 
 # --------------------------------------------------------------------------------------------------
 
-# FILETYPE_OPPORTUNITIES = getenv('FILETYPE_OPPORTUNITIES', 'uncompressed') # uncompressed / gzip / lzma
-# if (FILETYPE_OPPORTUNITIES == 'uncompressed'):
-#     FILENAME_OPPORTUNITIES_SUFFIX = '.pickle'
-# elif (FILETYPE_OPPORTUNITIES == 'gzip'):
-#     FILENAME_OPPORTUNITIES_SUFFIX = '.pickle.gzip'
-# elif (FILETYPE_OPPORTUNITIES == 'lzma'):
-#     FILENAME_OPPORTUNITIES_SUFFIX = '.pickle.xz'
-FILENAME_OPPORTUNITIES_SUFFIX = '.pickle.xz'
-LEN_FILENAME_OPPORTUNITIES_SUFFIX = len(FILENAME_OPPORTUNITIES_SUFFIX)
-# FILENAME_ANALYSIS = 'analysis-' + FILETYPE_OPPORTUNITIES + '.pickle'
-FILENAME_ANALYSIS = 'analysis.pickle'
-
 # These folders must have been made via the Google Cloud browser console under Cloud Storage for this
 # project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. With
 # this job called 'analyse-opportunities', this was done as follows (note that the volume and its mount-path
@@ -33,12 +21,21 @@ FILENAME_ANALYSIS = 'analysis.pickle'
 #   $ gcloud beta run jobs update analyse-opportunities \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-all-data-harvester_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
-# FILEPATH_RELATIVE_OPPORTUNITIES = getenv('FILEPATH_RELATIVE_OPPORTUNITIES', '../volume-1/data-opportunities-test-' + FILETYPE_OPPORTUNITIES)
-FILEPATH_RELATIVE_OPPORTUNITIES = getenv('FILEPATH_RELATIVE_OPPORTUNITIES', '../volume-1/data-opportunities')
-FILEPATH_RELATIVE_ANALYSIS = getenv('FILEPATH_RELATIVE_ANALYSIS', '../volume-1/data-analysis')
+RELATIVE_FILEPATH_OPPORTUNITIES = getenv('RELATIVE_FILEPATH_OPPORTUNITIES', '../volume-1/data-opportunities')
+RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
 
-print('FILEPATH_RELATIVE_OPPORTUNITIES:', FILEPATH_RELATIVE_OPPORTUNITIES)
-print('FILEPATH_RELATIVE_ANALYSIS:', FILEPATH_RELATIVE_ANALYSIS)
+FILENAME_FEEDS_SEEN = '000_feeds_seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
+FILENAME_FEEDS_CRASHED = '000_feeds_crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
+FILENAMES_SKIP = [FILENAME_FEEDS_SEEN, FILENAME_FEEDS_CRASHED] # Filenames to skip when checking for opportunity files in RELATIVE_FILEPATH_OPPORTUNITIES
+FORMAT_FILE_OPPORTUNITIES = 'pickle'
+COMPRESSION_FILE_OPPORTUNITIES = getenv('COMPRESSION_FILE_OPPORTUNITIES', 'none').lower() # 'none' / 'gzip' / 'xz'
+SUFFIX_FILENAME_OPPORTUNITIES = '.' + FORMAT_FILE_OPPORTUNITIES + (('.' + COMPRESSION_FILE_OPPORTUNITIES) if (COMPRESSION_FILE_OPPORTUNITIES != 'none') else '')
+LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
+FILENAME_ANALYSIS = 'analysis.pickle'
+
+print('Environment variables:')
+print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
+print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -71,7 +68,7 @@ class Infostamp:
             elif (part == 'status'):
                 self.value += f"--{part}-{opportunities['status']}"
             elif (part == 'timeFinish'):
-                self.value += f"--{part}-{t2.year}-{t2.month:02}-{t2.day:02}-{t2.hour:02}-{t2.minute:02}-{t2.second:02}-{t2.microsecond:06}"
+                self.value += f"--{part}-{t2.year}-{t2.month:02}-{t2.day:02}-{t2.hour:02}-{t2.minute:02}-{t2.second:02}-{t2.microsecond:06}-UTC"
             elif (part == 'timeTaken'):
                 self.value += f"--{part}-{time_delta.seconds}-{time_delta.microseconds}"
 
@@ -83,11 +80,12 @@ def get_filenames():
     global filenames_with_infostamp
     global filenames_without_infostamp
     filenames_with_infostamp = sorted([
-        i[:-LEN_FILENAME_OPPORTUNITIES_SUFFIX]
-        for i in listdir(FILEPATH_RELATIVE_OPPORTUNITIES)
-        if (    (isfile(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + i))
-            and (len(i) > LEN_FILENAME_OPPORTUNITIES_SUFFIX)
-            and (i[-LEN_FILENAME_OPPORTUNITIES_SUFFIX:] == FILENAME_OPPORTUNITIES_SUFFIX)
+        i[:-LEN_SUFFIX_FILENAME_OPPORTUNITIES]
+        for i in listdir(RELATIVE_FILEPATH_OPPORTUNITIES)
+        if (    (isfile(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + i))
+            and (i not in FILENAMES_SKIP)
+            and (len(i) > LEN_SUFFIX_FILENAME_OPPORTUNITIES)
+            and (i[-LEN_SUFFIX_FILENAME_OPPORTUNITIES:] == SUFFIX_FILENAME_OPPORTUNITIES)
         )
     ])
     filenames_without_infostamp = sorted(set([
@@ -109,32 +107,30 @@ def analyse_opportunities():
             if ('--'.join(filename_with_infostamp.split('--')[:-Infostamp.num_parts]) == filename_without_infostamp_current)
         ])
 
-        print(datetime.now(), idx_filename_without_infostamp_current, filenames_with_infostamp_current[-1])
+        print(idx_filename_without_infostamp_current, filenames_with_infostamp_current[-1])
 
-        # if (FILETYPE_OPPORTUNITIES == 'uncompressed'):
-        #     with open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_OPPORTUNITIES_SUFFIX, 'rb') as file_in:
-        #         opportunities = pickle.load(file_in)
-        # elif (FILETYPE_OPPORTUNITIES == 'gzip'):
-        #     with gzip.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_OPPORTUNITIES_SUFFIX, 'rb') as file_in:
-        #         opportunities = pickle.load(file_in)
-        # elif (FILETYPE_OPPORTUNITIES == 'lzma'):
-        #     with lzma.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_OPPORTUNITIES_SUFFIX, 'rb') as file_in:
-        #         opportunities = pickle.load(file_in)
-
-        with lzma.open(FILEPATH_RELATIVE_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + FILENAME_OPPORTUNITIES_SUFFIX, 'rb') as file_in:
-            opportunities = pickle.load(file_in)
+        relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
+        if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
+            with open(relative_filepath_opportunities_in, 'rb') as file_in:
+                opportunities_in = pickle.load(file_in)
+        elif (COMPRESSION_FILE_OPPORTUNITIES == 'gzip'):
+            with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
+                opportunities_in = pickle.load(file_in)
+        elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
+            with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
+                opportunities_in = pickle.load(file_in)
 
         analysis[filenames_with_infostamp_current[-1]] = {
-            'num_items': len(opportunities['items'].keys()),
-            'num_urls': len(opportunities['urls']),
-            'status': opportunities['status'],
-            'activities_counts': get_activities_counts(opportunities),
-            'coords_counts': get_coords_counts(opportunities),
+            'num_items': len(opportunities_in['items'].keys()),
+            'num_urls': len(opportunities_in['urls']),
+            'status': opportunities_in['status'],
+            'activities_counts': get_activities_counts(opportunities_in),
+            'coords_counts': get_coords_counts(opportunities_in),
         }
 
     # --------------------------------------------------------------------------------------------------
 
-    with open(FILEPATH_RELATIVE_ANALYSIS + '/' + FILENAME_ANALYSIS, 'wb') as file_out:
+    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'wb') as file_out:
         pickle.dump(analysis, file_out)
 
 # --------------------------------------------------------------------------------------------------
@@ -236,25 +232,25 @@ def get_item_coords_from_postalcode(data):
         if (    (key == 'postalCode')
             and (isinstance(val, str))
         ):
-            val = val.upper().replace(' ', '')
-            if (val not in postalcodes_coords.keys()):
+            val_mod = val.upper().replace(' ', '')
+            if (val_mod not in postalcodes_coords.keys()):
                 if ((datetime.now() - time_last_geocode).seconds < 1):
                     sleep(1)
                 time_last_geocode = datetime.now()
-                loc = geolocator.geocode(val + ',GB')
+                loc = geolocator.geocode(val_mod + ',GB')
                 if (    (loc is not None)
                     and (loc.latitude is not None)
                     and (loc.longitude is not None)
                 ):
-                    postalcodes_coords[val] = [
+                    postalcodes_coords[val_mod] = [
                         round(loc.latitude, NUM_DECIMAL_PLACES_COORDS),
                         round(loc.longitude, NUM_DECIMAL_PLACES_COORDS)
                     ]
                 else:
-                    print('Can\'t determine coordinates for postalcode', val)
-                    postalcodes_coords[val] = None
-            if (postalcodes_coords[val] is not None):
-                item_coords = postalcodes_coords[val]
+                    print('Can\'t determine coordinates for postalcode:', val)
+                    postalcodes_coords[val_mod] = None
+            if (postalcodes_coords[val_mod] is not None):
+                item_coords = postalcodes_coords[val_mod]
         elif (isinstance(val, dict)):
             item_coords = get_item_coords_from_postalcode(val)
         if (item_coords):
