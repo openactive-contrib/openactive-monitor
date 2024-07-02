@@ -17,13 +17,18 @@ FILENAME_FEEDS = 'feeds.pickle'
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
 FILEPATH_RELATIVE_FEEDS = getenv('FILEPATH_RELATIVE_FEEDS', '../volume-1/data-feeds')
 
+VERBOSE = getenv('VERBOSE', 'False').title()
+VERBOSE = True if (VERBOSE == 'True') else False
+
+print('Environment variables:')
 print('FILEPATH_RELATIVE_FEEDS:', FILEPATH_RELATIVE_FEEDS)
+print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
 def run_get_feeds():
     t1 = datetime.now()
-    feeds = get_feeds(flat=True)
+    feeds = get_feeds(flat=True, verbose=VERBOSE)
     t2 = datetime.now()
 
     with open(FILEPATH_RELATIVE_FEEDS + '/' + FILENAME_FEEDS, 'wb') as file_out:
@@ -46,3 +51,4 @@ if (__name__ == '__main__'):
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
+    print('Finished')
