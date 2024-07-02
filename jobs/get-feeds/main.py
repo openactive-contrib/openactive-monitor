@@ -13,7 +13,7 @@ FILENAME_FEEDS = 'feeds.pickle'
 # this job called 'get-feeds', this was done as follows (note that the volume and its mount-path
 # were given the same name, which didn't have to be so):
 #   $ gcloud beta run jobs update get-feeds \
-#   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-all-data-harvester_cloudbuild \
+#   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
 FILEPATH_RELATIVE_FEEDS = getenv('FILEPATH_RELATIVE_FEEDS', '../volume-1/data-feeds')
 
