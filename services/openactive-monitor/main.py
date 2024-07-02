@@ -1,11 +1,22 @@
-import os
+# import os
 import pickle
-from flask import Flask
+import streamlit as st
+# from flask import Flask
 from os import getenv
 
 # --------------------------------------------------------------------------------------------------
 
-app = Flask(__name__)
+# app = Flask(__name__)
+
+st.set_page_config(
+    page_title='OpenActive',
+    page_icon='https://www.openactive.io/wp-content/themes/open-active-1_3/images/favicon.png',
+    layout='wide',
+    menu_items={
+        'Get help': 'mailto:hello@openactive.io',
+        'About': 'Copyright 2024 OpenActive',
+    }
+)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -25,17 +36,17 @@ FILENAME_ANALYSIS = 'analysis.pickle'
 
 # --------------------------------------------------------------------------------------------------
 
-@app.route('/')
-def main():
-    try:
-        return 'OpenActive Monitor'
-    except:
-        return None
+# @app.route('/')
+# def main():
+#     try:
+#         return 'OpenActive Monitor'
+#     except:
+#         return None
 
 # --------------------------------------------------------------------------------------------------
 
-@app.route('/feeds')
-def feeds():
+# @app.route('/feeds')
+def get_feeds():
     try:
         with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in:
             feeds = pickle.load(file_in)
@@ -45,8 +56,8 @@ def feeds():
 
 # --------------------------------------------------------------------------------------------------
 
-@app.route('/analysis')
-def analysis():
+# @app.route('/analysis')
+def get_analysis():
     try:
         with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
             analysis = pickle.load(file_in)
@@ -56,9 +67,18 @@ def analysis():
 
 # --------------------------------------------------------------------------------------------------
 
-if (__name__ == '__main__'):
-    app.run(
-        debug = True,
-        host = '0.0.0.0',
-        port = int(os.environ.get('PORT', 8080)),
-    )
+with st.sidebar:
+    st.image('https://openactive.io/brand-assets/openactive-logo-large.png')
+
+# --------------------------------------------------------------------------------------------------
+
+st.json(get_feeds())
+
+# --------------------------------------------------------------------------------------------------
+
+# if (__name__ == '__main__'):
+#     app.run(
+#         debug=True,
+#         host='0.0.0.0',
+#         port=int(os.environ.get('PORT', 8080)),
+#     )
