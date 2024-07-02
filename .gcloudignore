@@ -1,4 +1,0 @@
-.git/
-.gcloudignore
-.gitignore
-#!include:.gitignore
