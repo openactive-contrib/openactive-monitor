@@ -48,7 +48,7 @@ def get_analysis():
         with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
             analysis = pickle.load(file_in)
          # Calculate total 'num_items'
-         total_num_items = sum(item['num_items'] for item in analysis.values())        
+         total_num_items = sum(item['num_items'] for item in analysis.values())
         return total_num_items
     except:
         return None
