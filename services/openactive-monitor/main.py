@@ -1,12 +1,9 @@
 # import os
 import pickle
 import streamlit as st
-# from flask import Flask
 from os import getenv
 
 # --------------------------------------------------------------------------------------------------
-
-# app = Flask(__name__)
 
 st.set_page_config(
     page_title='OpenActive',
@@ -36,16 +33,6 @@ FILENAME_ANALYSIS = 'analysis.pickle'
 
 # --------------------------------------------------------------------------------------------------
 
-# @app.route('/')
-# def main():
-#     try:
-#         return 'OpenActive Monitor'
-#     except:
-#         return None
-
-# --------------------------------------------------------------------------------------------------
-
-# @app.route('/feeds')
 def get_feeds():
     try:
         with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in:
@@ -56,12 +43,13 @@ def get_feeds():
 
 # --------------------------------------------------------------------------------------------------
 
-# @app.route('/analysis')
 def get_analysis():
     try:
         with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
             analysis = pickle.load(file_in)
-        return analysis
+         # Calculate total 'num_items'
+         total_num_items = sum(item['num_items'] for item in analysis.values())        
+        return total_num_items
     except:
         return None
 
@@ -73,13 +61,11 @@ with st.sidebar:
 # --------------------------------------------------------------------------------------------------
 
 st.json(get_feeds())
-st.json(get_analysis())
 
 # --------------------------------------------------------------------------------------------------
 
-# if (__name__ == '__main__'):
-#     app.run(
-#         debug=True,
-#         host='0.0.0.0',
-#         port=int(os.environ.get('PORT', 8080)),
-#     )
+# Display the total count in Streamlit
+st.title('Dashboard Metrics')
+st.metric('Total Num Items', get_analysis())
+
+# --------------------------------------------------------------------------------------------------
