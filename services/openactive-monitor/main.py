@@ -27,8 +27,6 @@ st.set_page_config(
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
 RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
 RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
-RELATIVE_FILEPATH_FEEDS = ""
-RELATIVE_FILEPATH_ANALYSIS = ""
 
 FILENAME_FEEDS = 'feeds.pickle'
 FILENAME_ANALYSIS = 'analysis.pickle'
