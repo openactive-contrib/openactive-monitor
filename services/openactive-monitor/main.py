@@ -27,6 +27,8 @@ st.set_page_config(
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
 RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
 RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
+RELATIVE_FILEPATH_FEEDS = ""
+RELATIVE_FILEPATH_ANALYSIS = ""
 
 FILENAME_FEEDS = 'feeds.pickle'
 FILENAME_ANALYSIS = 'analysis.pickle'
@@ -40,6 +42,7 @@ def get_feeds():
         return feeds
     except:
         return None
+
 
 # --------------------------------------------------------------------------------------------------
 
@@ -55,17 +58,18 @@ def get_analysis():
 
 # --------------------------------------------------------------------------------------------------
 
-with st.sidebar:
-    st.image('https://openactive.io/brand-assets/openactive-logo-large.png')
-
-# --------------------------------------------------------------------------------------------------
-
-st.json(get_feeds())
-
-# --------------------------------------------------------------------------------------------------
-
 # Display the total count in Streamlit
-st.title('Dashboard Metrics')
+st.title('Overview of OpenActive Data Ecosystem')
+
+# Extract and present num_feeds from the JSON
+feeds_data = get_feeds()  # Get the feeds data
+if feeds_data is not None:
+    num_feeds = feeds_data['num_feeds']  # Access the 'num_feeds' key
+    st.metric('Number of Feeds', num_feeds)  # Display the num_feeds metric
+else:
+    st.error('Error retrieving feeds data.')
+
+# Show total headline opportunity count
 st.metric('Total Num Items', get_analysis())
 
 # --------------------------------------------------------------------------------------------------

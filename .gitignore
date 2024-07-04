@@ -1,3 +1,5 @@
 virt/
 volume-1/
 .DS_Store
+data-feeds_feeds.pickle
+data-analysis_analysis.pickle
