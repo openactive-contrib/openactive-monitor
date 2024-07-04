@@ -57,17 +57,61 @@ def get_analysis():
 # --------------------------------------------------------------------------------------------------
 
 # Display the total count in Streamlit
-st.title('Overview of OpenActive Data Ecosystem')
+st.header('Overview of OpenActive Data Ecosystem')
 
-# Extract and present num_feeds from the JSON
-feeds_data = get_feeds()  # Get the feeds data
-if feeds_data is not None:
-    num_feeds = feeds_data['num_feeds']  # Access the 'num_feeds' key
-    st.metric('Number of Feeds', num_feeds)  # Display the num_feeds metric
-else:
-    st.error('Error retrieving feeds data.')
+col1, col2 = st.columns(2)
 
-# Show total headline opportunity count
-st.metric('Total Num Items', get_analysis())
+# Using 'with' notation:
+with col1:
+    # Extract and present num_feeds from the JSON
+    feeds_data = get_feeds()  # Get the feeds data
+    if feeds_data is not None:
+        num_feeds = feeds_data['num_feeds']  # Access the 'num_feeds' key
+        st.metric('Number of Feeds', num_feeds)  # Display the num_feeds metric
+    else:
+        st.error('Error retrieving feeds data.')
+
+with col2:
+    # Show total headline opportunity count
+    st.metric('Total Num Items', get_analysis())
+
+# --------------------------------------------------------------------------------------------------
+
+def get_activities_counts():
+    try:
+        with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
+            analysis = pickle.load(file_in)   
+
+        activities_counts = {}
+
+        for item in analysis.values():
+            # Access the 'activities_counts' dictionary within each item
+            item_activities_counts = item.get('activities_counts', {})
+            # Iterate through the activities in the item's 'activities_counts'
+            for activity, count in item_activities_counts.items():
+                if activity in activities_counts:
+                    activities_counts[activity] += count
+                else:
+                    activities_counts[activity] = count
+        return activities_counts
+    except:
+        return None
+    
+
+activities_summary = get_activities_counts()
+
+# Sort the activities_summary dictionary by value in descending order
+sorted_activities = dict(sorted(activities_summary.items(), key=lambda item: item[1], reverse=True))
+
+# Take the top 100 activities
+top_100_activities = dict(list(sorted_activities.items())[:100])
+
+# Convert the top_100_activities dictionary to a format suitable for Streamlit's bar chart
+chart_data = [{'activity': activity, 'count': int(count)} for activity, count in top_100_activities.items()]
+
+st.subheader('Top 100 activities')
+
+# Create the horizontal bar chart
+st.bar_chart(chart_data, x='activity', y='count', horizontal=True, use_container_width=True)
 
 # --------------------------------------------------------------------------------------------------
