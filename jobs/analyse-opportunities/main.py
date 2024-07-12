@@ -10,6 +10,9 @@ from time import sleep
 
 # --------------------------------------------------------------------------------------------------
 
+# TODO: Consider using a non-infinite timeout here. See:
+# https://gis.stackexchange.com/questions/173569/avoid-time-out-error-nominatim-geopy-openstreetmap
+# https://geopy.readthedocs.io/en/latest/index.html#nominatim
 geolocator = Nominatim(user_agent='OpenActive Monitor', timeout=None)
 
 # --------------------------------------------------------------------------------------------------
@@ -234,6 +237,9 @@ def get_item_coords_from_postalcode(data):
         ):
             val_mod = val.upper().replace(' ', '')
             if (val_mod not in postalcodes_coords.keys()):
+                # https://operations.osmfoundation.org/policies/nominatim/
+                # Nominatim usage policy demands "an absolute maximum of 1 request per second", so if less than one
+                # second has passed since the last request then wait before proceeding with the next request:
                 if ((datetime.now() - time_last_geocode).seconds < 1):
                     sleep(1)
                 time_last_geocode = datetime.now()
@@ -267,3 +273,7 @@ if (__name__ == '__main__'):
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
+
+    # --------------------------------------------------------------------------------------------------
+
+    print('Finished')

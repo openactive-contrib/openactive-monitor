@@ -1,6 +1,7 @@
 import pickle
 import sys
 from datetime import datetime
+from google.cloud import pubsub_v1
 from openactive import get_feeds
 from os import getenv
 
@@ -45,10 +46,33 @@ def run_get_feeds():
 
 # --------------------------------------------------------------------------------------------------
 
+def run_job(name_job):
+    publisher = pubsub_v1.PublisherClient()
+    future = publisher.publish(
+        publisher.topic_path('openactive-monitor', 'run-job'),
+        name_job.encode('utf-8')
+    )
+    future.result()
+
+# --------------------------------------------------------------------------------------------------
+
 if (__name__ == '__main__'):
+    # Temporarily disabled as GCloud is not getting all feeds for some reason, so just using feeds.pickle
+    # from local run instead:
+    # try:
+    #     run_get_feeds()
+    # except Exception as error:
+    #     print('ERROR:', error)
+    #     sys.exit(1)
+
+    # --------------------------------------------------------------------------------------------------
+
     try:
-        run_get_feeds()
+        run_job('get-opportunities')
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
+
+    # --------------------------------------------------------------------------------------------------
+
     print('Finished')
