@@ -1,3 +1,13 @@
+# Dependencies
+node_modules/
 virt/
+
+# Private
 volume-1/
+volume-1
+
+# Tests
+test*/
+
+# Mac Finder
 .DS_Store
