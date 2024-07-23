@@ -4,8 +4,9 @@ virt/
 .venv
 
 # Private
+# "volume-1" is for soft-links to the actual "volume-1/" directory made for local testing
 volume-1/
-volume-1 # For soft-links made for local testing to the actual volume-1/ directory
+volume-1
 
 # Tests
 test*/
