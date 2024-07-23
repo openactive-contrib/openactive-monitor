@@ -1,7 +1,7 @@
 # import os
 import pickle
 import streamlit as st
-from os import getenv
+from os import getenv, getcwd
 
 # --------------------------------------------------------------------------------------------------
 
@@ -73,17 +73,23 @@ with col1:
 
 with col2:
     # Show total headline opportunity count
-    st.metric('Total Num Items', get_analysis())
+    total_num_items = get_analysis()
+    if total_num_items is not None:
+        st.metric('Total Num Items', f"{total_num_items:,}")  # Format with comma separators
+    else:
+        st.error('Error retrieving analysis data.')
+
 
 # --------------------------------------------------------------------------------------------------
 
 def get_activities_counts():
     try:
+        print(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS)
         with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
             analysis = pickle.load(file_in)   
 
         activities_counts = {}
-
+        
         for item in analysis.values():
             # Access the 'activities_counts' dictionary within each item
             item_activities_counts = item.get('activities_counts', {})
