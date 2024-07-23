@@ -1,10 +1,11 @@
 # Dependencies
 node_modules/
 virt/
+.venv
 
 # Private
 volume-1/
-volume-1
+volume-1 # For soft-links made for local testing to the actual volume-1/ directory
 
 # Tests
 test*/
