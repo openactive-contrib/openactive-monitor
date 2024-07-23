@@ -10,6 +10,9 @@ from time import sleep
 
 # --------------------------------------------------------------------------------------------------
 
+# TODO: Consider using a non-infinite timeout here. See:
+# https://gis.stackexchange.com/questions/173569/avoid-time-out-error-nominatim-geopy-openstreetmap
+# https://geopy.readthedocs.io/en/latest/index.html#nominatim
 geolocator = Nominatim(user_agent='OpenActive Monitor', timeout=None)
 
 # --------------------------------------------------------------------------------------------------
@@ -109,6 +112,7 @@ def analyse_opportunities():
 
         print(idx_filename_without_infostamp_current, filenames_with_infostamp_current[-1])
 
+        opportunities_in = None
         relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
         if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
             with open(relative_filepath_opportunities_in, 'rb') as file_in:
@@ -120,13 +124,14 @@ def analyse_opportunities():
             with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
                 opportunities_in = pickle.load(file_in)
 
-        analysis[filenames_with_infostamp_current[-1]] = {
-            'num_items': len(opportunities_in['items'].keys()),
-            'num_urls': len(opportunities_in['urls']),
-            'status': opportunities_in['status'],
-            'activities_counts': get_activities_counts(opportunities_in),
-            'coords_counts': get_coords_counts(opportunities_in),
-        }
+        if (opportunities_in is not None):
+            analysis[filenames_with_infostamp_current[-1]] = {
+                'num_items': len(opportunities_in['items'].keys()),
+                'num_urls': len(opportunities_in['urls']),
+                'status': opportunities_in['status'],
+                'activities_counts': get_activities_counts(opportunities_in),
+                'coords_counts': get_coords_counts(opportunities_in),
+            }
 
     # --------------------------------------------------------------------------------------------------
 
@@ -178,7 +183,7 @@ def get_item_activities(data):
 
 # --------------------------------------------------------------------------------------------------
 
-NUM_DECIMAL_PLACES_COORDS = 7
+NUM_DECIMAL_PLACES_COORDS = 6
 
 def get_coords_counts(opportunities):
     coords_counts = {}
@@ -234,6 +239,9 @@ def get_item_coords_from_postalcode(data):
         ):
             val_mod = val.upper().replace(' ', '')
             if (val_mod not in postalcodes_coords.keys()):
+                # https://operations.osmfoundation.org/policies/nominatim/
+                # Nominatim usage policy demands "an absolute maximum of 1 request per second", so if less than one
+                # second has passed since the last request then wait before proceeding with the next request:
                 if ((datetime.now() - time_last_geocode).seconds < 1):
                     sleep(1)
                 time_last_geocode = datetime.now()
@@ -267,3 +275,7 @@ if (__name__ == '__main__'):
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
+
+    # --------------------------------------------------------------------------------------------------
+
+    print('Finished')

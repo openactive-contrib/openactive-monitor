@@ -1,4 +1,14 @@
+# Dependencies
+node_modules/
 virt/
-volume-1/
-.DS_Store
 .venv
+
+# Private
+volume-1/
+volume-1 # For soft-links made for local testing to the actual volume-1/ directory
+
+# Tests
+test*/
+
+# Mac Finder
+.DS_Store

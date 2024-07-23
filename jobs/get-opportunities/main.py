@@ -209,6 +209,7 @@ import lzma
 import pickle
 import sys
 from datetime import datetime
+from google.cloud import pubsub_v1
 # from openactive import get_opportunities
 from os import getenv, listdir, remove
 from os.path import isfile
@@ -464,6 +465,16 @@ def harvester(idx_feed_url, feed_url, refresh=True):
 
 # --------------------------------------------------------------------------------------------------
 
+def run_job(name_job):
+    publisher = pubsub_v1.PublisherClient()
+    future = publisher.publish(
+        publisher.topic_path('openactive-monitor', 'run-job'),
+        name_job.encode('utf-8')
+    )
+    future.result()
+
+# --------------------------------------------------------------------------------------------------
+
 if (__name__ == '__main__'):
     try:
         print('Started first attempt of all feed URLs')
@@ -535,6 +546,14 @@ if (__name__ == '__main__'):
 
             print('Finished retries')
 
+    except Exception as error:
+        print('ERROR:', error)
+        sys.exit(1)
+
+    # --------------------------------------------------------------------------------------------------
+
+    try:
+        run_job('analyse-opportunities')
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
