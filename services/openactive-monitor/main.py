@@ -1,7 +1,9 @@
 # import os
 import pickle
+import pandas as pd
 import streamlit as st
-from os import getenv, getcwd
+from os import getenv
+from datetime import datetime
 
 # --------------------------------------------------------------------------------------------------
 
@@ -79,12 +81,53 @@ with col2:
     else:
         st.error('Error retrieving analysis data.')
 
+# --------------------------------------------------------------------------------------------------
+
+#Show growth over time
+
+dated_counts = {
+    'Jan 17': 0,
+    'Jul 17': 80000,
+    'Jan 18': 80000,
+    'Jul 18': 110000,
+    'Jan 19': 160000,
+    'Jun 19': 200000
+}
+
+# Get today's month and year
+today = datetime.now()
+current_month = today.strftime('%b %y')
+
+# Append today's count to the data
+total_num_items = get_analysis()
+if total_num_items is not None:
+    dated_counts[current_month] = total_num_items
+
+# Convert the dictionary to a Pandas DataFrame
+df = pd.DataFrame.from_dict(dated_counts, orient='index', columns=['Count'])
+
+# Reset the index to make the date column a regular column
+df.reset_index(inplace=True)
+
+# Rename the columns for clarity
+df.columns = ['Date', 'Count']
+
+# Convert the 'Date' column to datetime objects
+df['Date'] = pd.to_datetime(df['Date'], format='%b %y')
+
+# Sort the DataFrame by date
+df = df.sort_values(by='Date')
+
+# Now you have a DataFrame ready for plotting with Streamlit's line_chart:
+st.line_chart(df, x='Date', y='Count')
+
+#st.line_chart(data=None, *, x=None, y=None, x_label=None, y_label=None, color=None, width=None, height=None, use_container_width=True)
 
 # --------------------------------------------------------------------------------------------------
 
 def get_activities_counts():
     try:
-        print(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS)
+
         with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
             analysis = pickle.load(file_in)   
 
