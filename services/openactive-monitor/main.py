@@ -58,73 +58,6 @@ def get_analysis():
 
 # --------------------------------------------------------------------------------------------------
 
-# Display the total count in Streamlit
-st.header('Overview of OpenActive Data Ecosystem')
-
-col1, col2 = st.columns(2)
-
-# Using 'with' notation:
-with col1:
-    # Extract and present num_feeds from the JSON
-    feeds_data = get_feeds()  # Get the feeds data
-    if feeds_data is not None:
-        num_feeds = feeds_data['num_feeds']  # Access the 'num_feeds' key
-        st.metric('Number of Feeds', num_feeds)  # Display the num_feeds metric
-    else:
-        st.error('Error retrieving feeds data.')
-
-with col2:
-    # Show total headline opportunity count
-    total_num_items = get_analysis()
-    if total_num_items is not None:
-        st.metric('Total Num Items', f"{total_num_items:,}")  # Format with comma separators
-    else:
-        st.error('Error retrieving analysis data.')
-
-# --------------------------------------------------------------------------------------------------
-
-#Show growth over time
-
-dated_counts = {
-    'Jan 17': 0,
-    'Jul 17': 80000,
-    'Jan 18': 80000,
-    'Jul 18': 110000,
-    'Jan 19': 160000,
-    'Jun 19': 200000
-}
-
-# Get today's month and year
-today = datetime.now()
-current_month = today.strftime('%b %y')
-
-# Append today's count to the data
-total_num_items = get_analysis()
-if total_num_items is not None:
-    dated_counts[current_month] = total_num_items
-
-# Convert the dictionary to a Pandas DataFrame
-df = pd.DataFrame.from_dict(dated_counts, orient='index', columns=['Count'])
-
-# Reset the index to make the date column a regular column
-df.reset_index(inplace=True)
-
-# Rename the columns for clarity
-df.columns = ['Date', 'Count']
-
-# Convert the 'Date' column to datetime objects
-df['Date'] = pd.to_datetime(df['Date'], format='%b %y')
-
-# Sort the DataFrame by date
-df = df.sort_values(by='Date')
-
-# Now you have a DataFrame ready for plotting with Streamlit's line_chart:
-st.line_chart(df, x='Date', y='Count')
-
-#st.line_chart(data=None, *, x=None, y=None, x_label=None, y_label=None, color=None, width=None, height=None, use_container_width=True)
-
-# --------------------------------------------------------------------------------------------------
-
 def get_activities_counts():
     try:
 
@@ -147,20 +80,97 @@ def get_activities_counts():
         return None
     
 
-activities_summary = get_activities_counts()
+# --------------------------------------------------------------------------------------------------
 
-# Sort the activities_summary dictionary by value in descending order
-sorted_activities = dict(sorted(activities_summary.items(), key=lambda item: item[1], reverse=True))
 
-# Take the top 100 activities
-top_100_activities = dict(list(sorted_activities.items())[:100])
+# Create tabs
+tabs = st.tabs(["Overview", "This Week", "Activities and Facilities", "Locations", "KPIs"])
 
-# Convert the top_100_activities dictionary to a format suitable for Streamlit's bar chart
-chart_data = [{'activity': activity, 'count': int(count)} for activity, count in top_100_activities.items()]
+with tabs[0]:
+    st.header('Overview of OpenActive Data Ecosystem')
 
-st.subheader('Top 100 activities')
+    col1, col2 = st.columns(2)
 
-# Create the horizontal bar chart
-st.bar_chart(chart_data, x='activity', y='count', horizontal=True, use_container_width=True)
+    # Using 'with' notation:
+    with col1:
+        # Extract and present num_feeds from the JSON
+        feeds_data = get_feeds()  # Get the feeds data
+        if feeds_data is not None:
+            num_feeds = feeds_data['num_feeds']  # Access the 'num_feeds' key
+            st.metric('Number of Feeds', num_feeds)  # Display the num_feeds metric
+        else:
+            st.error('Error retrieving feeds data.')
+
+    with col2:
+        # Show total headline opportunity count
+        total_num_items = get_analysis()
+        if total_num_items is not None:
+            st.metric('Total Num Items', f"{total_num_items:,}")  # Format with comma separators
+        else:
+            st.error('Error retrieving analysis data.')
+
+    dated_counts = {
+        'Jan 17': 0,
+        'Jul 17': 80000,
+        'Jan 18': 80000,
+        'Jul 18': 110000,
+        'Jan 19': 160000,
+        'Jun 19': 200000
+    }
+
+    # Get today's month and year
+    today = datetime.now()
+    current_month = today.strftime('%b %y')
+
+    # Append today's count to the data
+    total_num_items = get_analysis()
+    if total_num_items is not None:
+        dated_counts[current_month] = total_num_items
+
+    # Convert the dictionary to a Pandas DataFrame
+    df = pd.DataFrame.from_dict(dated_counts, orient='index', columns=['Count'])
+
+    # Reset the index to make the date column a regular column
+    df.reset_index(inplace=True)
+
+    # Rename the columns for clarity
+    df.columns = ['Date', 'Count']
+
+    # Convert the 'Date' column to datetime objects
+    df['Date'] = pd.to_datetime(df['Date'], format='%b %y')
+
+    # Sort the DataFrame by date
+    df = df.sort_values(by='Date')
+
+    # Now you have a DataFrame ready for plotting with Streamlit's line_chart:
+    st.line_chart(df, x='Date', y='Count')
+
+with tabs[1]:
+    st.header('Opportunities over next 7 days')
+    
+with tabs[2]:
+    st.header('Top 100 Activities')
+
+    activities_summary = get_activities_counts()
+
+    # Sort the activities_summary dictionary by value in descending order
+    sorted_activities = dict(sorted(activities_summary.items(), key=lambda item: item[1], reverse=True))
+
+    # Take the top 100 activities
+    top_100_activities = dict(list(sorted_activities.items())[:100])
+
+    # Convert the top_100_activities dictionary to a format suitable for Streamlit's bar chart
+    chart_data = [{'activity': activity, 'count': int(count)} for activity, count in top_100_activities.items()]
+
+    # Create the horizontal bar chart
+    st.bar_chart(chart_data, x='activity', y='count', horizontal=True, use_container_width=True)
+
+with tabs[3]:
+    st.header('Locations')
+    # Add content related to data feeds here
+
+with tabs[4]:
+    st.header('KPIs')
+    # Add content related to analysis here
 
 # --------------------------------------------------------------------------------------------------
