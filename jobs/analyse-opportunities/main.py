@@ -104,34 +104,38 @@ def analyse_opportunities():
     # --------------------------------------------------------------------------------------------------
 
     for idx_filename_without_infostamp_current, filename_without_infostamp_current in enumerate(filenames_without_infostamp):
-        filenames_with_infostamp_current = sorted([
-            filename_with_infostamp
-            for filename_with_infostamp in filenames_with_infostamp
-            if ('--'.join(filename_with_infostamp.split('--')[:-Infostamp.num_parts]) == filename_without_infostamp_current)
-        ])
+        try:
+            filenames_with_infostamp_current = sorted([
+                filename_with_infostamp
+                for filename_with_infostamp in filenames_with_infostamp
+                if ('--'.join(filename_with_infostamp.split('--')[:-Infostamp.num_parts]) == filename_without_infostamp_current)
+            ])
 
-        print(idx_filename_without_infostamp_current, filenames_with_infostamp_current[-1])
+            print(idx_filename_without_infostamp_current, filenames_with_infostamp_current[-1])
 
-        opportunities_in = None
-        relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
-        if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
-            with open(relative_filepath_opportunities_in, 'rb') as file_in:
-                opportunities_in = pickle.load(file_in)
-        elif (COMPRESSION_FILE_OPPORTUNITIES == 'gzip'):
-            with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
-                opportunities_in = pickle.load(file_in)
-        elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
-            with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
-                opportunities_in = pickle.load(file_in)
+            opportunities_in = None
+            relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
+            if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
+                with open(relative_filepath_opportunities_in, 'rb') as file_in:
+                    opportunities_in = pickle.load(file_in)
+            elif (COMPRESSION_FILE_OPPORTUNITIES == 'gzip'):
+                with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
+                    opportunities_in = pickle.load(file_in)
+            elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
+                with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
+                    opportunities_in = pickle.load(file_in)
 
-        if (opportunities_in is not None):
-            analysis[filenames_with_infostamp_current[-1]] = {
-                'num_items': len(opportunities_in['items'].keys()),
-                'num_urls': len(opportunities_in['urls']),
-                'status': opportunities_in['status'],
-                'activities_counts': get_activities_counts(opportunities_in),
-                'coords_counts': get_coords_counts(opportunities_in),
-            }
+            if (opportunities_in is not None):
+                analysis[filenames_with_infostamp_current[-1]] = {
+                    'num_items': len(opportunities_in['items'].keys()),
+                    'num_urls': len(opportunities_in['urls']),
+                    'status': opportunities_in['status'],
+                    'activities_counts': get_activities_counts(opportunities_in),
+                    'coords_counts': get_coords_counts(opportunities_in),
+                }
+
+        except Exception as error:
+            print('ERROR:', error)
 
     # --------------------------------------------------------------------------------------------------
 
