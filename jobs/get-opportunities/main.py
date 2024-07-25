@@ -29,6 +29,18 @@ def set_message(message, message_type=None):
 
 # --------------------------------------------------------------------------------------------------
 
+def get_bytesize(arg):
+    bytesize = 0
+    if (type(arg) == list):
+        bytesize = sum([get_bytesize(val) for val in arg])
+    elif (type(arg) == dict):
+        bytesize = sum([get_bytesize(val) for val in arg.values()])
+    else:
+        bytesize = sys.getsizeof(arg)
+    return bytesize
+
+# --------------------------------------------------------------------------------------------------
+
 session = requests.Session()
 
 # https://stackoverflow.com/a/65576055
@@ -132,7 +144,11 @@ def get_opportunities(arg, **kwargs):
 
 # --------------------------------------------------------------------------------------------------
 
+sum_bytesize_deltas = 0
 def get_opportunities_helper(opportunities, **kwargs):
+    log_memory = kwargs.get('log_memory', False)
+    verbose = kwargs.get('verbose', False)
+
     feed_url = opportunities['nextUrl']
     feed_page, num_tries = try_requests(feed_url, **kwargs)
 
@@ -141,17 +157,33 @@ def get_opportunities_helper(opportunities, **kwargs):
     ):
         raise Exception()
 
+    if (log_memory):
+        global sum_bytesize_deltas
+
     for item in feed_page.json()['items']:
         if (all([key in item.keys() for key in ['id', 'state', 'modified']])):
+            if (log_memory):
+                bytesize_delta = 0
             if (item['state'] == 'updated'):
                 if (    (item['id'] not in opportunities['items'].keys())
                     or  (item['modified'] > opportunities['items'][item['id']]['modified'])
                 ):
+                    if (log_memory):
+                        bytesize_item_old = get_bytesize(opportunities['items'][item['id']]) if (item['id'] in opportunities['items'].keys()) else 0
+                        bytesize_item_new = get_bytesize(item)
+                        bytesize_delta = bytesize_item_new - bytesize_item_old
                     opportunities['items'][item['id']] = item
             elif (  (item['state'] == 'deleted')
                 and (item['id'] in opportunities['items'].keys())
             ):
+                if (log_memory):
+                    bytesize_delta = -get_bytesize(opportunities['items'][item['id']])
                 del(opportunities['items'][item['id']])
+
+            if (log_memory):
+                sum_bytesize_deltas += bytesize_delta
+                if (verbose):
+                    print(f"Item ID: {item['id']}; Item bytesize delta: {bytesize_delta}; Sum of item bytesize deltas: {sum_bytesize_deltas}")
 
     # 2024-06-14 Not currently using this as forced garbage collection is suspected of affecting Google
     # Cloud memory performance:
@@ -242,6 +274,8 @@ MAX_NUM_FEEDS = None if (MAX_NUM_FEEDS < 0) else MAX_NUM_FEEDS # Negative indica
 MAX_NUM_FEED_SECONDS = int(getenv('MAX_NUM_FEED_SECONDS', '600'))
 MAX_NUM_FEED_TRIES = int(getenv('MAX_NUM_FEED_TRIES', '3')) # Initial try plus retries in one run of this code
 MAX_NUM_FEED_FILES = int(getenv('MAX_NUM_FEED_FILES', '1')) # Number of historical outputs to keep for each feed, including the latest output
+LOG_MEMORY = getenv('LOG_MEMORY', 'False').title()
+LOG_MEMORY = True if (LOG_MEMORY == 'True') else False
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
 
@@ -253,6 +287,7 @@ print('MAX_NUM_FEEDS:', MAX_NUM_FEEDS)
 print('MAX_NUM_FEED_SECONDS:', MAX_NUM_FEED_SECONDS)
 print('MAX_NUM_FEED_TRIES:', MAX_NUM_FEED_TRIES)
 print('MAX_NUM_FEED_FILES:', MAX_NUM_FEED_FILES)
+print('LOG_MEMORY:', LOG_MEMORY)
 print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
@@ -339,7 +374,7 @@ def run_get_opportunities(opportunities_in):
     global opportunities_out
     opportunities_out = None
     with Test_get_opportunities_done():
-        opportunities_out = get_opportunities(opportunities_in, verbose=VERBOSE)
+        opportunities_out = get_opportunities(opportunities_in, log_memory=LOG_MEMORY, verbose=VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -356,6 +391,7 @@ feed_urls_retry = {}
 def harvester(idx_feed_url, feed_url, refresh=True):
     global get_opportunities_done
     global opportunities_out
+    global sum_bytesize_deltas
 
     # --------------------------------------------------------------------------------------------------
 
@@ -372,6 +408,8 @@ def harvester(idx_feed_url, feed_url, refresh=True):
         opportunities_in = None
         if (len(filenames_with_infostamp_current) == 0):
             opportunities_in = feed_url
+            if (LOG_MEMORY):
+                bytesize_opportunities_in = 0
         elif (refresh):
             relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
             if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
@@ -383,6 +421,11 @@ def harvester(idx_feed_url, feed_url, refresh=True):
             elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
                 with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
                     opportunities_in = pickle.load(file_in)
+            if (LOG_MEMORY):
+                bytesize_opportunities_in = get_bytesize(opportunities_in)
+
+        if (LOG_MEMORY):
+            print(f'Bytesize opportunities_in: {bytesize_opportunities_in}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -429,6 +472,13 @@ def harvester(idx_feed_url, feed_url, refresh=True):
                     for filename_with_infostamp_current in filenames_with_infostamp_current[:-MAX_NUM_FEED_FILES]:
                         remove(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filename_with_infostamp_current + SUFFIX_FILENAME_OPPORTUNITIES)
 
+                if (LOG_MEMORY):
+                    bytesize_opportunities_out = get_bytesize(opportunities_out)
+                    print(f'bytesize_opportunities_in                             : {bytesize_opportunities_in}')
+                    print(f'bytesize_opportunities_out                            : {bytesize_opportunities_out}')
+                    print(f'bytesize_opportunities_out - bytesize_opportunities_in: {bytesize_opportunities_out - bytesize_opportunities_in}')
+                    print(f'Sum of item bytesize deltas                           : {sum_bytesize_deltas}')
+
             # --------------------------------------------------------------------------------------------------
 
             # Not currently retrying feeds that timeout, only retrying regular errors:
@@ -459,6 +509,7 @@ def harvester(idx_feed_url, feed_url, refresh=True):
 
     get_opportunities_done = False
     opportunities_out = None
+    sum_bytesize_deltas = 0
     # 2024-06-14 Not currently using this as forced garbage collection is suspected of affecting Google
     # Cloud memory performance:
     # gc.collect()
