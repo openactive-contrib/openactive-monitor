@@ -54,8 +54,8 @@ session = requests.Session()
 # from requests.adapters import HTTPAdapter
 # from requests.packages.urllib3.util.retry import Retry
 # retry_strategy = Retry(
-#   total=3,
-#   backoff_factor=1
+#     total=3,
+#     backoff_factor=1
 # )
 # adapter = HTTPAdapter(max_retries=retry_strategy)
 # session.mount('https://', adapter)
@@ -81,6 +81,14 @@ def try_requests(url, **kwargs):
                 set_message(url, 'calling')
             num_tries += 1
             r = session.get(url)
+            # https://docs.python-requests.org/en/latest/user/advanced/
+            # "Sessions can also be used as context managers [...] This will make sure the session is closed as
+            # soon as the with block is exited, even if unhandled exceptions occurred."
+            # r = None
+            # with requests.Session() as session:
+            #     r = session.get(url)
+            # if (r is None):
+            #     raise Exception('Call failed')
             if (r.status_code == 200):
                 break
         except Exception as error:
