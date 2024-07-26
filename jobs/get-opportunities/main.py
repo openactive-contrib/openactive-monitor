@@ -13,6 +13,7 @@ from urllib.parse import unquote, urlparse
 
 # --------------------------------------------------------------------------------------------------
 
+SECONDS_TIMEOUT_DEFAULT = 600
 SECONDS_WAIT_NEXT_DEFAULT = 0.2
 
 # --------------------------------------------------------------------------------------------------
@@ -101,6 +102,7 @@ opportunities_template = {
 
 def get_opportunities(arg, **kwargs):
     verbose = kwargs.get('verbose', False)
+    seconds_timeout = kwargs.get('seconds_timeout', SECONDS_TIMEOUT_DEFAULT)
     seconds_wait_next = kwargs.get('seconds_wait_next', SECONDS_WAIT_NEXT_DEFAULT)
 
     if (    (verbose)
@@ -128,14 +130,18 @@ def get_opportunities(arg, **kwargs):
         return
 
     try:
+        time_start = datetime.now()
+        get_opportunities_helper_done = False
         while (True):
             feed_url = opportunities['nextUrl']
             opportunities, get_opportunities_helper_done = get_opportunities_helper(opportunities, **kwargs)
-            if (not get_opportunities_helper_done):
+            if (    (not get_opportunities_helper_done)
+                and ((datetime.now() - time_start).seconds < seconds_timeout)
+            ):
                 sleep(seconds_wait_next)
             else:
                 break
-        opportunities['status'] = 'COMPLETE'
+        opportunities['status'] = 'COMPLETE' if get_opportunities_helper_done else 'TIMEOUT'
     except:
         opportunities['status'] = 'ERROR'
         set_message('Issue encountered when getting feed: {}'.format(feed_url), 'error')
@@ -234,7 +240,6 @@ def get_opportunities_next_url(next_url_original, opportunities):
 # The above code should be incorporated into the OpenActive Python library. The main code of interest
 # for the Google Cloud job being developed begins here.
 
-import func_timeout
 # import gc # 2024-06-14 Not currently using this as forced garbage collection is suspected of affecting Google Cloud memory performance
 import gzip
 import lzma
@@ -348,36 +353,6 @@ def get_filenames():
 
 # --------------------------------------------------------------------------------------------------
 
-# We wrap get_opportunities with Test_get_opportunities_done to test when it's done, regardless of
-# its output i.e. we don't rely on checking if opportunities_out is not None, which it perhaps could
-# be even if the function is done but something went wrong. This is important when get_opportunities
-# is timed out, as it is the run_get_opportunities wrapper function which is primarily timed out and
-# get_opportunities lags behind a bit and can still produce non-negligible output that we don't want
-# to lose, so we must check to see when it's actually done in order to capture the output:
-get_opportunities_done = False
-class Test_get_opportunities_done:
-    def __enter__(self):
-        global get_opportunities_done
-        get_opportunities_done = False
-    def __exit__(self, type, value, traceback): # All arguments are needed in this definition to ensure that exit occurs properly
-        global get_opportunities_done
-        get_opportunities_done = True
-
-# --------------------------------------------------------------------------------------------------
-
-# We wrap get_opportunities with run_get_opportunities and use a global opportunities_out in order
-# to access this output even if the function is timed out, as func_timeout would otherwise lose
-# the output if it wrapped get_opportunities directly:
-opportunities_out = None
-@func_timeout.func_set_timeout(MAX_NUM_FEED_SECONDS)
-def run_get_opportunities(opportunities_in):
-    global opportunities_out
-    opportunities_out = None
-    with Test_get_opportunities_done():
-        opportunities_out = get_opportunities(opportunities_in, log_memory=LOG_MEMORY, verbose=VERBOSE)
-
-# --------------------------------------------------------------------------------------------------
-
 feed_urls_skip = [
     # 'https://opendata.leisurecloud.live/api/feeds/EveryoneActive-test-slots', # Crashed Jupyter one time, before timeout code was present
 ]
@@ -389,8 +364,6 @@ feed_urls_retry = {}
 # full list of feed_urls, and you want to start again but without redoing the ones that were already
 # dealt with.
 def harvester(idx_feed_url, feed_url, refresh=True):
-    global get_opportunities_done
-    global opportunities_out
     global sum_bytesize_deltas
 
     # --------------------------------------------------------------------------------------------------
@@ -431,30 +404,12 @@ def harvester(idx_feed_url, feed_url, refresh=True):
 
         if (opportunities_in is not None):
             t1 = datetime.now()
-
-            try:
-                run_get_opportunities(opportunities_in)
-                timeout = False
-            except func_timeout.FunctionTimedOut:
-                timeout = True
-
-            # get_opportunities should always complete even if forcibly timed out, so let's wait for it in order
-            # to get opportunities_out even if it only has partial content from cancellation part-way through the
-            # RPDE chain:
-            # t1a = datetime.now()
-            while (not get_opportunities_done):
-                sleep(1)
-            # t2a = datetime.now()
-            # print('Time taken for get_opportunities to complete after run_get_opportunities is complete:', t2a - t1a)
-
+            opportunities_out = get_opportunities(opportunities_in, log_memory=LOG_MEMORY, seconds_timeout=MAX_NUM_FEED_SECONDS, verbose=VERBOSE)
             t2 = datetime.now()
 
             # --------------------------------------------------------------------------------------------------
 
             if (opportunities_out is not None):
-                if (timeout):
-                    opportunities_out['status'] = 'TIMEOUT'
-
                 filenames_with_infostamp_current.append(filename_without_infostamp_current + Infostamp(opportunities_out, t1, t2).value)
                 relative_filepath_opportunities_out = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
 
@@ -507,8 +462,6 @@ def harvester(idx_feed_url, feed_url, refresh=True):
 
     # --------------------------------------------------------------------------------------------------
 
-    get_opportunities_done = False
-    opportunities_out = None
     sum_bytesize_deltas = 0
     # 2024-06-14 Not currently using this as forced garbage collection is suspected of affecting Google
     # Cloud memory performance:
