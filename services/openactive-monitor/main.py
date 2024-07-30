@@ -13,7 +13,7 @@ st.set_page_config(
     layout='wide',
     menu_items={
         'Get help': 'mailto:hello@openactive.io',
-        'About': 'Copyright 2024 OpenActive',
+        'About': 'Copyright 2024 OpenActive: Build trigger test',
     }
 )
 
@@ -62,10 +62,10 @@ def get_activities_counts():
     try:
 
         with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
-            analysis = pickle.load(file_in)   
+            analysis = pickle.load(file_in)
 
         activities_counts = {}
-        
+
         for item in analysis.values():
             # Access the 'activities_counts' dictionary within each item
             item_activities_counts = item.get('activities_counts', {})
@@ -78,7 +78,7 @@ def get_activities_counts():
         return activities_counts
     except:
         return None
-    
+
 
 # --------------------------------------------------------------------------------------------------
 
@@ -147,7 +147,7 @@ with tabs[0]:
 
 with tabs[1]:
     st.header('Opportunities over next 7 days')
-    
+
 with tabs[2]:
     st.header('Top 100 Activities')
 
