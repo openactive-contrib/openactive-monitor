@@ -13,7 +13,7 @@ st.set_page_config(
     layout='wide',
     menu_items={
         'Get help': 'mailto:hello@openactive.io',
-        'About': 'Copyright 2024 OpenActive: Build trigger test 2',
+        'About': 'Copyright 2024 OpenActive: Build trigger test 3',
     }
 )
 
