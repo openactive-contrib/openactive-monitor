@@ -301,6 +301,8 @@ VERBOSE = True if (VERBOSE == 'True') else False
 HEADERS = {
     'timeout': '10',
     'User-Agent': 'OpenActive admin',
+    # Alternative 'User-Agent' based on laptop browser settings. Still doesn't seem to help some GCloud 403 errors though:
+    # 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36',
     'From': 'hello@openactive.io',
     'Referer': 'https://www.openactive.io',
 }
