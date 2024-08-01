@@ -201,11 +201,8 @@ with tabs[2]:
     df_sorted_activities.to_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + 'sorted_activities.csv', index=False)
     st.write("Sorted activities saved to 'sorted_activities.csv'")
 
-# ... (rest of your code)
-
 with tabs[3]:
     st.header('OpenActive Opportunities by Region')
-
 
     col1, col2 = st.columns(2)
     
@@ -222,9 +219,9 @@ with tabs[3]:
     data_df = pd.DataFrame(coords_data)
 
     # Load your shapefile
-    shapefile_path = RELATIVE_FILEPATH_ANALYSIS + '/' + "regions.geojson"  # Replace with your shapefile path
+    shapefile_path = RELATIVE_FILEPATH_ANALYSIS + '/' + "lads.geojson"  # Replace with your shapefile path
     gdf = gpd.read_file(shapefile_path)
-
+    print(gdf)
     # Get the CRS of your shapefile
     shapefile_crs = gdf.crs
 
@@ -242,7 +239,7 @@ with tabs[3]:
     joined_gdf = gpd.sjoin(data_gdf, gdf, how='left', predicate='intersects')
 
     # Group by shapefile ID and sum the counts
-    counts_by_shape = joined_gdf.groupby('RGN23NM')['count'].sum().reset_index()
+    counts_by_shape = joined_gdf.groupby('LAD24NM')['count'].sum().reset_index()
     # Sort counts_by_shape by 'count' in descending order
     counts_by_shape = counts_by_shape.sort_values(by='count', ascending=False)
     # Calculate total count for percentage calculation
@@ -252,7 +249,7 @@ with tabs[3]:
     counts_by_shape['percentage'] = round((counts_by_shape['count'] / total_count) * 100,1)
 
     # Merge counts with the shapefile GeoDataFrame
-    merged_gdf = gdf.merge(counts_by_shape, on='RGN23NM', how='left')
+    merged_gdf = gdf.merge(counts_by_shape, on='LAD24NM', how='left')
 
     # Convert count to percentage
     merged_gdf['percentage'] = (merged_gdf['count'] / total_count) * 100
@@ -269,7 +266,7 @@ with tabs[3]:
 
     
     with col1:
-        st.dataframe(counts_by_shape.set_index('RGN23NM'))
+        st.dataframe(counts_by_shape.set_index('LAD24NM'))
 
     with col2:
         st.pyplot(fig)
