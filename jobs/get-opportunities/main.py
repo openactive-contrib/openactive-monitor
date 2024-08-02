@@ -364,7 +364,7 @@ class Infostamp:
 # --------------------------------------------------------------------------------------------------
 
 filenames_with_infostamp = None
-# filenames_without_infostamp = None # Not currently using
+# filenames_without_infostamp = None # Not currently using in job get-opportunities, but used in job analyse-opportunities
 def get_filenames():
     global filenames_with_infostamp
     # global filenames_without_infostamp
