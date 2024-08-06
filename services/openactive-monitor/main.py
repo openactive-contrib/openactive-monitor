@@ -48,20 +48,74 @@ def get_total_activities_counts(analysis, preview=False):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_total_coords_counts(analysis, preview=False):
+def get_df_total_coords_counts(analysis, preview=False):
     total_coords_counts = {}
 
     for filename_with_infostamp, feed_analysis in analysis.items():
         if (    ((not preview) and ('000-preview' not in filename_with_infostamp))
             or  ((preview) and ('000-preview' in filename_with_infostamp))
         ):
-            for activity, count in feed_analysis['coords_counts'].items():
-                if (activity not in total_coords_counts.keys()):
-                    total_coords_counts[activity] = count
+            for coords, count in feed_analysis['coords_counts'].items():
+                if (coords not in total_coords_counts.keys()):
+                    total_coords_counts[coords] = count
                 else:
-                    total_coords_counts[activity] += count
+                    total_coords_counts[coords] += count
 
-    return total_coords_counts
+    df_total_coords_counts = pd.DataFrame(
+        sorted(
+            list(map(
+                # lambda coords_count: tuple([float(coord) for coord in coords_count[0].split(',')] + [coords_count[1]]),
+                lambda coords_count: tuple(list(map(float, coords_count[0].split(','))) + [coords_count[1]]),
+                total_coords_counts.items() # total_coords_counts_regular
+            )),
+            key=lambda item: item[2],
+            reverse=True,
+        ),
+        columns=['latitude', 'longitude', 'count'],
+    )
+
+    return df_total_coords_counts
+
+# --------------------------------------------------------------------------------------------------
+
+def get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts):
+    # gdf_regions: Columns are: [FID, RGN23CD, RGN23NM, BNG_E, BNG_N, LONG, LAT, GlobalID, geometry]
+    # df_total_coords_counts: Columns are: [latitude, longitude, count]
+
+    # Columns are: [latitude, longitude, count, geometry]
+    gdf_total_coords_counts = gpd.GeoDataFrame(
+        df_total_coords_counts,
+        geometry=gpd.points_from_xy(
+            df_total_coords_counts['longitude'],
+            df_total_coords_counts['latitude'],
+        ),
+        crs='epsg:4326', # Set CRS to WGS84
+    ) \
+    .to_crs(gdf_regions.crs)
+
+    # Columns are: [RGN23NM, count]
+    gdf_total_regions_counts = gpd.GeoDataFrame(
+        gpd.sjoin(
+            gdf_regions[['RGN23NM', 'geometry']],
+            gdf_total_coords_counts[['count', 'geometry']],
+            how='right',
+            predicate='intersects',
+        ) \
+        .groupby('RGN23NM')['count'] \
+        .sum()
+    ) \
+    .reset_index()
+
+    # Columns are: [FID, RGN23CD, RGN23NM, BNG_E, BNG_N, LONG, LAT, GlobalID, geometry, count]
+    gdf_total_regions_counts = \
+        gdf_regions \
+        .merge(gdf_total_regions_counts, on='RGN23NM', how='left') \
+        .sort_values(by='count', ascending=False)
+
+    # Columns are: [FID, RGN23CD, RGN23NM, BNG_E, BNG_N, LONG, LAT, GlobalID, geometry, count, percentage]
+    gdf_total_regions_counts['percentage'] = round((gdf_total_regions_counts['count'] / sum(gdf_total_regions_counts['count'])) * 100, 1)
+
+    return gdf_total_regions_counts
 
 # --------------------------------------------------------------------------------------------------
 
@@ -89,10 +143,12 @@ if (not st.session_state):
     st.session_state.RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
 
     st.session_state.FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
+    st.session_state.FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
 
     print('Environment variables:')
     print('RELATIVE_FILEPATH_ANALYSIS:', st.session_state.RELATIVE_FILEPATH_ANALYSIS)
     print('FILENAME_ANALYSIS:', st.session_state.FILENAME_ANALYSIS)
+    print('FILENAME_REGIONS:', st.session_state.FILENAME_REGIONS)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -104,6 +160,15 @@ if (not st.session_state):
     else:
         st.session_state.error = False
 
+        # Even with no parameters given to set_theme(), simply running it empty initialises general Seaborn
+        # theming, otherwise we have general Matplotlib theming:
+        sns.set_theme(rc={
+            # 'figure.figsize': (10, 4),
+            'patch.linewidth': 0.0, # Border width around individual bars
+        })
+
+        # --------------------------------------------------------------------------------------------------
+
         st.session_state.filenames_with_infostamp_regular = [filename_with_infostamp for filename_with_infostamp in st.session_state.analysis.keys() if ('000-preview' not in filename_with_infostamp)]
         st.session_state.filenames_with_infostamp_preview = [filename_with_infostamp for filename_with_infostamp in st.session_state.analysis.keys() if ('000-preview' in filename_with_infostamp)]
 
@@ -113,8 +178,9 @@ if (not st.session_state):
         st.session_state.total_activities_counts_regular = get_total_activities_counts(st.session_state.analysis, preview=False)
         st.session_state.total_activities_counts_preview = get_total_activities_counts(st.session_state.analysis, preview=True)
 
-        st.session_state.total_coords_counts_regular = get_total_coords_counts(st.session_state.analysis, preview=False)
-        st.session_state.total_coords_counts_preview = get_total_coords_counts(st.session_state.analysis, preview=True)
+        # --------------------------------------------------------------------------------------------------
+
+        # For the 'Activities' tab
 
         st.session_state.df_total_activities_counts_regular = pd.DataFrame(
             sorted(
@@ -137,6 +203,22 @@ if (not st.session_state):
         # st.write("Sorted activities saved to 'sorted_activities.csv'")
 
         st.session_state.num_activities_top = 20
+
+        # --------------------------------------------------------------------------------------------------
+
+        # For the 'Locations' tab
+
+        gdf_regions = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_REGIONS)
+
+        df_total_coords_counts_regular = get_df_total_coords_counts(st.session_state.analysis, preview=False)
+        df_total_coords_counts_preview = get_df_total_coords_counts(st.session_state.analysis, preview=True)
+
+        st.session_state.gdf_total_regions_counts_regular = get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts_regular)
+        st.session_state.gdf_total_regions_counts_preview = get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts_preview)
+
+        # --------------------------------------------------------------------------------------------------
+
+        # For the 'KPIs' tab
 
 # --------------------------------------------------------------------------------------------------
 
@@ -191,13 +273,6 @@ if (not st.session_state.error):
     with tabs[2]:
         st.header('Most popular activities')
 
-        # Even with no parameters given to set_theme(), simply running it empty initialises general Seaborn
-        # theming, otherwise we have general Matplotlib theming:
-        sns.set_theme(rc={
-            # 'figure.figsize': (10, 4),
-            'patch.linewidth': 0.0, # Border width around individual bars
-        })
-
         for preview in [False, True]:
             if (not preview):
                 st.subheader('Regular feeds', divider='gray')
@@ -208,14 +283,20 @@ if (not st.session_state.error):
 
             col1, col2 = st.columns([1, 3])
             with col1:
-                st.markdown('<div style="text-align: center;">All activities</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div style="text-align: center;">All activities</div>',
+                    unsafe_allow_html=True,
+                )
                 st.dataframe(
                     df_total_activities_counts,
                     use_container_width=True,
                     hide_index=True,
                 )
             with col2:
-                st.markdown(f'<div style="text-align: center;">Top {st.session_state.num_activities_top} activities</div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div style="text-align: center;">Top {st.session_state.num_activities_top} activities</div>',
+                    unsafe_allow_html=True,
+                )
                 fig, ax = plt.subplots(1, 1, figsize=(10, 5))
                 sns.barplot(
                     df_total_activities_counts[:st.session_state.num_activities_top],
@@ -251,69 +332,31 @@ if (not st.session_state.error):
     with tabs[3]:
         st.header('OpenActive opportunities by region')
 
-        st.subheader('Regular feeds', divider='gray')
+        for preview in [False, True]:
+            if (not preview):
+                st.subheader('Regular feeds', divider='gray')
+                gdf_total_regions_counts = st.session_state.gdf_total_regions_counts_regular
+            else:
+                st.subheader('Preview feeds', divider='gray')
+                gdf_total_regions_counts = st.session_state.gdf_total_regions_counts_preview
 
-        col1, col2, col3 = st.columns(3)
-
-        # Convert location strings to coordinates
-        coords_data = []  # Create an empty list to store coordinates and counts
-        for coords, count in st.session_state.total_coords_counts_regular.items():
-            latitude, longitude = map(float, coords.split(','))  # Split coords string and convert to floats
-            coords_data.append({'coords': coords, 'latitude': latitude, 'longitude': longitude, 'count': count})
-
-        # Create a DataFrame from the coords_data list
-        data_df = pd.DataFrame(coords_data)
-
-        # Load your shapefile
-        shapefile_path = st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + 'regions.geojson'  # Replace with your shapefile path
-        gdf = gpd.read_file(shapefile_path)
-
-        # Get the CRS of your shapefile
-        shapefile_crs = gdf.crs
-
-        # Create a GeoDataFrame from your data with the correct CRS
-        data_gdf = gpd.GeoDataFrame(
-            data_df,
-            geometry=gpd.points_from_xy(data_df['longitude'], data_df['latitude'], crs='epsg:4326'),  # Set CRS to WGS84
-            crs='epsg:4326',  # Set CRS to WGS84
-        )
-
-        # Reproject the point data to match the shapefile's CRS
-        data_gdf = data_gdf.to_crs(shapefile_crs)
-
-        # Perform spatial join (using 'intersects' for potential boundary matches)
-        joined_gdf = gpd.sjoin(data_gdf, gdf, how='left', predicate='intersects')
-
-        # Group by shapefile ID and sum the counts
-        counts_by_shape = joined_gdf.groupby('RGN23NM')['count'].sum().reset_index()
-        # Sort counts_by_shape by 'count' in descending order
-        counts_by_shape = counts_by_shape.sort_values(by='count', ascending=False)
-        # Calculate total count for percentage calculation
-        total_count = counts_by_shape['count'].sum()
-
-        # Convert count to percentage
-        counts_by_shape['percentage'] = round((counts_by_shape['count'] / total_count) * 100,1)
-
-        # Merge counts with the shapefile GeoDataFrame
-        merged_gdf = gdf.merge(counts_by_shape, on='RGN23NM', how='left')
-
-        # Convert count to percentage
-        merged_gdf['percentage'] = (merged_gdf['count'] / total_count) * 100
-
-        # Create the chloropleth map
-        fig, ax = plt.subplots(1, 1)
-
-        # Remove numbers from axes
-        ax.set_xticks([])
-        ax.set_yticks([])
-
-        # Plot the polygons with color based on 'percentage' using a greyscale colormap
-        merged_gdf.plot(ax=ax, column='percentage', legend=True, cmap='YlOrRd')  # 'Greys_r' for reversed greyscale
-
-        with col1:
-            st.dataframe(counts_by_shape.set_index('RGN23NM'), use_container_width=True)
-        with col2:
-            st.pyplot(fig)
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.dataframe(
+                    gdf_total_regions_counts[['RGN23NM', 'count', 'percentage']].set_index('RGN23NM'),
+                    use_container_width=True,
+                )
+            with col2:
+                fig, ax = plt.subplots(1, 1)
+                gdf_total_regions_counts.plot(
+                    column='percentage',
+                    cmap='YlOrRd', # 'Greys_r' for reversed greyscale
+                    legend=True,
+                    ax=ax,
+                )
+                ax.set_xticks([])
+                ax.set_yticks([])
+                st.pyplot(fig)
 
     # --------------------------------------------------------------------------------------------------
 
