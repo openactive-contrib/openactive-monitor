@@ -11,6 +11,16 @@ from os import getenv
 
 # --------------------------------------------------------------------------------------------------
 
+def get_week():
+    try:
+        with open(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_WEEK, 'rb') as file_in:
+            week = pickle.load(file_in)
+        return week
+    except:
+        return None
+
+# --------------------------------------------------------------------------------------------------
+
 def get_analysis():
     try:
         with open(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_ANALYSIS, 'rb') as file_in:
@@ -143,6 +153,7 @@ if (not st.session_state):
     st.session_state.RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
 
     st.session_state.FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
+    st.session_state.FILENAME_WEEK = getenv('FILENAME_WEEK', 'week.pickle')
     st.session_state.FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
     st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
     st.session_state.FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
@@ -150,6 +161,7 @@ if (not st.session_state):
     print('Environment variables:')
     print('RELATIVE_FILEPATH_ANALYSIS:', st.session_state.RELATIVE_FILEPATH_ANALYSIS)
     print('FILENAME_ANALYSIS:', st.session_state.FILENAME_ANALYSIS)
+    print('FILENAME_WEEK:', st.session_state.FILENAME_WEEK)
     print('FILENAME_REGIONS:', st.session_state.FILENAME_REGIONS)
     print('FILENAME_SE_SPORT_AND_DISCIPLINE:', st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE)
     print('FILENAME_OA_SE_MAPPING:', st.session_state.FILENAME_OA_SE_MAPPING)
@@ -184,6 +196,14 @@ if (not st.session_state):
         st.session_state.total_activities_counts_regular = get_total_activities_counts(st.session_state.analysis, preview=False)
         st.session_state.total_activities_counts_preview = get_total_activities_counts(st.session_state.analysis, preview=True)
  
+ 
+        # --------------------------------------------------------------------------------------------------
+
+        # For the '7 days' tab
+        
+        
+        
+        
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Activities' tab

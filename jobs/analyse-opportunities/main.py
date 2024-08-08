@@ -35,11 +35,13 @@ COMPRESSION_FILE_OPPORTUNITIES = getenv('COMPRESSION_FILE_OPPORTUNITIES', 'gzip'
 SUFFIX_FILENAME_OPPORTUNITIES = '.' + FORMAT_FILE_OPPORTUNITIES + (('.' + COMPRESSION_FILE_OPPORTUNITIES) if (COMPRESSION_FILE_OPPORTUNITIES != 'none') else '')
 LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
 FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
+FILENAME_WEEK = getenv('FILENAME_WEEK', 'week.pickle')
 
 print('Environment variables:')
 print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
 print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
 print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
+print('FILENAME_WEEK:', FILENAME_WEEK)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -101,6 +103,7 @@ def get_filenames():
 
 def analyse_opportunities():
     analysis = {}
+    week = {}
 
     # --------------------------------------------------------------------------------------------------
 
@@ -131,8 +134,11 @@ def analyse_opportunities():
                     'num_items': len(opportunities_in['items'].keys()),
                     'num_urls': len(opportunities_in['urls']),
                     'status': opportunities_in['status'],
-                    'activities_counts': get_activities_counts(opportunities_in),
-                    'coords_counts': get_coords_counts(opportunities_in),
+                    #'activities_counts': get_activities_counts(opportunities_in),
+                    #'coords_counts': get_coords_counts(opportunities_in),
+                }
+                week[filenames_with_infostamp_current[-1]] = {
+                    'items': get_items_week(opportunities_in)
                 }
 
         except Exception as error:
@@ -142,6 +148,10 @@ def analyse_opportunities():
 
     with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'wb') as file_out:
         pickle.dump(analysis, file_out)
+
+    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_WEEK, 'wb') as file_out:
+        pickle.dump(week, file_out)
+
 
 # --------------------------------------------------------------------------------------------------
 
@@ -157,6 +167,25 @@ def get_activities_counts(opportunities):
                 activities_counts[item_activity] += 1
 
     return activities_counts
+
+
+# --------------------------------------------------------------------------------------------------
+
+def get_items_week(data):
+    item_week = []
+    today = datetime.now()
+    for item in data['items'].values():
+        if 'StartDate' in item:
+            start_date = datetime.strptime(item['StartDate'], '%Y-%m-%dT%H:%M:%SZ')
+            if start_date >= today and start_date <= today + timedelta(days=7):
+                item_week.append(item)
+        elif 'dateStart' in item:
+            start_date = datetime.strptime(item['dateStart'], '%Y-%m-%dT%H:%M:%SZ')
+            if start_date >= today and start_date <= today + timedelta(days=7):
+                item_week.append(item)
+    
+    return item_week
+
 
 # --------------------------------------------------------------------------------------------------
 
