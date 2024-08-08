@@ -175,13 +175,15 @@ if (not st.session_state):
 
         st.session_state.filenames_with_infostamp_regular = [filename_with_infostamp for filename_with_infostamp in st.session_state.analysis.keys() if ('000-preview' not in filename_with_infostamp)]
         st.session_state.filenames_with_infostamp_preview = [filename_with_infostamp for filename_with_infostamp in st.session_state.analysis.keys() if ('000-preview' in filename_with_infostamp)]
+        st.session_state.filenames_with_infostamp_total = [filename_with_infostamp for filename_with_infostamp in st.session_state.analysis.keys()]
 
         st.session_state.total_num_items_regular = get_total_num_items(st.session_state.analysis, preview=False)
         st.session_state.total_num_items_preview = get_total_num_items(st.session_state.analysis, preview=True)
+        st.session_state.total_num_items = st.session_state.total_num_items_regular + st.session_state.total_num_items_preview
 
         st.session_state.total_activities_counts_regular = get_total_activities_counts(st.session_state.analysis, preview=False)
         st.session_state.total_activities_counts_preview = get_total_activities_counts(st.session_state.analysis, preview=True)
-
+ 
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Activities' tab
@@ -316,21 +318,14 @@ if (not st.session_state.error):
     with tabs[0]:
         st.header('Overview of the OpenActive data ecosystem')
 
-        for preview in [False, True]:
-            if (not preview):
-                st.subheader('Regular feeds', divider='gray')
-                filenames_with_infostamp = st.session_state.filenames_with_infostamp_regular
-                total_num_items = st.session_state.total_num_items_regular
-            else:
-                st.subheader('Preview feeds', divider='gray')
-                filenames_with_infostamp = st.session_state.filenames_with_infostamp_preview
-                total_num_items = st.session_state.total_num_items_preview
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric('Number of OpenActive feeds', len(st.session_state.filenames_with_infostamp_total))
 
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric('Num. feeds', len(filenames_with_infostamp))
-            with col2:
-                st.metric('Num. opportunities', f'{total_num_items:,}')
+        with col2:
+            st.metric('Number of live OpenActive opportunities', f'{st.session_state.total_num_items:,}')
+
+        st.write(f"These figures include including {round(st.session_state.total_num_items_preview/1000000,1)}m items from {len(st.session_state.filenames_with_infostamp_preview)} preview feeds")
 
         # dated_counts = {
         #     'Jan 17': 0,
