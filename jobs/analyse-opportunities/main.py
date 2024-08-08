@@ -2,7 +2,9 @@ import gzip
 import lzma
 import pickle
 import sys
-from datetime import datetime
+import random
+from datetime import datetime, timedelta
+from dateutil import tz  # Import tz for timezone handling
 from geopy.geocoders import Nominatim
 from os import getenv, listdir
 from os.path import isfile
@@ -137,21 +139,30 @@ def analyse_opportunities():
                     #'activities_counts': get_activities_counts(opportunities_in),
                     #'coords_counts': get_coords_counts(opportunities_in),
                 }
-                week[filenames_with_infostamp_current[-1]] = {
-                    'items': get_items_week(opportunities_in)
-                }
+                items_week = get_items_week(opportunities_in)
+                # Take a random sample of 20 items
+                sample_items_week = random.sample(items_week, min(20, len(items_week)))
 
+                week[filenames_with_infostamp_current[-1]] = {
+                    'num_items': len(items_week),
+                    #'activities_counts': get_activities_counts(items_week),
+                    #'coords_counts': get_coords_counts(items_week),
+                    'items': sample_items_week,
+                }
+                
         except Exception as error:
             print('ERROR:', error)
 
     # --------------------------------------------------------------------------------------------------
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'wb') as file_out:
-        pickle.dump(analysis, file_out)
+    #with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'wb') as file_out:
+    #    pickle.dump(analysis, file_out)
 
     with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_WEEK, 'wb') as file_out:
         pickle.dump(week, file_out)
-
+        
+    print(len(week))
+    print(week)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -168,24 +179,63 @@ def get_activities_counts(opportunities):
 
     return activities_counts
 
-
 # --------------------------------------------------------------------------------------------------
 
-def get_items_week(data):
+def get_items_week(opportunities):
     item_week = []
-    today = datetime.now()
-    for item in data['items'].values():
-        if 'StartDate' in item:
-            start_date = datetime.strptime(item['StartDate'], '%Y-%m-%dT%H:%M:%SZ')
-            if start_date >= today and start_date <= today + timedelta(days=7):
-                item_week.append(item)
-        elif 'dateStart' in item:
-            start_date = datetime.strptime(item['dateStart'], '%Y-%m-%dT%H:%M:%SZ')
-            if start_date >= today and start_date <= today + timedelta(days=7):
+    today = datetime.now(tz=tz.UTC).date()
+    for item_key in opportunities['items'].keys():
+        item = opportunities['items'][item_key]
+        start_date = get_start_date(item['data'])
+        if start_date:
+            if start_date.date() >= today and start_date.date() <= today + timedelta(days=7):
                 item_week.append(item)
     
     return item_week
 
+def get_start_date(item):
+    # Check for start date in different locations
+    if 'startDate' in item:
+        return parse_date(item['startDate'])
+    elif 'dateStart' in item:
+        return parse_date(item['dateStart'])
+    elif 'subEvent' in item and isinstance(item['subEvent'], list):
+        for sub_event in item['subEvent']:
+            if 'startDate' in sub_event:
+                return parse_date(sub_event['startDate'])
+    return None
+
+def parse_date(date_string):
+    # Define common date formats
+    date_formats = [
+        '%Y-%m-%dT%H:%M:%SZ',  # ISO 8601 format
+        '%Y-%m-%d %H:%M:%S',  # Common date/time format
+        '%Y-%m-%d',  # Date only format
+        '%Y/%m/%d',  # Another common date format
+        '%Y-%m-%dT%H:%M:%S.%fZ',  # ISO 8601 with milliseconds
+        '%Y-%m-%dT%H:%M:%S.%f',  # ISO 8601 with milliseconds (no Z)
+        '%Y-%m-%dT%H:%M:%S%z',  # ISO 8601 with timezone offset
+        '%Y-%m-%dT%H:%M:%S%Z',  # ISO 8601 with timezone name
+    ]
+
+    for fmt in date_formats:
+        try:
+            # Parse the date string
+            parsed_datetime = datetime.strptime(date_string, fmt)
+
+            # If the date string has a timezone, use it
+            if fmt in ['%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S%Z']:
+                return parsed_datetime.astimezone(tz.UTC)
+
+            # Otherwise, assume UTC and set the timezone
+            else:
+                return parsed_datetime.replace(tzinfo=tz.UTC)
+
+        except ValueError:
+            pass  # Try the next format
+
+    # If none of the formats match, return None
+    return None
 
 # --------------------------------------------------------------------------------------------------
 

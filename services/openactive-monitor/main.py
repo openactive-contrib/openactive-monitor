@@ -3,6 +3,7 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
+import random
 # import re
 import seaborn as sns
 import streamlit as st
@@ -37,6 +38,12 @@ def get_total_num_items(analysis, preview=False):
         for filename_with_infostamp, feed_analysis in analysis.items()
         if (    ((not preview) and ('000-preview' not in filename_with_infostamp))
             or  ((preview) and ('000-preview' in filename_with_infostamp)) )
+    ])
+    
+def get_total_num_items_week(week):
+    return sum([
+        week['num_items']
+        for filename_with_infostamp, week in week.items()
     ])
 
 # --------------------------------------------------------------------------------------------------
@@ -212,7 +219,8 @@ if (not st.session_state):
     # --------------------------------------------------------------------------------------------------
 
     st.session_state.analysis = get_analysis()
-
+    st.session_state.week = get_week()
+    
     if (st.session_state.analysis is None):
         st.session_state.error = True
         st.error('Error retrieving analysis data')
@@ -243,10 +251,8 @@ if (not st.session_state):
         # --------------------------------------------------------------------------------------------------
 
         # For the '7 days' tab
-        
-        
-        
-        
+        st.session_state.total_num_items_week = get_total_num_items_week(st.session_state.week)
+
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Activities' tab
@@ -417,6 +423,35 @@ if (not st.session_state.error):
     with tabs[1]:
         st.header('Opportunities over the next 7 days')
 
+        st.metric('Number of live OpenActive opportunities', f'{st.session_state.total_num_items_week:,}')
+
+        st.write('Sample data')
+                # Access the 'week' dictionary
+        week = st.session_state.week
+
+# Keep track of how many items we've displayed
+        items_displayed = 0
+
+        while items_displayed < 5:
+            # Choose a random key
+            random_key = random.choice(list(week.keys()))
+
+            # Access the 'items' list within the week data
+            sample = week[random_key]['items']
+
+            # Print a random item from the sample
+            if sample:
+                random_item = random.choice(sample)
+                st.write(random_item)
+                items_displayed += 1
+            else:
+                print(f"No items in the sample for file: {random_key}")
+
+
+        
+        
+        
+        
     # --------------------------------------------------------------------------------------------------
 
     with tabs[2]:
