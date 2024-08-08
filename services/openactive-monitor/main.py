@@ -7,55 +7,68 @@ import pickle
 import seaborn as sns
 import streamlit as st
 # from datetime import datetime
+from enum import Enum
 from os import getenv
 
 # --------------------------------------------------------------------------------------------------
 
-def get_analysis():
+def is_feed_to_include(filename, feeds_to_include='all'):
+    return ((feeds_to_include == 'all')
+        or  ((feeds_to_include == 'regular') and ('000-preview' not in filename))
+        or  ((feeds_to_include == 'preview') and ('000-preview' in filename))
+    )
+
+# --------------------------------------------------------------------------------------------------
+
+def get_analyses():
     try:
-        with open(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_ANALYSIS, 'rb') as file_in:
-            analysis = pickle.load(file_in)
-        return analysis
+        with open(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_ANALYSES, 'rb') as file_in:
+            analyses = pickle.load(file_in)
+        return analyses
     except:
         return None
 
 # --------------------------------------------------------------------------------------------------
 
-def get_total_num_items(analysis, preview=False):
+def get_total_num_items(analyses, feeds_to_include='all'):
     return sum([
-        feed_analysis['num_items']
-        for filename_with_infostamp, feed_analysis in analysis.items()
-        if (    ((not preview) and ('000-preview' not in filename_with_infostamp))
-            or  ((preview) and ('000-preview' in filename_with_infostamp)) )
+        analysis['num_items']
+        for filename, analysis in analyses.items()
+        if (is_feed_to_include(filename, feeds_to_include=feeds_to_include))
     ])
 
 # --------------------------------------------------------------------------------------------------
 
-def get_total_activities_counts(analysis, preview=False):
+def get_df_total_activities_counts(analyses, feeds_to_include='all'):
     total_activities_counts = {}
 
-    for filename_with_infostamp, feed_analysis in analysis.items():
-        if (    ((not preview) and ('000-preview' not in filename_with_infostamp))
-            or  ((preview) and ('000-preview' in filename_with_infostamp))
-        ):
-            for activity, count in feed_analysis['activities_counts'].items():
+    for filename, analysis in analyses.items():
+        if (is_feed_to_include(filename, feeds_to_include=feeds_to_include)):
+            for activity, count in analysis['activities_counts'].items():
                 if (activity not in total_activities_counts.keys()):
                     total_activities_counts[activity] = count
                 else:
                     total_activities_counts[activity] += count
 
-    return total_activities_counts
+    df_total_activities_counts = pd.DataFrame(
+        sorted(
+            total_activities_counts.items(),
+            key=lambda item: item[1],
+            reverse=True,
+        ),
+        columns=['activity', 'count'],
+    )
+
+    return df_total_activities_counts
 
 # --------------------------------------------------------------------------------------------------
 
-def get_df_total_coords_counts(analysis, preview=False):
+def get_df_total_coords_counts(analyses, feeds_to_include='all'):
     total_coords_counts = {}
 
-    for filename_with_infostamp, feed_analysis in analysis.items():
-        if (    ((not preview) and ('000-preview' not in filename_with_infostamp))
-            or  ((preview) and ('000-preview' in filename_with_infostamp))
-        ):
-            for coords, count in feed_analysis['coords_counts'].items():
+    for filename, analysis in analyses.items():
+        if (is_feed_to_include(filename, feeds_to_include=feeds_to_include)):
+            for coords, count in analysis['coords_counts'].items():
                 if (coords not in total_coords_counts.keys()):
                     total_coords_counts[coords] = count
                 else:
@@ -66,7 +79,7 @@ def get_df_total_coords_counts(analysis, preview=False):
             list(map(
                 # lambda coords_count: tuple([float(coord) for coord in coords_count[0].split(',')] + [coords_count[1]]),
                 lambda coords_count: tuple(list(map(float, coords_count[0].split(','))) + [coords_count[1]]),
-                total_coords_counts.items() # total_coords_counts_regular
+                total_coords_counts.items()
             )),
             key=lambda item: item[2],
             reverse=True,
@@ -78,9 +91,9 @@ def get_df_total_coords_counts(analysis, preview=False):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts):
-    # gdf_regions: Columns are: [FID, RGN23CD, RGN23NM, BNG_E, BNG_N, LONG, LAT, GlobalID, geometry]
+def get_gdf_total_regions_counts(df_total_coords_counts, gdf_regions):
     # df_total_coords_counts: Columns are: [latitude, longitude, count]
+    # gdf_regions: Columns are: [FID, RGN23CD, RGN23NM, BNG_E, BNG_N, LONG, LAT, GlobalID, geometry]
 
     # Columns are: [latitude, longitude, count, geometry]
     gdf_total_coords_counts = gpd.GeoDataFrame(
@@ -121,7 +134,8 @@ def get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_gdf_total_lads_counts(gdf_lads, df_total_coords_counts):
+def get_gdf_total_lads_counts(df_total_coords_counts, gdf_lads):
+    # df_total_coords_counts: Columns are: [latitude, longitude, count]
 
     gdf_total_coords_counts = gpd.GeoDataFrame(
             df_total_coords_counts,
@@ -132,7 +146,7 @@ def get_gdf_total_lads_counts(gdf_lads, df_total_coords_counts):
             crs='epsg:4326', # Set CRS to WGS84
         ) \
         .to_crs(gdf_lads.crs)
-        
+
     # Columns are: [LAD24NM, count]
     gdf_total_lads_counts = gpd.GeoDataFrame(
         gpd.sjoin(
@@ -181,17 +195,17 @@ if (not st.session_state):
     #   --region europe-west2 \
     #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
     #   --add-volume-mount volume=volume-1,mount-path=/volume-1
-    st.session_state.RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
+    st.session_state.RELATIVE_FILEPATH_ANALYSES = getenv('RELATIVE_FILEPATH_ANALYSES', '../volume-1/data-analysis')
 
-    st.session_state.FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
+    st.session_state.FILENAME_ANALYSES = getenv('FILENAME_ANALYSES', 'analysis.pickle')
     st.session_state.FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
     st.session_state.FILENAME_LADS = getenv('FILENAME_LADS', 'lads.geojson')
     st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
     st.session_state.FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
 
     print('Environment variables:')
-    print('RELATIVE_FILEPATH_ANALYSIS:', st.session_state.RELATIVE_FILEPATH_ANALYSIS)
-    print('FILENAME_ANALYSIS:', st.session_state.FILENAME_ANALYSIS)
+    print('RELATIVE_FILEPATH_ANALYSES:', st.session_state.RELATIVE_FILEPATH_ANALYSES)
+    print('FILENAME_ANALYSES:', st.session_state.FILENAME_ANALYSES)
     print('FILENAME_REGIONS:', st.session_state.FILENAME_REGIONS)
     print('FILENAME_LADS:', st.session_state.FILENAME_LADS)
     print('FILENAME_SE_SPORT_AND_DISCIPLINE:', st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE)
@@ -199,11 +213,11 @@ if (not st.session_state):
 
     # --------------------------------------------------------------------------------------------------
 
-    st.session_state.analysis = get_analysis()
+    analyses = get_analyses()
 
-    if (st.session_state.analysis is None):
+    if (analyses is None):
         st.session_state.error = True
-        st.error('Error retrieving analysis data')
+        st.error('Error retrieving analyses data')
     else:
         st.session_state.error = False
 
@@ -211,88 +225,47 @@ if (not st.session_state):
         # theming, otherwise we have general Matplotlib theming:
         sns.set_theme(rc={
             # 'figure.figsize': (10, 4),
-            'patch.linewidth': 0.0, # Border width around individual bars
+            'patch.linewidth': 0.0, # Border width around individual bars of barplot
         })
 
         # --------------------------------------------------------------------------------------------------
 
-        st.session_state.filenames_with_infostamp_regular = [filename_with_infostamp for filename_with_infostamp in st.session_state.analysis.keys() if ('000-preview' not in filename_with_infostamp)]
-        st.session_state.filenames_with_infostamp_preview = [filename_with_infostamp for filename_with_infostamp in st.session_state.analysis.keys() if ('000-preview' in filename_with_infostamp)]
-        st.session_state.filenames_with_infostamp_total = [filename_with_infostamp for filename_with_infostamp in st.session_state.analysis.keys()]
+        # For the 'Overview' tab
 
-        st.session_state.total_num_items_regular = get_total_num_items(st.session_state.analysis, preview=False)
-        st.session_state.total_num_items_preview = get_total_num_items(st.session_state.analysis, preview=True)
+        st.session_state.num_feeds_regular = len([filename for filename in analyses.keys() if (is_feed_to_include(filename, feeds_to_include='regular'))])
+        st.session_state.num_feeds_preview = len([filename for filename in analyses.keys() if (is_feed_to_include(filename, feeds_to_include='preview'))])
+        st.session_state.num_feeds = st.session_state.num_feeds_regular + st.session_state.num_feeds_preview
+
+        st.session_state.total_num_items_regular = get_total_num_items(analyses, feeds_to_include='regular')
+        st.session_state.total_num_items_preview = get_total_num_items(analyses, feeds_to_include='preview')
         st.session_state.total_num_items = st.session_state.total_num_items_regular + st.session_state.total_num_items_preview
 
-        st.session_state.total_activities_counts_regular = get_total_activities_counts(st.session_state.analysis, preview=False)
-        st.session_state.total_activities_counts_preview = get_total_activities_counts(st.session_state.analysis, preview=True)
- 
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Activities' tab
 
-        st.session_state.df_total_activities_counts_regular = pd.DataFrame(
-            sorted(
-                st.session_state.total_activities_counts_regular.items(),
-                key=lambda item: item[1],
-                reverse=True,
-            ),
-            columns=['activity', 'count'],
-        )
-        st.session_state.df_total_activities_counts_preview = pd.DataFrame(
-            sorted(
-                st.session_state.total_activities_counts_preview.items(),
-                key=lambda item: item[1],
-                reverse=True,
-            ),
-            columns=['activity', 'count'],
-        )
-
-        st.session_state.total_activities_counts = st.session_state.total_activities_counts_regular.copy()
-        for activity, count in st.session_state.total_activities_counts_preview.items():
-            if (activity not in st.session_state.total_activities_counts.keys()):
-                st.session_state.total_activities_counts[activity] = count
-            else:
-                st.session_state.total_activities_counts[activity] += count
-
-        st.session_state.df_total_activities_counts = pd.DataFrame(
-            sorted(
-                st.session_state.total_activities_counts.items(),
-                key=lambda item: item[1],
-                reverse=True,
-            ),
-            columns=['activity', 'count'],
-        )
-
-        st.session_state.df_total_activities_counts.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + 'sorted_activities.csv', index=False)
-        # st.write("Sorted activities saved to 'sorted_activities.csv'")
-
+        st.session_state.df_total_activities_counts = get_df_total_activities_counts(analyses, feeds_to_include='all')
         st.session_state.num_activities_top = 20
 
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Locations' tab
 
-        gdf_regions = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_REGIONS)
-        gdf_lads = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_LADS)
+        df_total_coords_counts = get_df_total_coords_counts(analyses, feeds_to_include='all')
+        gdf_regions = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_REGIONS)
+        gdf_lads = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_LADS)
 
-        df_total_coords_counts_regular = get_df_total_coords_counts(st.session_state.analysis, preview=False)
-        df_total_coords_counts_preview = get_df_total_coords_counts(st.session_state.analysis, preview=True)
-
-        st.session_state.gdf_total_regions_counts_regular = get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts_regular)
-        st.session_state.gdf_total_regions_counts_preview = get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts_preview)
-        st.session_state.gdf_total_lads_counts_regular = get_gdf_total_lads_counts(gdf_lads, df_total_coords_counts_regular)
-        st.session_state.gdf_total_lads_counts_preview = get_gdf_total_lads_counts(gdf_lads, df_total_coords_counts_preview)
+        st.session_state.gdf_total_regions_counts = get_gdf_total_regions_counts(df_total_coords_counts, gdf_regions)
+        st.session_state.gdf_total_lads_counts = get_gdf_total_lads_counts(df_total_coords_counts, gdf_lads)
 
         # --------------------------------------------------------------------------------------------------
 
         # For the 'KPIs' tab
 
         # Columns are: [sport, discipline, sport_and_discipline]
-        df_se_sport_and_discipline = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE)
-
+        df_se_sport_and_discipline = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE)
         # Columns are: [activity, sport_and_discipline]
-        df_oa_se_mapping = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
+        df_oa_se_mapping = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
 
         # Automatically update the mapping file if confident in the handling of incoming activity labels i.e.
         # if the names have been stripped of junk and formatted in a compatible way, otherwise we'll potentially
@@ -314,7 +287,7 @@ if (not st.session_state):
         #     .sort_values(by='activity') \
         #     .reset_index(drop=True)
 
-        # df_oa_se_mapping.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
+        # df_oa_se_mapping.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
 
         # Columns are: [activity, count, sport_and_discipline]
         st.session_state.df_total_sad_counts = pd.merge(st.session_state.df_total_activities_counts, df_oa_se_mapping, how='left')
@@ -364,14 +337,13 @@ if (not st.session_state.error):
     with tabs[0]:
         st.header('Overview of the OpenActive data ecosystem')
 
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns([1, 3])
         with col1:
-            st.metric('Number of OpenActive feeds', len(st.session_state.filenames_with_infostamp_total))
-
+            st.metric('Number of live OpenActive feeds', st.session_state.num_feeds)
         with col2:
             st.metric('Number of live OpenActive opportunities', f'{st.session_state.total_num_items:,}')
 
-        st.write(f'These figures include {len(st.session_state.filenames_with_infostamp_preview)} preview feeds with {round(st.session_state.total_num_items_preview / 1000000, 1)}m preview opportunities')
+        st.write(f'These figures include {st.session_state.num_feeds_preview} preview feeds with {round(st.session_state.total_num_items_preview / 1000000, 1)}m preview opportunities')
 
         # dated_counts = {
         #     'Jan 17': 0,
@@ -383,7 +355,7 @@ if (not st.session_state.error):
         # }
 
         # current_month = datetime.now().strftime('%b %y')
-        # dated_counts[current_month] = total_num_items_regular + total_num_items_preview
+        # dated_counts[current_month] = st.session_state.total_num_items
         # df = pd.DataFrame.from_dict(dated_counts, orient='index', columns=['Count'])
         # df.reset_index(inplace=True)
         # df.columns = ['Date', 'Count']
@@ -395,128 +367,80 @@ if (not st.session_state.error):
     # --------------------------------------------------------------------------------------------------
 
     with tabs[1]:
-        st.header('Opportunities over the next 7 days')
+        st.header('OpenActive opportunities over the next 7 days')
 
     # --------------------------------------------------------------------------------------------------
 
     with tabs[2]:
-        st.header('Most popular activities')
+        st.header('Most popular OpenActive activities')
 
-        for preview in [False, True]:
-            if (not preview):
-                st.subheader('Regular feeds', divider='gray')
-                df_total_activities_counts = st.session_state.df_total_activities_counts_regular
-            else:
-                st.subheader('Preview feeds', divider='gray')
-                df_total_activities_counts = st.session_state.df_total_activities_counts_preview
-
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.markdown(
-                    '<div style="text-align: center;">All activities</div>',
-                    unsafe_allow_html=True,
-                )
-                st.dataframe(
-                    df_total_activities_counts,
-                    use_container_width=True,
-                    hide_index=True,
-                )
-            with col2:
-                st.markdown(
-                    f'<div style="text-align: center;">Top {st.session_state.num_activities_top} activities</div>',
-                    unsafe_allow_html=True,
-                )
-                fig, ax = plt.subplots(1, 1, figsize=(10, 5))
-                sns.barplot(
-                    df_total_activities_counts[:st.session_state.num_activities_top],
-                    x='count',
-                    y='activity',
-                    ax=ax,
-                )
-                ax.bar_label(ax.containers[0], fontsize=8)
-                # ax.set_title(f'Top {st.session_state.num_activities_top} activities')
-                st.pyplot(fig)
-                plt.close(fig)
-
-        # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
-
-        # sns.barplot(
-        #     st.session_state.df_total_activities_counts_regular[:st.session_state.num_activities_top],
-        #     x='count',
-        #     y='activity',
-        #     ax=ax1,
-        # )
-
-        # sns.barplot(
-        #     st.session_state.df_total_activities_counts_preview[:st.session_state.num_activities_top],
-        #     x='count',
-        #     y='activity',
-        #     ax=ax2,
-        # )
-
-        # plt.tight_layout() # Prevents top subplot x-axis label overlapping bottom subplot title
-        # st.pyplot(fig)
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown(
+                '<div style="text-align: center;">All activities</div>',
+                unsafe_allow_html=True,
+            )
+            st.dataframe(
+                st.session_state.df_total_activities_counts,
+                use_container_width=True,
+                hide_index=True,
+            )
+        with col2:
+            st.markdown(
+                f'<div style="text-align: center;">Top {st.session_state.num_activities_top} activities</div>',
+                unsafe_allow_html=True,
+            )
+            fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+            sns.barplot(
+                st.session_state.df_total_activities_counts[:st.session_state.num_activities_top],
+                x='count',
+                y='activity',
+                ax=ax,
+            )
+            ax.bar_label(ax.containers[0], fontsize=8)
+            st.pyplot(fig)
+            plt.close(fig)
 
     # --------------------------------------------------------------------------------------------------
 
     with tabs[3]:
         st.header('OpenActive opportunities by region')
 
-        for preview in [False, True]:
-            if (not preview):
-                st.subheader('Regular feeds', divider='gray')
-                gdf_total_regions_counts = st.session_state.gdf_total_regions_counts_regular
-            else:
-                st.subheader('Preview feeds', divider='gray')
-                gdf_total_regions_counts = st.session_state.gdf_total_regions_counts_preview
-
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.dataframe(
-                    gdf_total_regions_counts[['RGN23NM', 'count', 'percentage']].set_index('RGN23NM'),
-                    use_container_width=True,
-                )
-            with col2:
-                fig, ax = plt.subplots(1, 1)
-                gdf_total_regions_counts.plot(
-                    column='percentage',
-                    cmap='YlOrRd', # 'Greys_r' for reversed greyscale
-                    legend=True,
-                    ax=ax,
-                )
-                ax.set_xticks([])
-                ax.set_yticks([])
-                st.pyplot(fig)
-                plt.close(fig)
-
-    # LA breakdown
-    
-        for preview in [False, True]:
-            if (not preview):
-                st.subheader('Regular feeds', divider='gray')
-                gdf_total_lads_counts = st.session_state.gdf_total_lads_counts_regular
-            else:
-                st.subheader('Preview feeds', divider='gray')
-                gdf_total_lads_counts = st.session_state.gdf_total_lads_counts_preview
-
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.dataframe(
-                    gdf_total_lads_counts[['LAD24NM', 'count', 'percentage']].set_index('LAD24NM'),
-                    use_container_width=True,
-                )
-            with col2:
-                fig, ax = plt.subplots(1, 1)
-                gdf_total_lads_counts.plot(
-                    column='percentage',
-                    cmap='YlOrRd', 
-                    legend=True,
-                    ax=ax,
-                )
-                ax.set_xticks([])
-                ax.set_yticks([])
-                st.pyplot(fig)
-                plt.close(fig)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.dataframe(
+                st.session_state.gdf_total_regions_counts[['RGN23NM', 'count', 'percentage']].set_index('RGN23NM'),
+                use_container_width=True,
+            )
+        with col2:
+            fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+            st.session_state.gdf_total_regions_counts.plot(
+                column='percentage',
+                cmap='YlOrRd',
+                legend=True,
+                ax=ax,
+            )
+            ax.set_xticks([])
+            ax.set_yticks([])
+            st.pyplot(fig)
+            plt.close(fig)
+        with col3:
+            st.dataframe(
+                st.session_state.gdf_total_lads_counts[['LAD24NM', 'count', 'percentage']].set_index('LAD24NM'),
+                use_container_width=True,
+            )
+        with col4:
+            fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+            st.session_state.gdf_total_lads_counts.plot(
+                column='percentage',
+                cmap='YlOrRd',
+                legend=True,
+                ax=ax,
+            )
+            ax.set_xticks([])
+            ax.set_yticks([])
+            st.pyplot(fig)
+            plt.close(fig)
 
     # --------------------------------------------------------------------------------------------------
 
