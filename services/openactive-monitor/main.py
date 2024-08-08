@@ -144,11 +144,15 @@ if (not st.session_state):
 
     st.session_state.FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
     st.session_state.FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
+    st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
+    st.session_state.FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
 
     print('Environment variables:')
     print('RELATIVE_FILEPATH_ANALYSIS:', st.session_state.RELATIVE_FILEPATH_ANALYSIS)
     print('FILENAME_ANALYSIS:', st.session_state.FILENAME_ANALYSIS)
     print('FILENAME_REGIONS:', st.session_state.FILENAME_REGIONS)
+    print('FILENAME_SE_SPORT_AND_DISCIPLINE:', st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE)
+    print('FILENAME_OA_SE_MAPPING:', st.session_state.FILENAME_OA_SE_MAPPING)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -199,7 +203,23 @@ if (not st.session_state):
             columns=['activity', 'count'],
         )
 
-        st.session_state.df_total_activities_counts_regular.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + 'sorted_activities.csv', index=False)
+        st.session_state.total_activities_counts = st.session_state.total_activities_counts_regular.copy()
+        for activity, count in st.session_state.total_activities_counts_preview.items():
+            if (activity not in st.session_state.total_activities_counts.keys()):
+                st.session_state.total_activities_counts[activity] = count
+            else:
+                st.session_state.total_activities_counts[activity] += count
+
+        st.session_state.df_total_activities_counts = pd.DataFrame(
+            sorted(
+                st.session_state.total_activities_counts.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            ),
+            columns=['activity', 'count'],
+        )
+
+        st.session_state.df_total_activities_counts.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + 'sorted_activities.csv', index=False)
         # st.write("Sorted activities saved to 'sorted_activities.csv'")
 
         st.session_state.num_activities_top = 20
@@ -219,6 +239,74 @@ if (not st.session_state):
         # --------------------------------------------------------------------------------------------------
 
         # For the 'KPIs' tab
+
+        # Columns are: [sport, discipline, sport_and_discipline]
+        df_se_sport_and_discipline = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE)
+
+        # Columns are: [activity, sport_and_discipline]
+        df_oa_se_mapping = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
+
+        # Automatically update the mapping file if confident in the handling of incoming activity labels i.e.
+        # if the names have been stripped of junk and formatted in a compatible way, otherwise we'll potentially
+        # get unmatched repetition e.g. 'kettlebells' may have a match, but a new entry 'kettlebells\r\n' will
+        # not. Currently commenting this out as it could pollute the mapping file if not done right, instead
+        # relying on the dataframe merge below with no matches resulting in NaN, which can be changed to 'No Match'
+        # here in code. This means that the code may produce mistakes on-the-fly depending on the full chain
+        # of data handling choices, but at least they won't be hard-wired into the mapping file:
+
+        # df_oa_se_mapping_additions = \
+        #     st.session_state.df_total_activities_counts[~st.session_state.df_total_activities_counts['activity'].isin(df_oa_se_mapping['activity'])] \
+        #     .copy() \
+        #     .drop(columns=['count']) \
+        #     .assign(sport_and_discipline='No Match') \
+        #     .reset_index(drop=True)
+
+        # df_oa_se_mapping = \
+        #     pd.concat([df_oa_se_mapping, df_oa_se_mapping_additions]) \
+        #     .sort_values(by='activity') \
+        #     .reset_index(drop=True)
+
+        # df_oa_se_mapping.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
+
+        # Columns are: [activity, count, sport_and_discipline]
+        st.session_state.df_total_sad_counts = pd.merge(st.session_state.df_total_activities_counts, df_oa_se_mapping, how='left')
+        st.session_state.df_total_sad_counts['sport_and_discipline'].fillna('No Match', inplace=True)
+
+        # Columns are: [('sport_and_discipline', ''), ('activity', '<lambda>'), ('count', 'count'), ('count', 'sum')] # Note that these are MultiIndex columns, each element of a tuple corresponds to a different header row
+        st.session_state.df_total_sad_counts = \
+            st.session_state.df_total_sad_counts \
+            .groupby('sport_and_discipline') \
+            .agg({
+                'activity': lambda x: '; '.join(list(x)), # Don't join activity labels with commas as the labels may use commas
+                'count': ['count', 'sum'], # This is the 'count' column with the 'count' and 'sum' functions applied to it separately, producing two new sub-columns, and hence the MultiIndex output
+            }) \
+            .sort_values(by=('count', 'sum'), ascending=False) \
+            .reset_index()
+
+        total_num_activities = st.session_state.df_total_sad_counts[('count', 'count')].sum() # == len(st.session_state.total_activities_counts.keys())
+        total_num_opportunities = st.session_state.df_total_sad_counts[('count', 'sum')].sum() # == sum(st.session_state.total_activities_counts.values())
+
+        st.session_state.df_total_sad_counts[('count', f'% of activities')] = round((st.session_state.df_total_sad_counts[('count', 'count')] / total_num_activities) * 100, 1)
+        st.session_state.df_total_sad_counts[('count', f'% of opportunities')] = round((st.session_state.df_total_sad_counts[('count', 'sum')] / total_num_opportunities) * 100, 1)
+
+        st.session_state.df_total_sad_counts.columns = [
+            'sport_and_discipline',
+            'activity',
+            f'No. activities (/{total_num_activities})',
+            f'No. opportunities (/{total_num_opportunities})',
+            f'% activities',
+            f'% opportunities',
+        ]
+
+        st.session_state.num_sad_se = df_se_sport_and_discipline['sport_and_discipline'].count()
+        st.session_state.num_sad_matched = st.session_state.df_total_sad_counts['sport_and_discipline'].count()
+        st.session_state.num_sad_unmatched = st.session_state.num_sad_se - st.session_state.num_sad_matched
+        st.session_state.percentage_sad_matched = round((st.session_state.num_sad_matched / st.session_state.num_sad_se) * 100, 1)
+
+        st.session_state.df_se_sport_and_discipline_unmatched = df_se_sport_and_discipline[
+            ~df_se_sport_and_discipline['sport_and_discipline'] \
+            .isin(st.session_state.df_total_sad_counts['sport_and_discipline'])
+        ]
 
 # --------------------------------------------------------------------------------------------------
 
@@ -361,43 +449,12 @@ if (not st.session_state.error):
     # --------------------------------------------------------------------------------------------------
 
     with tabs[4]:
-        st.header('KPIs')
+        st.header(f'KPI 2.1.1 - {st.session_state.percentage_sad_matched}% of Sport England activities found in OpenActive data')
 
-        st.subheader('Regular feeds', divider='gray')
-
-        # 2.1.1 - % of Sport England recognised activities appearing in OpenActive data feeds
-
-        # Load Sport England recognised activities from a CSV file
-        df_sport_england = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + 'Sport and Disciplines.csv')
-
-        # Create a DataFrame from the gemini matched activities
-        df_activities = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + 'matched_activities.csv')
-
-        df_activities = df_activities.loc[df_activities['activity'] != 'activity']
-
-        # Convert 'count' column to integers before grouping
-        df_activities['count'] = df_activities['count'].astype(int)
-
-        # Group by 'sport_and_discipline' and sum the 'count' column
-        df_grouped = df_activities.groupby('sport_and_discipline')['count'].sum().reset_index()
-
-        # Create a new column 'activities' to store comma-separated activities
-        activities_string = df_activities.groupby('sport_and_discipline')['activity'].apply(list).apply(lambda x: ', '.join(x))
-        df_output = pd.merge(df_grouped, activities_string, left_on='sport_and_discipline', right_on='sport_and_discipline', how='inner')
-
-        # Sort the DataFrame by 'count' in descending order
-        df_output = df_output.sort_values(by='count', ascending=False)
-
-        percentage_matched = round(len(df_output) / len(df_sport_england) * 100, 0)
-
-        st.subheader(f"2.1.1 - {percentage_matched}% of Sport England recognised activities appearing in OpenActive data feeds")
-
-        # Print the resulting DataFrame, including the 'activities' column
-        st.write(f"Matching {len(df_output) } of {len(df_sport_england)} Sports and Disciplines")
-        st.dataframe(df_output[['sport_and_discipline', 'count','activity']], width=1000, hide_index=True)
-
-        # Get unmatched sports and disciplines
-        unmatched_sport_england = df_sport_england[~df_sport_england['sd'].isin(df_output['sport_and_discipline'])]
-
-        st.write(f"Unmatched: {len(df_sport_england) - len(df_output) } Sports and Disciplines")
-        st.dataframe(unmatched_sport_england[['SPORT','DISCIPLINE']], hide_index=True, width=600)
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.write(f'Matched: {st.session_state.num_sad_matched} of {st.session_state.num_sad_se} sports and disciplines')
+            st.dataframe(st.session_state.df_total_sad_counts, hide_index=True)
+        with col2:
+            st.write(f'Unmatched: {st.session_state.num_sad_unmatched} of {st.session_state.num_sad_se} sports and disciplines')
+            st.dataframe(st.session_state.df_se_sport_and_discipline_unmatched[['sport', 'discipline']], hide_index=True)
