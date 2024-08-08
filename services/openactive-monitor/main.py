@@ -123,9 +123,50 @@ def get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts):
         .sort_values(by='count', ascending=False)
 
     # Columns are: [FID, RGN23CD, RGN23NM, BNG_E, BNG_N, LONG, LAT, GlobalID, geometry, count, percentage]
-    gdf_total_regions_counts['percentage'] = round((gdf_total_regions_counts['count'] / sum(gdf_total_regions_counts['count'])) * 100, 1)
+    gdf_total_regions_counts['percentage'] = round((gdf_total_regions_counts['count'] / gdf_total_regions_counts['count'].sum(skipna=True)) * 100, 1)
+    # print('gdf_total_regions_counts:')
+    # print(gdf_total_regions_counts)
 
     return gdf_total_regions_counts
+
+# --------------------------------------------------------------------------------------------------
+
+def get_gdf_total_lads_counts(gdf_lads, df_total_coords_counts):
+
+    gdf_total_coords_counts = gpd.GeoDataFrame(
+            df_total_coords_counts,
+            geometry=gpd.points_from_xy(
+                df_total_coords_counts['longitude'],
+                df_total_coords_counts['latitude'],
+            ),
+            crs='epsg:4326', # Set CRS to WGS84
+        ) \
+        .to_crs(gdf_lads.crs)
+        
+    # Columns are: [LAD24NM, count]
+    gdf_total_lads_counts = gpd.GeoDataFrame(
+        gpd.sjoin(
+            gdf_lads[['LAD24NM', 'geometry']],
+            gdf_total_coords_counts[['count', 'geometry']],
+            how='right',
+            predicate='intersects',
+        ) \
+        .groupby('LAD24NM')['count'] \
+        .sum()
+    ) \
+    .reset_index()
+
+    gdf_total_lads_counts = \
+        gdf_lads \
+        .merge(gdf_total_lads_counts, on='LAD24NM', how='left') \
+        .sort_values(by='count', ascending=False) \
+        .fillna(0)
+
+    gdf_total_lads_counts['percentage'] = round((gdf_total_lads_counts['count'] / gdf_total_lads_counts['count'].sum(skipna=True)) * 100, 1)
+    # print('gdf_total_lads_counts:')
+    # print(gdf_total_lads_counts)
+
+    return gdf_total_lads_counts
 
 # --------------------------------------------------------------------------------------------------
 
@@ -155,6 +196,7 @@ if (not st.session_state):
     st.session_state.FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
     st.session_state.FILENAME_WEEK = getenv('FILENAME_WEEK', 'week.pickle')
     st.session_state.FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
+    st.session_state.FILENAME_LADS = getenv('FILENAME_LADS', 'lads.geojson')
     st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
     st.session_state.FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
 
@@ -163,6 +205,7 @@ if (not st.session_state):
     print('FILENAME_ANALYSIS:', st.session_state.FILENAME_ANALYSIS)
     print('FILENAME_WEEK:', st.session_state.FILENAME_WEEK)
     print('FILENAME_REGIONS:', st.session_state.FILENAME_REGIONS)
+    print('FILENAME_LADS:', st.session_state.FILENAME_LADS)
     print('FILENAME_SE_SPORT_AND_DISCIPLINE:', st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE)
     print('FILENAME_OA_SE_MAPPING:', st.session_state.FILENAME_OA_SE_MAPPING)
 
@@ -251,12 +294,15 @@ if (not st.session_state):
         # For the 'Locations' tab
 
         gdf_regions = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_REGIONS)
+        gdf_lads = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSIS + '/' + st.session_state.FILENAME_LADS)
 
         df_total_coords_counts_regular = get_df_total_coords_counts(st.session_state.analysis, preview=False)
         df_total_coords_counts_preview = get_df_total_coords_counts(st.session_state.analysis, preview=True)
 
         st.session_state.gdf_total_regions_counts_regular = get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts_regular)
         st.session_state.gdf_total_regions_counts_preview = get_gdf_total_regions_counts(gdf_regions, df_total_coords_counts_preview)
+        st.session_state.gdf_total_lads_counts_regular = get_gdf_total_lads_counts(gdf_lads, df_total_coords_counts_regular)
+        st.session_state.gdf_total_lads_counts_preview = get_gdf_total_lads_counts(gdf_lads, df_total_coords_counts_preview)
 
         # --------------------------------------------------------------------------------------------------
 
@@ -345,7 +391,7 @@ if (not st.session_state.error):
         with col2:
             st.metric('Number of live OpenActive opportunities', f'{st.session_state.total_num_items:,}')
 
-        st.write(f"These figures include including {round(st.session_state.total_num_items_preview/1000000,1)}m items from {len(st.session_state.filenames_with_infostamp_preview)} preview feeds")
+        st.write(f'These figures include {len(st.session_state.filenames_with_infostamp_preview)} preview feeds with {round(st.session_state.total_num_items_preview / 1000000, 1)}m preview opportunities')
 
         # dated_counts = {
         #     'Jan 17': 0,
@@ -410,6 +456,7 @@ if (not st.session_state.error):
                 ax.bar_label(ax.containers[0], fontsize=8)
                 # ax.set_title(f'Top {st.session_state.num_activities_top} activities')
                 st.pyplot(fig)
+                plt.close(fig)
 
         # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
 
@@ -460,6 +507,36 @@ if (not st.session_state.error):
                 ax.set_xticks([])
                 ax.set_yticks([])
                 st.pyplot(fig)
+                plt.close(fig)
+
+    # LA breakdown
+    
+        for preview in [False, True]:
+            if (not preview):
+                st.subheader('Regular feeds', divider='gray')
+                gdf_total_lads_counts = st.session_state.gdf_total_lads_counts_regular
+            else:
+                st.subheader('Preview feeds', divider='gray')
+                gdf_total_lads_counts = st.session_state.gdf_total_lads_counts_preview
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.dataframe(
+                    gdf_total_lads_counts[['LAD24NM', 'count', 'percentage']].set_index('LAD24NM'),
+                    use_container_width=True,
+                )
+            with col2:
+                fig, ax = plt.subplots(1, 1)
+                gdf_total_lads_counts.plot(
+                    column='percentage',
+                    cmap='YlOrRd', 
+                    legend=True,
+                    ax=ax,
+                )
+                ax.set_xticks([])
+                ax.set_yticks([])
+                st.pyplot(fig)
+                plt.close(fig)
 
     # --------------------------------------------------------------------------------------------------
 
