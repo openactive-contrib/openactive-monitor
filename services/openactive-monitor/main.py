@@ -7,7 +7,6 @@ import pickle
 import seaborn as sns
 import streamlit as st
 # from datetime import datetime
-from enum import Enum
 from os import getenv
 
 # --------------------------------------------------------------------------------------------------
@@ -91,52 +90,8 @@ def get_df_total_coords_counts(analyses, feeds_to_include='all'):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_gdf_total_regions_counts(df_total_coords_counts, gdf_regions):
-    # df_total_coords_counts: Columns are: [latitude, longitude, count]
-    # gdf_regions: Columns are: [FID, RGN23CD, RGN23NM, BNG_E, BNG_N, LONG, LAT, GlobalID, geometry]
-
-    # Columns are: [latitude, longitude, count, geometry]
-    gdf_total_coords_counts = gpd.GeoDataFrame(
-        df_total_coords_counts,
-        geometry=gpd.points_from_xy(
-            df_total_coords_counts['longitude'],
-            df_total_coords_counts['latitude'],
-        ),
-        crs='epsg:4326', # Set CRS to WGS84
-    ) \
-    .to_crs(gdf_regions.crs)
-
-    # Columns are: [RGN23NM, count]
-    gdf_total_regions_counts = gpd.GeoDataFrame(
-        gpd.sjoin(
-            gdf_regions[['RGN23NM', 'geometry']],
-            gdf_total_coords_counts[['count', 'geometry']],
-            how='right',
-            predicate='intersects',
-        ) \
-        .groupby('RGN23NM')['count'] \
-        .sum()
-    ) \
-    .reset_index()
-
-    # Columns are: [FID, RGN23CD, RGN23NM, BNG_E, BNG_N, LONG, LAT, GlobalID, geometry, count]
-    gdf_total_regions_counts = \
-        gdf_regions \
-        .merge(gdf_total_regions_counts, on='RGN23NM', how='left') \
-        .sort_values(by='count', ascending=False)
-
-    # Columns are: [FID, RGN23CD, RGN23NM, BNG_E, BNG_N, LONG, LAT, GlobalID, geometry, count, percentage]
-    gdf_total_regions_counts['percentage'] = round((gdf_total_regions_counts['count'] / gdf_total_regions_counts['count'].sum(skipna=True)) * 100, 1)
-    # print('gdf_total_regions_counts:')
-    # print(gdf_total_regions_counts)
-
-    return gdf_total_regions_counts
-
-# --------------------------------------------------------------------------------------------------
-
-def get_gdf_total_lads_counts(df_total_coords_counts, gdf_lads):
-    # df_total_coords_counts: Columns are: [latitude, longitude, count]
-
+def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_locations_name_column):
+    # Columns: ['latitude', 'longitude', 'count', 'geometry']
     gdf_total_coords_counts = gpd.GeoDataFrame(
             df_total_coords_counts,
             geometry=gpd.points_from_xy(
@@ -145,32 +100,41 @@ def get_gdf_total_lads_counts(df_total_coords_counts, gdf_lads):
             ),
             crs='epsg:4326', # Set CRS to WGS84
         ) \
-        .to_crs(gdf_lads.crs)
+        .to_crs(gdf_locations.crs)
 
-    # Columns are: [LAD24NM, count]
-    gdf_total_lads_counts = gpd.GeoDataFrame(
+    # Columns: [<gdf_locations_name_column>, 'count']
+    gdf_total_locations_counts = gpd.GeoDataFrame(
         gpd.sjoin(
-            gdf_lads[['LAD24NM', 'geometry']],
-            gdf_total_coords_counts[['count', 'geometry']],
+            gdf_locations[['geometry', gdf_locations_name_column]],
+            gdf_total_coords_counts[['geometry', 'count']],
             how='right',
             predicate='intersects',
         ) \
-        .groupby('LAD24NM')['count'] \
+        .groupby(gdf_locations_name_column)['count'] \
         .sum()
     ) \
     .reset_index()
 
-    gdf_total_lads_counts = \
-        gdf_lads \
-        .merge(gdf_total_lads_counts, on='LAD24NM', how='left') \
+    # If gdf_locations is 'regions.geojson':
+    #     Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count']
+    # If gdf_locations is 'lads.geojson':
+    #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count']
+    gdf_total_locations_counts = \
+        gdf_locations \
+        .merge(gdf_total_locations_counts, on=gdf_locations_name_column, how='left') \
         .sort_values(by='count', ascending=False) \
         .fillna(0)
 
-    gdf_total_lads_counts['percentage'] = round((gdf_total_lads_counts['count'] / gdf_total_lads_counts['count'].sum(skipna=True)) * 100, 1)
-    # print('gdf_total_lads_counts:')
-    # print(gdf_total_lads_counts)
+    # If gdf_locations is 'regions.geojson':
+    #     Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
+    # If gdf_locations is 'lads.geojson':
+    #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
+    gdf_total_locations_counts['percentage'] = round((gdf_total_locations_counts['count'] / gdf_total_locations_counts['count'].sum(skipna=True)) * 100, 1)
 
-    return gdf_total_lads_counts
+    # print('gdf_total_locations_counts:')
+    # print(gdf_total_locations_counts)
+
+    return gdf_total_locations_counts
 
 # --------------------------------------------------------------------------------------------------
 
@@ -225,7 +189,7 @@ if (not st.session_state):
         # theming, otherwise we have general Matplotlib theming:
         sns.set_theme(rc={
             # 'figure.figsize': (10, 4),
-            'patch.linewidth': 0.0, # Border width around individual bars of barplot
+            'patch.linewidth': 0.0, # Border width around individual bars of a barplot
         })
 
         # --------------------------------------------------------------------------------------------------
@@ -251,20 +215,25 @@ if (not st.session_state):
 
         # For the 'Locations' tab
 
+        # Columns: ['latitude', 'longitude', 'count']
         df_total_coords_counts = get_df_total_coords_counts(analyses, feeds_to_include='all')
+        # Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
         gdf_regions = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_REGIONS)
+        # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
         gdf_lads = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_LADS)
 
-        st.session_state.gdf_total_regions_counts = get_gdf_total_regions_counts(df_total_coords_counts, gdf_regions)
-        st.session_state.gdf_total_lads_counts = get_gdf_total_lads_counts(df_total_coords_counts, gdf_lads)
+        # Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
+        st.session_state.gdf_total_regions_counts = get_gdf_total_locations_counts(df_total_coords_counts, gdf_regions, 'RGN23NM')
+        # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
+        st.session_state.gdf_total_lads_counts = get_gdf_total_locations_counts(df_total_coords_counts, gdf_lads, 'LAD24NM')
 
         # --------------------------------------------------------------------------------------------------
 
         # For the 'KPIs' tab
 
-        # Columns are: [sport, discipline, sport_and_discipline]
+        # Columns: ['sport', 'discipline', 'sport_and_discipline']
         df_se_sport_and_discipline = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE)
-        # Columns are: [activity, sport_and_discipline]
+        # Columns: ['activity', 'sport_and_discipline']
         df_oa_se_mapping = pd.read_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
 
         # Automatically update the mapping file if confident in the handling of incoming activity labels i.e.
@@ -289,11 +258,11 @@ if (not st.session_state):
 
         # df_oa_se_mapping.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
 
-        # Columns are: [activity, count, sport_and_discipline]
+        # Columns: ['activity', 'count', 'sport_and_discipline']
         st.session_state.df_total_sad_counts = pd.merge(st.session_state.df_total_activities_counts, df_oa_se_mapping, how='left')
         st.session_state.df_total_sad_counts['sport_and_discipline'].fillna('No Match', inplace=True)
 
-        # Columns are: [('sport_and_discipline', ''), ('activity', '<lambda>'), ('count', 'count'), ('count', 'sum')] # Note that these are MultiIndex columns, each element of a tuple corresponds to a different header row
+        # Columns: [('sport_and_discipline', ''), ('activity', '<lambda>'), ('count', 'count'), ('count', 'sum')] # Note that these are MultiIndex columns, each element of a tuple corresponds to a different header row
         st.session_state.df_total_sad_counts = \
             st.session_state.df_total_sad_counts \
             .groupby('sport_and_discipline') \
@@ -404,7 +373,7 @@ if (not st.session_state.error):
     # --------------------------------------------------------------------------------------------------
 
     with tabs[3]:
-        st.header('OpenActive opportunities by region')
+        st.header('OpenActive opportunities by location')
 
         col1, col2, col3, col4 = st.columns(4)
         with col1:
