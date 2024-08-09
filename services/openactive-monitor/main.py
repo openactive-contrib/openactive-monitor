@@ -1,12 +1,9 @@
-# import difflib
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
-# import re
 import seaborn as sns
 import streamlit as st
-# from datetime import datetime
 from os import getenv
 
 # --------------------------------------------------------------------------------------------------
@@ -38,55 +35,32 @@ def get_total_num_items(analyses, feeds_to_include='all'):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_df_total_activities_counts(analyses, feeds_to_include='all'):
-    total_activities_counts = {}
+def get_df_total_keys_counts(analyses, keys_counts, feeds_to_include='all'):
+    total_keys_counts = {}
 
     for filename, analysis in analyses.items():
         if (is_feed_to_include(filename, feeds_to_include=feeds_to_include)):
-            for activity, count in analysis['activities_counts'].items():
-                if (activity not in total_activities_counts.keys()):
-                    total_activities_counts[activity] = count
+            for key, count in analysis[keys_counts].items():
+                if (key not in total_keys_counts.keys()):
+                    total_keys_counts[key] = count
                 else:
-                    total_activities_counts[activity] += count
+                    total_keys_counts[key] += count
 
-    df_total_activities_counts = pd.DataFrame(
+    if (keys_counts == 'activities_counts'):
+        columns = ['activity', 'count']
+    elif (keys_counts == 'coords_counts'):
+        columns = ['coords', 'count']
+
+    df_total_keys_counts = pd.DataFrame(
         sorted(
-            total_activities_counts.items(),
+            total_keys_counts.items(),
             key=lambda item: item[1],
             reverse=True,
         ),
-        columns=['activity', 'count'],
+        columns=columns,
     )
 
-    return df_total_activities_counts
-
-# --------------------------------------------------------------------------------------------------
-
-def get_df_total_coords_counts(analyses, feeds_to_include='all'):
-    total_coords_counts = {}
-
-    for filename, analysis in analyses.items():
-        if (is_feed_to_include(filename, feeds_to_include=feeds_to_include)):
-            for coords, count in analysis['coords_counts'].items():
-                if (coords not in total_coords_counts.keys()):
-                    total_coords_counts[coords] = count
-                else:
-                    total_coords_counts[coords] += count
-
-    df_total_coords_counts = pd.DataFrame(
-        sorted(
-            list(map(
-                # lambda coords_count: tuple([float(coord) for coord in coords_count[0].split(',')] + [coords_count[1]]),
-                lambda coords_count: tuple(list(map(float, coords_count[0].split(','))) + [coords_count[1]]),
-                total_coords_counts.items()
-            )),
-            key=lambda item: item[2],
-            reverse=True,
-        ),
-        columns=['latitude', 'longitude', 'count'],
-    )
-
-    return df_total_coords_counts
+    return df_total_keys_counts
 
 # --------------------------------------------------------------------------------------------------
 
@@ -208,15 +182,21 @@ if (not st.session_state):
 
         # For the 'Activities' tab
 
-        st.session_state.df_total_activities_counts = get_df_total_activities_counts(analyses, feeds_to_include='all')
+        # Columns: ['activity', 'count']
+        st.session_state.df_total_activities_counts = get_df_total_keys_counts(analyses, 'activities_counts', feeds_to_include='all')
         st.session_state.num_activities_top = 20
 
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Locations' tab
 
+        # Columns: ['coords', 'count']
+        df_total_coords_counts = get_df_total_keys_counts(analyses, 'coords_counts', feeds_to_include='all')
+        # Columns: ['coords', 'count', 'latitude', 'longitude']
+        df_total_coords_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_coords_counts['coords'].apply(lambda coords: coords.split(',')).tolist())
         # Columns: ['latitude', 'longitude', 'count']
-        df_total_coords_counts = get_df_total_coords_counts(analyses, feeds_to_include='all')
+        df_total_coords_counts = df_total_coords_counts[['latitude', 'longitude', 'count']]
+
         # Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
         gdf_regions = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_REGIONS)
         # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
@@ -414,7 +394,7 @@ if (not st.session_state.error):
     # --------------------------------------------------------------------------------------------------
 
     with tabs[4]:
-        st.header(f'KPI 2.1.1 - {st.session_state.percentage_sad_matched}% of Sport England activities found in OpenActive data')
+        st.header(f'KPI 2.1.1: {st.session_state.percentage_sad_matched}% of Sport England activities found in OpenActive data')
 
         col1, col2 = st.columns([2, 1])
         with col1:
