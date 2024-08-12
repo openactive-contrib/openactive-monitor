@@ -4,6 +4,7 @@ import pandas as pd
 import pickle
 import seaborn as sns
 import streamlit as st
+from datetime import datetime
 from os import getenv
 
 # --------------------------------------------------------------------------------------------------
@@ -26,7 +27,7 @@ def get_analyses():
 
 # --------------------------------------------------------------------------------------------------
 
-def get_total_num_items(analyses, feeds_to_include='all'):
+def get_total_num_opportunities(analyses, feeds_to_include='all'):
     return sum([
         analysis['num_items']
         for filename, analysis in analyses.items()
@@ -60,12 +61,20 @@ def get_df_total_keys_counts(analyses, keys_counts, feeds_to_include='all'):
         columns=columns,
     )
 
-    return df_total_keys_counts
+    total_num_keys = df_total_keys_counts.shape[0]
+    total_num_opportunities_with_keys = df_total_keys_counts['count'].sum()
+
+    df_total_keys_counts['percentage'] = (df_total_keys_counts['count'] / total_num_opportunities_with_keys) * 100
+
+    # print(f'df_total_keys_counts ({keys_counts}):')
+    # print(df_total_keys_counts)
+
+    return df_total_keys_counts, total_num_keys, total_num_opportunities_with_keys
 
 # --------------------------------------------------------------------------------------------------
 
 def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_locations_name_column):
-    # Columns: ['latitude', 'longitude', 'count', 'geometry']
+    # Columns: ['latitude', 'longitude', 'count', 'percentage', 'geometry']
     gdf_total_coords_counts = gpd.GeoDataFrame(
             df_total_coords_counts,
             geometry=gpd.points_from_xy(
@@ -99,16 +108,23 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
         .sort_values(by='count', ascending=False) \
         .fillna(0)
 
+    # If we had any NaN count rows during the last manipulation, then the count column would have been
+    # converted to float, so re-type back to int:
+    gdf_total_locations_counts['count'] = gdf_total_locations_counts['count'].astype(int)
+
+    total_num_locations = gdf_total_locations_counts.shape[0]
+    total_num_opportunities_with_locations = gdf_total_locations_counts['count'].sum()
+
     # If gdf_locations is 'regions.geojson':
     #     Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
     # If gdf_locations is 'lads.geojson':
     #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
-    gdf_total_locations_counts['percentage'] = round((gdf_total_locations_counts['count'] / gdf_total_locations_counts['count'].sum(skipna=True)) * 100, 1)
+    gdf_total_locations_counts['percentage'] = (gdf_total_locations_counts['count'] / total_num_opportunities_with_locations) * 100
 
-    # print('gdf_total_locations_counts:')
+    # print(f'gdf_total_locations_counts ({gdf_locations_name_column}):')
     # print(gdf_total_locations_counts)
 
-    return gdf_total_locations_counts
+    return gdf_total_locations_counts, total_num_locations, total_num_opportunities_with_locations
 
 # --------------------------------------------------------------------------------------------------
 
@@ -174,28 +190,33 @@ if (not st.session_state):
         st.session_state.num_feeds_preview = len([filename for filename in analyses.keys() if (is_feed_to_include(filename, feeds_to_include='preview'))])
         st.session_state.num_feeds = st.session_state.num_feeds_regular + st.session_state.num_feeds_preview
 
-        st.session_state.total_num_items_regular = get_total_num_items(analyses, feeds_to_include='regular')
-        st.session_state.total_num_items_preview = get_total_num_items(analyses, feeds_to_include='preview')
-        st.session_state.total_num_items = st.session_state.total_num_items_regular + st.session_state.total_num_items_preview
+        st.session_state.total_num_opportunities_regular = get_total_num_opportunities(analyses, feeds_to_include='regular')
+        st.session_state.total_num_opportunities_preview = get_total_num_opportunities(analyses, feeds_to_include='preview')
+        st.session_state.total_num_opportunities = st.session_state.total_num_opportunities_regular + st.session_state.total_num_opportunities_preview
 
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Activities' tab
 
-        # Columns: ['activity', 'count']
-        st.session_state.df_total_activities_counts = get_df_total_keys_counts(analyses, 'activities_counts', feeds_to_include='all')
+        # Columns: ['activity', 'count', 'percentage']
+        st.session_state.df_total_activities_counts, \
+        st.session_state.total_num_activities, \
+        st.session_state.total_num_opportunities_with_activities = get_df_total_keys_counts(analyses, 'activities_counts', feeds_to_include='all')
+
         st.session_state.num_activities_top = 20
 
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Locations' tab
 
-        # Columns: ['coords', 'count']
-        df_total_coords_counts = get_df_total_keys_counts(analyses, 'coords_counts', feeds_to_include='all')
-        # Columns: ['coords', 'count', 'latitude', 'longitude']
-        df_total_coords_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_coords_counts['coords'].apply(lambda coords: coords.split(',')).tolist())
-        # Columns: ['latitude', 'longitude', 'count']
-        df_total_coords_counts = df_total_coords_counts[['latitude', 'longitude', 'count']]
+        # Columns: ['coords', 'count', 'percentage']
+        st.session_state.df_total_coords_counts, \
+        st.session_state.total_num_coords, \
+        st.session_state.total_num_opportunities_with_coords = get_df_total_keys_counts(analyses, 'coords_counts', feeds_to_include='all')
+        # Columns: ['coords', 'count', 'percentage', 'latitude', 'longitude']
+        st.session_state.df_total_coords_counts[['latitude', 'longitude']] = pd.DataFrame(st.session_state.df_total_coords_counts['coords'].apply(lambda coords: coords.split(',')).tolist())
+        # Columns: ['latitude', 'longitude', 'count', 'percentage']
+        st.session_state.df_total_coords_counts = st.session_state.df_total_coords_counts[['latitude', 'longitude', 'count', 'percentage']]
 
         # Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
         gdf_regions = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_REGIONS)
@@ -203,9 +224,13 @@ if (not st.session_state):
         gdf_lads = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_LADS)
 
         # Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
-        st.session_state.gdf_total_regions_counts = get_gdf_total_locations_counts(df_total_coords_counts, gdf_regions, 'RGN23NM')
+        st.session_state.gdf_total_regions_counts, \
+        st.session_state.total_num_regions, \
+        st.session_state.total_num_opportunities_with_regions = get_gdf_total_locations_counts(st.session_state.df_total_coords_counts, gdf_regions, 'RGN23NM')
         # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
-        st.session_state.gdf_total_lads_counts = get_gdf_total_locations_counts(df_total_coords_counts, gdf_lads, 'LAD24NM')
+        st.session_state.gdf_total_lads_counts, \
+        st.session_state.total_num_lads, \
+        st.session_state.total_num_opportunities_with_lads = get_gdf_total_locations_counts(st.session_state.df_total_coords_counts, gdf_lads, 'LAD24NM')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -239,12 +264,17 @@ if (not st.session_state):
         # df_oa_se_mapping.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
 
         # Columns: ['activity', 'count', 'sport_and_discipline']
-        st.session_state.df_total_sad_counts = pd.merge(st.session_state.df_total_activities_counts, df_oa_se_mapping, how='left')
+        st.session_state.df_total_sad_counts = pd.merge(st.session_state.df_total_activities_counts.drop(columns=['percentage']), df_oa_se_mapping, how='left')
         st.session_state.df_total_sad_counts['sport_and_discipline'].fillna('No Match', inplace=True)
 
-        # Columns: [('sport_and_discipline', ''), ('activity', '<lambda>'), ('count', 'count'), ('count', 'sum')] # Note that these are MultiIndex columns, each element of a tuple corresponds to a different header row
-        st.session_state.df_total_sad_counts = \
-            st.session_state.df_total_sad_counts \
+        st.session_state.df_total_sad_counts_matched = st.session_state.df_total_sad_counts.loc[st.session_state.df_total_sad_counts['sport_and_discipline'] != 'No Match']
+        st.session_state.df_total_sad_counts_unmatched = st.session_state.df_total_sad_counts.loc[st.session_state.df_total_sad_counts['sport_and_discipline'] == 'No Match']
+
+        # Note that after this operation we have MultiIndex columns, where each element of a tuple corresponds
+        # to a different header row:
+        # Columns: [('sport_and_discipline', ''), ('activity', '<lambda>'), ('count', 'count'), ('count', 'sum')]
+        st.session_state.df_total_sad_counts_matched = \
+            st.session_state.df_total_sad_counts_matched \
             .groupby('sport_and_discipline') \
             .agg({
                 'activity': lambda x: '; '.join(list(x)), # Don't join activity labels with commas as the labels may use commas
@@ -253,29 +283,45 @@ if (not st.session_state):
             .sort_values(by=('count', 'sum'), ascending=False) \
             .reset_index()
 
-        total_num_activities = st.session_state.df_total_sad_counts[('count', 'count')].sum() # == len(st.session_state.total_activities_counts.keys())
-        total_num_opportunities = st.session_state.df_total_sad_counts[('count', 'sum')].sum() # == sum(st.session_state.total_activities_counts.values())
-
-        st.session_state.df_total_sad_counts[('count', f'% of activities')] = round((st.session_state.df_total_sad_counts[('count', 'count')] / total_num_activities) * 100, 1)
-        st.session_state.df_total_sad_counts[('count', f'% of opportunities')] = round((st.session_state.df_total_sad_counts[('count', 'sum')] / total_num_opportunities) * 100, 1)
-
-        st.session_state.df_total_sad_counts.columns = [
+        # Compact to single index columns for simplicity, also because Streamlit can't display MultiIndex columns:
+        # Columns: ['sport_and_discipline', 'activity', 'count_activities', 'count_opportunities']
+        st.session_state.df_total_sad_counts_matched.columns = [
             'sport_and_discipline',
             'activity',
-            f'No. activities (/{total_num_activities})',
-            f'No. opportunities (/{total_num_opportunities})',
-            f'% activities',
-            f'% opportunities',
+            'count_activities',
+            'count_opportunities',
         ]
 
-        st.session_state.num_sad_se = df_se_sport_and_discipline['sport_and_discipline'].count()
-        st.session_state.num_sad_matched = st.session_state.df_total_sad_counts['sport_and_discipline'].count()
-        st.session_state.num_sad_unmatched = st.session_state.num_sad_se - st.session_state.num_sad_matched
-        st.session_state.percentage_sad_matched = round((st.session_state.num_sad_matched / st.session_state.num_sad_se) * 100, 1)
+        # Columns: ['sport_and_discipline', 'activity', 'count']
+        st.session_state.df_total_sad_counts_unmatched = st.session_state.df_total_sad_counts_unmatched[['sport_and_discipline', 'activity', 'count']]
+        # Columns: ['sport_and_discipline', 'activity', 'count_opportunities']
+        st.session_state.df_total_sad_counts_unmatched.columns = [
+            'sport_and_discipline',
+            'activity',
+            'count_opportunities',
+        ]
 
-        st.session_state.df_se_sport_and_discipline_unmatched = df_se_sport_and_discipline[
+        st.session_state.total_num_activities_with_sad = st.session_state.df_total_sad_counts_matched['count_activities'].sum()
+        st.session_state.total_num_activities_without_sad = st.session_state.df_total_sad_counts_unmatched.shape[0]
+        st.session_state.total_num_opportunities_with_sad = st.session_state.df_total_sad_counts_matched['count_opportunities'].sum()
+        st.session_state.total_num_opportunities_without_sad = st.session_state.df_total_sad_counts_unmatched['count_opportunities'].sum()
+
+        # Columns: ['sport_and_discipline', 'activity', 'count_activities', 'count_opportunities', 'percentage_activities', 'percentage_opportunities']
+        st.session_state.df_total_sad_counts_matched['percentage_activities'] = (st.session_state.df_total_sad_counts_matched['count_activities'] / st.session_state.total_num_activities_with_sad) * 100
+        st.session_state.df_total_sad_counts_matched['percentage_opportunities'] = (st.session_state.df_total_sad_counts_matched['count_opportunities'] / st.session_state.total_num_opportunities_with_sad) * 100
+
+        # Columns: ['sport_and_discipline', 'activity', 'count_opportunities', 'percentage_opportunities']
+        st.session_state.df_total_sad_counts_unmatched['percentage_opportunities'] = (st.session_state.df_total_sad_counts_unmatched['count_opportunities'] / st.session_state.total_num_opportunities_without_sad) * 100
+
+        st.session_state.num_sad = df_se_sport_and_discipline['sport_and_discipline'].count()
+        st.session_state.num_sad_matched = st.session_state.df_total_sad_counts_matched['sport_and_discipline'].count()
+        st.session_state.num_sad_unmatched = st.session_state.num_sad - st.session_state.num_sad_matched
+        st.session_state.percentage_sad_matched = (st.session_state.num_sad_matched / st.session_state.num_sad) * 100
+        st.session_state.percentage_sad_unmatched = 100 - st.session_state.percentage_sad_matched
+
+        st.session_state.df_se_sport_and_discipline_unmatched = df_se_sport_and_discipline.loc[
             ~df_se_sport_and_discipline['sport_and_discipline'] \
-            .isin(st.session_state.df_total_sad_counts['sport_and_discipline'])
+            .isin(st.session_state.df_total_sad_counts_matched['sport_and_discipline'])
         ]
 
 # --------------------------------------------------------------------------------------------------
@@ -284,15 +330,19 @@ if (not st.session_state.error):
     tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'KPIs'])
 
     with tabs[0]:
-        st.header('Overview of the OpenActive data ecosystem')
+        st.header(f'Overview of the OpenActive data ecosystem {datetime.now().date()}')
 
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.metric('Number of live OpenActive feeds', st.session_state.num_feeds)
-        with col2:
-            st.metric('Number of live OpenActive opportunities', f'{st.session_state.total_num_items:,}')
+        cols = st.columns([1, 3])
+        with cols[0]:
+            st.metric('Number of live feeds', f'{st.session_state.num_feeds:,}')
+            st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
+            st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
+        with cols[1]:
+            st.metric('Number of live opportunities', f'{st.session_state.total_num_opportunities:,}')
+            st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
+            st.metric('Number of live opportunities with locations', f'{st.session_state.total_num_opportunities_with_coords:,}')
 
-        st.write(f'These figures include {st.session_state.num_feeds_preview} preview feeds with {round(st.session_state.total_num_items_preview / 1000000, 1)}m preview opportunities')
+        st.write(f'These figures include data from {st.session_state.num_feeds_preview} preview feeds with {round(st.session_state.total_num_opportunities_preview / 1000000, 1)}m preview opportunities')
 
         # dated_counts = {
         #     'Jan 17': 0,
@@ -304,7 +354,7 @@ if (not st.session_state.error):
         # }
 
         # current_month = datetime.now().strftime('%b %y')
-        # dated_counts[current_month] = st.session_state.total_num_items
+        # dated_counts[current_month] = st.session_state.total_num_opportunities
         # df = pd.DataFrame.from_dict(dated_counts, orient='index', columns=['Count'])
         # df.reset_index(inplace=True)
         # df.columns = ['Date', 'Count']
@@ -321,22 +371,38 @@ if (not st.session_state.error):
     # --------------------------------------------------------------------------------------------------
 
     with tabs[2]:
-        st.header('Most popular OpenActive activities')
+        st.header('OpenActive opportunities by activity')
 
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.markdown(
-                '<div style="text-align: center;">All activities</div>',
-                unsafe_allow_html=True,
-            )
+        # cols = st.columns([1, 3])
+        # with cols[0]:
+        #     st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
+        # with cols[1]:
+        #     st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
+
+        cols = st.columns([1, 2])
+        with cols[0]:
+            # st.markdown(
+            #     '<div style="text-align: center;">All live OA activities</div>',
+            #     unsafe_allow_html=True,
+            # )
             st.dataframe(
                 st.session_state.df_total_activities_counts,
                 use_container_width=True,
                 hide_index=True,
+                column_config={
+                    'activity': 'OA activity',
+                    'count': 'Num. opportunities',
+                    'percentage': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',
+                    ),
+                },
             )
-        with col2:
+            st.write(f'Num. activities: {st.session_state.total_num_activities:,}')
+            st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_with_activities:,}')
+        with cols[1]:
             st.markdown(
-                f'<div style="text-align: center;">Top {st.session_state.num_activities_top} activities</div>',
+                f'<div style="text-align: center;">Top {st.session_state.num_activities_top} live OA activities</div>',
                 unsafe_allow_html=True,
             )
             fig, ax = plt.subplots(1, 1, figsize=(10, 5))
@@ -346,6 +412,8 @@ if (not st.session_state.error):
                 y='activity',
                 ax=ax,
             )
+            ax.set_xlabel('Num. opportunities')
+            ax.set_ylabel('OA activity')
             ax.bar_label(ax.containers[0], fontsize=8)
             st.pyplot(fig)
             plt.close(fig)
@@ -355,14 +423,31 @@ if (not st.session_state.error):
     with tabs[3]:
         st.header('OpenActive opportunities by location')
 
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
+        # cols = st.columns([1, 3])
+        # with cols[0]:
+        #     st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
+        # with cols[1]:
+        #     st.metric('Number of live opportunities with locations', f'{st.session_state.total_num_opportunities_with_coords:,}')
+
+        cols = st.columns(3)
+        with cols[0]:
             st.dataframe(
-                st.session_state.gdf_total_regions_counts[['RGN23NM', 'count', 'percentage']].set_index('RGN23NM'),
+                st.session_state.gdf_total_regions_counts[['RGN23NM', 'count', 'percentage']],
                 use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'RGN23NM': 'Location',
+                    'count': 'Num. opportunities',
+                    'percentage': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',
+                    ),
+                },
             )
-        with col2:
-            fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+            st.write(f'Num. locations: {st.session_state.total_num_regions:,}')
+            st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_with_regions:,}')
+        with cols[1]:
+            fig, ax = plt.subplots(1, 1, figsize=(8, 8))
             st.session_state.gdf_total_regions_counts.plot(
                 column='percentage',
                 cmap='YlOrRd',
@@ -373,13 +458,28 @@ if (not st.session_state.error):
             ax.set_yticks([])
             st.pyplot(fig)
             plt.close(fig)
-        with col3:
+
+        st.divider()
+
+        cols = st.columns(3)
+        with cols[0]:
             st.dataframe(
-                st.session_state.gdf_total_lads_counts[['LAD24NM', 'count', 'percentage']].set_index('LAD24NM'),
+                st.session_state.gdf_total_lads_counts[['LAD24NM', 'count', 'percentage']],
                 use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'LAD24NM': 'Location',
+                    'count': 'Num. opportunities',
+                    'percentage': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',
+                    ),
+                },
             )
-        with col4:
-            fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+            st.write(f'Num. locations: {st.session_state.total_num_lads:,}')
+            st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_with_lads:,}')
+        with cols[1]:
+            fig, ax = plt.subplots(1, 1, figsize=(8, 8))
             st.session_state.gdf_total_lads_counts.plot(
                 column='percentage',
                 cmap='YlOrRd',
@@ -394,12 +494,72 @@ if (not st.session_state.error):
     # --------------------------------------------------------------------------------------------------
 
     with tabs[4]:
-        st.header(f'KPI 2.1.1: {st.session_state.percentage_sad_matched}% of Sport England activities found in OpenActive data')
+        st.header(f'KPI 2.1.1: {st.session_state.percentage_sad_matched:.1f}% of OpenActive activities matched to Sport England categories')
 
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.write(f'Matched: {st.session_state.num_sad_matched} of {st.session_state.num_sad_se} sports and disciplines')
-            st.dataframe(st.session_state.df_total_sad_counts, hide_index=True)
-        with col2:
-            st.write(f'Unmatched: {st.session_state.num_sad_unmatched} of {st.session_state.num_sad_se} sports and disciplines')
-            st.dataframe(st.session_state.df_se_sport_and_discipline_unmatched[['sport', 'discipline']], hide_index=True)
+        # cols = st.columns([1, 1, 2])
+        # with cols[0]:
+        #     st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
+        # with cols[1]:
+        #     st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
+        # with cols[2]:
+        #     st.metric('Number of Sport England categories', st.session_state.num_sad)
+
+        # st.metric('Number of Sport England categories', st.session_state.num_sad)
+
+        cols = st.columns([2, 1])
+        with cols[0]:
+            st.write(f'Matched SE categories: {st.session_state.num_sad_matched} / {st.session_state.num_sad} ({st.session_state.percentage_sad_matched:.1f}%)')
+            st.dataframe(
+                st.session_state.df_total_sad_counts_matched,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'sport_and_discipline': 'SE sport and discipline',
+                    'activity': st.column_config.TextColumn(
+                        'OA activity',
+                        width='small',
+                    ),
+                    'count_activities': 'Num. activities',
+                    'count_opportunities': 'Num. opportunities',
+                    'percentage_activities': st.column_config.NumberColumn(
+                        '% activities',
+                        format='%0.1f',
+                    ),
+                    'percentage_opportunities': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',
+                    ),
+                },
+            )
+            st.write(f'Num. activities: {st.session_state.total_num_activities_with_sad:,}')
+            st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_with_sad:,}')
+        with cols[1]:
+            st.write(f'Unmatched SE categories: {st.session_state.num_sad_unmatched} / {st.session_state.num_sad} ({st.session_state.percentage_sad_unmatched:.1f}%)')
+            st.dataframe(
+                st.session_state.df_se_sport_and_discipline_unmatched[['sport', 'discipline']],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'sport': 'SE sport',
+                    'discipline': 'SE discipline',
+                }
+            )
+
+        st.divider()
+
+        st.write('Unmatched OA activities')
+        st.dataframe(
+            st.session_state.df_total_sad_counts_unmatched,
+            hide_index=True,
+            column_config={
+                'sport_and_discipline': 'SE sport and discipline',
+                'activity': 'OA activity',
+                'count_opportunities': 'Num. opportunities',
+                'percentage_opportunities': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',
+                    ),
+            },
+        )
+        st.write(f'Num. activities: {st.session_state.total_num_activities_without_sad:,}')
+        st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_without_sad:,}')
