@@ -1,8 +1,10 @@
 import gzip
 import lzma
 import pickle
+import random
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil import tz # For timezone handling
 from geopy.geocoders import Nominatim
 from os import getenv, listdir
 from os.path import isfile
@@ -25,7 +27,7 @@ geolocator = Nominatim(user_agent='OpenActive Monitor', timeout=None)
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
 RELATIVE_FILEPATH_OPPORTUNITIES = getenv('RELATIVE_FILEPATH_OPPORTUNITIES', '../volume-1/data-opportunities')
-RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
+RELATIVE_FILEPATH_ANALYSES = getenv('RELATIVE_FILEPATH_ANALYSES', '../volume-1/data-analysis')
 
 FILENAME_FEEDS_SEEN = '000-feeds-seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAME_FEEDS_CRASHED = '000-feeds-crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
@@ -34,12 +36,15 @@ FORMAT_FILE_OPPORTUNITIES = 'pickle'
 COMPRESSION_FILE_OPPORTUNITIES = getenv('COMPRESSION_FILE_OPPORTUNITIES', 'gzip').lower() # 'none' / 'gzip' / 'xz'
 SUFFIX_FILENAME_OPPORTUNITIES = '.' + FORMAT_FILE_OPPORTUNITIES + (('.' + COMPRESSION_FILE_OPPORTUNITIES) if (COMPRESSION_FILE_OPPORTUNITIES != 'none') else '')
 LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
-FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
+FILENAME_ANALYSES = getenv('FILENAME_ANALYSES', 'analysis.pickle')
+FILENAME_ANALYSES_THIS_WEEK = getenv('FILENAME_ANALYSES_THIS_WEEK', 'analyses-this-week.pickle')
 
 print('Environment variables:')
 print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
-print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
-print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
+print('RELATIVE_FILEPATH_ANALYSES:', RELATIVE_FILEPATH_ANALYSES)
+print('COMPRESSION_FILE_OPPORTUNITIES:', COMPRESSION_FILE_OPPORTUNITIES)
+print('FILENAME_ANALYSES:', FILENAME_ANALYSES)
+print('FILENAME_ANALYSES_THIS_WEEK:', FILENAME_ANALYSES_THIS_WEEK)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -100,7 +105,8 @@ def get_filenames():
 # --------------------------------------------------------------------------------------------------
 
 def analyse_opportunities():
-    analysis = {}
+    analyses = {}
+    analyses_this_week = {}
 
     # --------------------------------------------------------------------------------------------------
 
@@ -127,12 +133,24 @@ def analyse_opportunities():
                     opportunities_in = pickle.load(file_in)
 
             if (opportunities_in is not None):
-                analysis[filenames_with_infostamp_current[-1]] = {
+                analyses[filenames_with_infostamp_current[-1]] = {
+                    'status': opportunities_in['status'],
                     'num_items': len(opportunities_in['items'].keys()),
                     'num_urls': len(opportunities_in['urls']),
-                    'status': opportunities_in['status'],
                     'activities_counts': get_activities_counts(opportunities_in),
                     'coords_counts': get_coords_counts(opportunities_in),
+                }
+
+                items_this_week = get_items_this_week(opportunities_in)
+                items_this_week_sample = random.sample(items_this_week, min(20, len(items_this_week)))
+
+                analyses_this_week[filenames_with_infostamp_current[-1]] = {
+                    'status': opportunities_in['status'],
+                    'num_items': len(items_this_week),
+                    'num_items_sample': len(items_this_week_sample),
+                    'items_sample': items_this_week_sample,
+                    # 'activities_counts': get_activities_counts(items_this_week),
+                    # 'coords_counts': get_coords_counts(items_this_week),
                 }
 
         except Exception as error:
@@ -140,8 +158,14 @@ def analyse_opportunities():
 
     # --------------------------------------------------------------------------------------------------
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'wb') as file_out:
-        pickle.dump(analysis, file_out)
+    with open(RELATIVE_FILEPATH_ANALYSES + '/' + FILENAME_ANALYSES, 'wb') as file_out:
+        pickle.dump(analyses, file_out)
+
+    with open(RELATIVE_FILEPATH_ANALYSES + '/' + FILENAME_ANALYSES_THIS_WEEK, 'wb') as file_out:
+        pickle.dump(analyses_this_week, file_out)
+
+    # print(len(analyses_this_week))
+    # print(analyses_this_week)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -270,6 +294,68 @@ def get_item_coords_from_postalcode(data):
             break
 
     return item_coords
+
+# --------------------------------------------------------------------------------------------------
+
+def get_items_this_week(opportunities):
+    items_this_week = []
+    today = datetime.now(tz=tz.UTC).date()
+
+    for item in opportunities['items'].values():
+        item_start_date = get_item_start_date(item['data'])
+        if (    (item_start_date is not None)
+            and (item_start_date.date() >= today)
+            and (item_start_date.date() <= today + timedelta(days=7))
+        ):
+            items_this_week.append(item)
+
+    return items_this_week
+
+# --------------------------------------------------------------------------------------------------
+
+def get_item_start_date(item):
+    if ('startDate' in item.keys()):
+        return parse_date(item['startDate'])
+    elif ('dateStart' in item.keys()):
+        return parse_date(item['dateStart'])
+    elif (  ('subEvent' in item.keys())
+        and (isinstance(item['subEvent'], list))
+    ):
+        for subevent in item['subEvent']:
+            if (    (isinstance(subevent, dict))
+                and ('startDate' in subevent.keys())
+            ):
+                return parse_date(subevent['startDate'])
+
+    return None
+
+# --------------------------------------------------------------------------------------------------
+
+def parse_date(date_string):
+    date_formats = [
+        '%Y-%m-%dT%H:%M:%SZ', # ISO 8601 format
+        '%Y-%m-%d %H:%M:%S', # Common date/time format
+        '%Y-%m-%d', # Date only format
+        '%Y/%m/%d', # Another common date format
+        '%Y-%m-%dT%H:%M:%S.%fZ', # ISO 8601 with milliseconds
+        '%Y-%m-%dT%H:%M:%S.%f', # ISO 8601 with milliseconds (no Z)
+        '%Y-%m-%dT%H:%M:%S%z', # ISO 8601 with timezone offset
+        '%Y-%m-%dT%H:%M:%S%Z', # ISO 8601 with timezone name
+    ]
+
+    for date_format in date_formats:
+        try:
+            parsed_datetime = datetime.strptime(date_string, date_format)
+            # If the date string has a timezone, use it:
+            if (date_format in ['%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S%Z']):
+                return parsed_datetime.astimezone(tz.UTC)
+            # Otherwise, assume UTC and set the timezone:
+            else:
+                return parsed_datetime.replace(tzinfo=tz.UTC)
+        except:
+            pass
+
+    return None
 
 # --------------------------------------------------------------------------------------------------
 
