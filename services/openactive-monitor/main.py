@@ -100,7 +100,7 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
     .reset_index()
 
     # If gdf_locations is 'regions.geojson':
-    #     Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count']
+    #     Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count']
     # If gdf_locations is 'lads.geojson':
     #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count']
     gdf_total_locations_counts = \
@@ -117,7 +117,7 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
     total_num_opportunities_with_locations = gdf_total_locations_counts['count'].sum()
 
     # If gdf_locations is 'regions.geojson':
-    #     Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
+    #     Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
     # If gdf_locations is 'lads.geojson':
     #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
     gdf_total_locations_counts['percentage'] = (gdf_total_locations_counts['count'] / total_num_opportunities_with_locations) * 100
@@ -232,16 +232,16 @@ if (not st.session_state):
         # Columns: ['latitude', 'longitude', 'count', 'percentage']
         st.session_state.df_total_coords_counts = st.session_state.df_total_coords_counts[['latitude', 'longitude', 'count', 'percentage']]
 
-        # Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
+        # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry']
         gdf_regions = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_REGIONS)
 
         # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
         gdf_lads = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_LADS)
 
-        # Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
+        # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
         st.session_state.gdf_total_regions_counts, \
         st.session_state.total_num_regions, \
-        st.session_state.total_num_opportunities_with_regions = get_gdf_total_locations_counts(st.session_state.df_total_coords_counts, gdf_regions, 'RGN23NM')
+        st.session_state.total_num_opportunities_with_regions = get_gdf_total_locations_counts(st.session_state.df_total_coords_counts, gdf_regions, 'eer18nm')
 
         # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
         st.session_state.gdf_total_lads_counts, \
@@ -346,20 +346,41 @@ if (not st.session_state.error):
     tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'KPIs'])
 
     with tabs[0]:
-        st.header(f'Overview of the OpenActive data ecosystem {datetime.now().date()}')
+        st.header(f'Overview of the OpenActive data ecosystem')
+
+        # Restyle metrics using css:
+        st.markdown(
+            '<style>#tabs-bui3-tabpanel-0 div.e1f1d6gn3 > div > div > div > div > div { \
+                display: flex; \
+                flex-direction: column-reverse; \
+                #color: #ffc300; \
+                background-color: #f5f5f5; \
+                padding: 20px 20px 20px 20px; \
+                #border: 2px solid; \
+                border-radius: 10px; \
+                #box-shadow: 10px; \
+            }</style>',
+            unsafe_allow_html=True,
+        )
 
         cols = st.columns([1, 3])
         with cols[0]:
             st.metric('Number of live feeds', f'{st.session_state.num_feeds:,}')
-            st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
-            st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
+            # st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
+            # st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
         with cols[1]:
             st.metric('Number of live opportunities', f'{st.session_state.total_num_opportunities:,}')
-            st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
-            st.metric('Number of live opportunities with locations', f'{st.session_state.total_num_opportunities_with_coords:,}')
+            # st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
+            # st.metric('Number of live opportunities with locations', f'{st.session_state.total_num_opportunities_with_coords:,}')
 
         st.write(f'These figures include data from {st.session_state.num_feeds_preview} preview feeds with {round(st.session_state.total_num_opportunities_preview / 1000000, 1)}m preview opportunities')
 
+        st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
+        st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs).') # and last accessed on {TODO: date last accessed}.')
+        st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
+
+        st.write(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}')
+        
         # dated_counts = {
         #     'Jan 17': 0,
         #     'Jul 17': 80000,
@@ -464,11 +485,11 @@ if (not st.session_state.error):
         cols = st.columns(3)
         with cols[0]:
             st.dataframe(
-                st.session_state.gdf_total_regions_counts[['RGN23NM', 'count', 'percentage']],
+                st.session_state.gdf_total_regions_counts[['eer18nm', 'count', 'percentage']],
                 use_container_width=True,
                 hide_index=True,
                 column_config={
-                    'RGN23NM': 'Location',
+                    'eer18nm': 'Location',
                     'count': 'Num. opportunities',
                     'percentage': st.column_config.NumberColumn(
                         '% opportunities',
@@ -526,72 +547,74 @@ if (not st.session_state.error):
     # --------------------------------------------------------------------------------------------------
 
     with tabs[4]:
-        st.header(f'KPI 2.1.1: {st.session_state.percentage_sad_matched:.1f}% of OpenActive activities matched to Sport England categories')
+        st.header('Key Performance Indicators')
 
-        # cols = st.columns([1, 1, 2])
-        # with cols[0]:
-        #     st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
-        # with cols[1]:
-        #     st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
-        # with cols[2]:
-        #     st.metric('Number of Sport England categories', st.session_state.num_sad)
+        st.subheader('Growth of OpenActive')
+        st.subheader(f'{st.session_state.percentage_sad_matched:.1f}% of Sport England recognised Sports and Disciplines appear in OpenActive data feeds')
+        with st.expander('A higher value means more of the sports and disciplines recognised by Sport England are discoverable through the OpenActive ecosystem. Click here for more details.'):
 
-        # st.metric('Number of Sport England categories', st.session_state.num_sad)
+            # cols = st.columns([1, 1, 2])
+            # with cols[0]:
+            #     st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
+            # with cols[1]:
+            #     st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
+            # with cols[2]:
+            #     st.metric('Number of Sport England categories', st.session_state.num_sad)
 
-        cols = st.columns([2, 1])
-        with cols[0]:
-            st.write(f'Matched SE categories: {st.session_state.num_sad_matched} / {st.session_state.num_sad} ({st.session_state.percentage_sad_matched:.1f}%)')
-            st.dataframe(
-                st.session_state.df_total_sad_counts_matched,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    'sport_and_discipline': 'SE sport and discipline',
-                    'activity': st.column_config.TextColumn(
-                        'OA activity',
-                        width='small',
-                    ),
-                    'count_activities': 'Num. activities',
-                    'count_opportunities': 'Num. opportunities',
-                    'percentage_activities': st.column_config.NumberColumn(
-                        '% activities',
-                        format='%0.1f',
-                    ),
-                    'percentage_opportunities': st.column_config.NumberColumn(
-                        '% opportunities',
-                        format='%0.1f',
-                    ),
-                },
-            )
-            st.write(f'Num. activities: {st.session_state.total_num_activities_with_sad:,}')
-            st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_with_sad:,}')
-        with cols[1]:
-            st.write(f'Unmatched SE categories: {st.session_state.num_sad_unmatched} / {st.session_state.num_sad} ({st.session_state.percentage_sad_unmatched:.1f}%)')
-            st.dataframe(
-                st.session_state.df_se_sport_and_discipline_unmatched[['sport', 'discipline']],
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    'sport': 'SE sport',
-                    'discipline': 'SE discipline',
-                }
-            )
+            cols = st.columns([2, 1])
+            with cols[0]:
+                st.write(f'Matched SE categories: {st.session_state.num_sad_matched} / {st.session_state.num_sad} ({st.session_state.percentage_sad_matched:.1f}%)')
+                st.dataframe(
+                    st.session_state.df_total_sad_counts_matched,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        'sport_and_discipline': 'SE sport and discipline',
+                        'activity': st.column_config.TextColumn(
+                            'OA activity',
+                            width='small',
+                        ),
+                        'count_activities': 'Num. activities',
+                        'count_opportunities': 'Num. opportunities',
+                        'percentage_activities': st.column_config.NumberColumn(
+                            '% activities',
+                            format='%0.1f',
+                        ),
+                        'percentage_opportunities': st.column_config.NumberColumn(
+                            '% opportunities',
+                            format='%0.1f',
+                        ),
+                    },
+                )
+                st.write(f'Num. activities: {st.session_state.total_num_activities_with_sad:,}')
+                st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_with_sad:,}')
+            with cols[1]:
+                st.write(f'Unmatched SE categories: {st.session_state.num_sad_unmatched} / {st.session_state.num_sad} ({st.session_state.percentage_sad_unmatched:.1f}%)')
+                st.dataframe(
+                    st.session_state.df_se_sport_and_discipline_unmatched[['sport', 'discipline']],
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        'sport': 'SE sport',
+                        'discipline': 'SE discipline',
+                    }
+                )
 
-        st.divider()
+            # st.divider()
 
-        st.write('Unmatched OA activities')
-        st.dataframe(
-            st.session_state.df_total_sad_counts_unmatched,
-            hide_index=True,
-            column_config={
-                'sport_and_discipline': 'SE sport and discipline',
-                'activity': 'OA activity',
-                'count_opportunities': 'Num. opportunities',
-                'percentage_opportunities': st.column_config.NumberColumn(
-                        '% opportunities',
-                        format='%0.1f',
-                    ),
-            },
-        )
-        st.write(f'Num. activities: {st.session_state.total_num_activities_without_sad:,}')
-        st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_without_sad:,}')
+            # st.write('Unmatched OA activities')
+            # st.dataframe(
+            #     st.session_state.df_total_sad_counts_unmatched,
+            #     hide_index=True,
+            #     column_config={
+            #         'sport_and_discipline': 'SE sport and discipline',
+            #         'activity': 'OA activity',
+            #         'count_opportunities': 'Num. opportunities',
+            #         'percentage_opportunities': st.column_config.NumberColumn(
+            #             '% opportunities',
+            #             format='%0.1f',
+            #         ),
+            #     },
+            # )
+            # st.write(f'Num. activities: {st.session_state.total_num_activities_without_sad:,}')
+            # st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_without_sad:,}')
