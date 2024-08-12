@@ -2,6 +2,7 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
+import random
 import seaborn as sns
 import streamlit as st
 from datetime import datetime
@@ -17,9 +18,9 @@ def is_feed_to_include(filename, feeds_to_include='all'):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_analyses():
+def get_analyses(filename):
     try:
-        with open(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_ANALYSES, 'rb') as file_in:
+        with open(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + filename, 'rb') as file_in:
             analyses = pickle.load(file_in)
         return analyses
     except:
@@ -152,6 +153,7 @@ if (not st.session_state):
     st.session_state.RELATIVE_FILEPATH_ANALYSES = getenv('RELATIVE_FILEPATH_ANALYSES', '../volume-1/data-analysis')
 
     st.session_state.FILENAME_ANALYSES = getenv('FILENAME_ANALYSES', 'analysis.pickle')
+    st.session_state.FILENAME_ANALYSES_THIS_WEEK = getenv('FILENAME_ANALYSES_THIS_WEEK', 'analyses-this-week.pickle')
     st.session_state.FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
     st.session_state.FILENAME_LADS = getenv('FILENAME_LADS', 'lads.geojson')
     st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
@@ -160,6 +162,7 @@ if (not st.session_state):
     print('Environment variables:')
     print('RELATIVE_FILEPATH_ANALYSES:', st.session_state.RELATIVE_FILEPATH_ANALYSES)
     print('FILENAME_ANALYSES:', st.session_state.FILENAME_ANALYSES)
+    print('FILENAME_ANALYSES_THIS_WEEK:', st.session_state.FILENAME_ANALYSES_THIS_WEEK)
     print('FILENAME_REGIONS:', st.session_state.FILENAME_REGIONS)
     print('FILENAME_LADS:', st.session_state.FILENAME_LADS)
     print('FILENAME_SE_SPORT_AND_DISCIPLINE:', st.session_state.FILENAME_SE_SPORT_AND_DISCIPLINE)
@@ -167,11 +170,14 @@ if (not st.session_state):
 
     # --------------------------------------------------------------------------------------------------
 
-    analyses = get_analyses()
+    st.session_state.analyses = get_analyses(st.session_state.FILENAME_ANALYSES)
+    st.session_state.analyses_this_week = get_analyses(st.session_state.FILENAME_ANALYSES_THIS_WEEK)
 
-    if (analyses is None):
+    if (    (st.session_state.analyses is None)
+        or  (st.session_state.analyses_this_week is None)
+    ):
         st.session_state.error = True
-        st.error('Error retrieving analyses data')
+        st.error('Error retrieving data')
     else:
         st.session_state.error = False
 
@@ -186,13 +192,21 @@ if (not st.session_state):
 
         # For the 'Overview' tab
 
-        st.session_state.num_feeds_regular = len([filename for filename in analyses.keys() if (is_feed_to_include(filename, feeds_to_include='regular'))])
-        st.session_state.num_feeds_preview = len([filename for filename in analyses.keys() if (is_feed_to_include(filename, feeds_to_include='preview'))])
+        st.session_state.num_feeds_regular = len([filename for filename in st.session_state.analyses.keys() if (is_feed_to_include(filename, feeds_to_include='regular'))])
+        st.session_state.num_feeds_preview = len([filename for filename in st.session_state.analyses.keys() if (is_feed_to_include(filename, feeds_to_include='preview'))])
         st.session_state.num_feeds = st.session_state.num_feeds_regular + st.session_state.num_feeds_preview
 
-        st.session_state.total_num_opportunities_regular = get_total_num_opportunities(analyses, feeds_to_include='regular')
-        st.session_state.total_num_opportunities_preview = get_total_num_opportunities(analyses, feeds_to_include='preview')
+        st.session_state.total_num_opportunities_regular = get_total_num_opportunities(st.session_state.analyses, feeds_to_include='regular')
+        st.session_state.total_num_opportunities_preview = get_total_num_opportunities(st.session_state.analyses, feeds_to_include='preview')
         st.session_state.total_num_opportunities = st.session_state.total_num_opportunities_regular + st.session_state.total_num_opportunities_preview
+
+        # --------------------------------------------------------------------------------------------------
+
+        # For the 'This week' tab
+
+        st.session_state.total_num_opportunities_this_week_regular = get_total_num_opportunities(st.session_state.analyses_this_week, feeds_to_include='regular')
+        st.session_state.total_num_opportunities_this_week_preview = get_total_num_opportunities(st.session_state.analyses_this_week, feeds_to_include='preview')
+        st.session_state.total_num_opportunities_this_week = st.session_state.total_num_opportunities_this_week_regular + st.session_state.total_num_opportunities_this_week_preview
 
         # --------------------------------------------------------------------------------------------------
 
@@ -201,7 +215,7 @@ if (not st.session_state):
         # Columns: ['activity', 'count', 'percentage']
         st.session_state.df_total_activities_counts, \
         st.session_state.total_num_activities, \
-        st.session_state.total_num_opportunities_with_activities = get_df_total_keys_counts(analyses, 'activities_counts', feeds_to_include='all')
+        st.session_state.total_num_opportunities_with_activities = get_df_total_keys_counts(st.session_state.analyses, 'activities_counts', feeds_to_include='all')
 
         st.session_state.num_activities_top = 20
 
@@ -212,7 +226,7 @@ if (not st.session_state):
         # Columns: ['coords', 'count', 'percentage']
         st.session_state.df_total_coords_counts, \
         st.session_state.total_num_coords, \
-        st.session_state.total_num_opportunities_with_coords = get_df_total_keys_counts(analyses, 'coords_counts', feeds_to_include='all')
+        st.session_state.total_num_opportunities_with_coords = get_df_total_keys_counts(st.session_state.analyses, 'coords_counts', feeds_to_include='all')
         # Columns: ['coords', 'count', 'percentage', 'latitude', 'longitude']
         st.session_state.df_total_coords_counts[['latitude', 'longitude']] = pd.DataFrame(st.session_state.df_total_coords_counts['coords'].apply(lambda coords: coords.split(',')).tolist())
         # Columns: ['latitude', 'longitude', 'count', 'percentage']
@@ -220,6 +234,7 @@ if (not st.session_state):
 
         # Columns: ['FID', 'RGN23CD', 'RGN23NM', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
         gdf_regions = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_REGIONS)
+
         # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
         gdf_lads = gpd.read_file(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_LADS)
 
@@ -227,6 +242,7 @@ if (not st.session_state):
         st.session_state.gdf_total_regions_counts, \
         st.session_state.total_num_regions, \
         st.session_state.total_num_opportunities_with_regions = get_gdf_total_locations_counts(st.session_state.df_total_coords_counts, gdf_regions, 'RGN23NM')
+
         # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
         st.session_state.gdf_total_lads_counts, \
         st.session_state.total_num_lads, \
@@ -367,6 +383,22 @@ if (not st.session_state.error):
 
     with tabs[1]:
         st.header('OpenActive opportunities over the next 7 days')
+
+        st.metric('Number of live OpenActive opportunities over the next 7 days', f'{st.session_state.total_num_opportunities_this_week:,}')
+
+        st.divider()
+
+        st.subheader('Sample opportunities')
+
+        filenames_with_samples = [
+            filename
+            for filename in st.session_state.analyses_this_week.keys()
+            if (st.session_state.analyses_this_week[filename]['num_items_sample'] > 0)
+        ]
+
+        # Select some random feeds, and for each of them display a single random item from this week's sample:
+        for filename in random.sample(filenames_with_samples, min(5, len(filenames_with_samples))):
+            st.write(random.choice(st.session_state.analyses_this_week[filename]['items_sample']))
 
     # --------------------------------------------------------------------------------------------------
 
