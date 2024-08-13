@@ -346,29 +346,44 @@ if (not st.session_state.error):
     tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'KPIs'])
 
     with tabs[0]:
-        st.header(f'Overview of the OpenActive data ecosystem')
 
         # Restyle metrics using css:
         st.markdown(
-            '<style>#tabs-bui3-tabpanel-0 div.e1f1d6gn3 > div > div > div > div > div { \
+            #'<style> div.e1f1d6gn3 > div > div > div > div > div { \
+            '<style>#tabs-bui3-tabpanel-0 [data-testid="stMetric"] { \
                 display: flex; \
                 flex-direction: column-reverse; \
-                #color: #ffc300; \
-                background-color: #f5f5f5; \
+                align-items: center; \
+                color: #223582; \
+                background-color: rgba(116,203,242,0.15); \
                 padding: 20px 20px 20px 20px; \
-                #border: 2px solid; \
+                border: 2px solid; \
                 border-radius: 10px; \
-                #box-shadow: 10px; \
+                box-shadow: 10px; \
             }</style>',
             unsafe_allow_html=True,
         )
 
-        cols = st.columns([1, 3])
+        cols = st.columns([1,1,1])
         with cols[0]:
             st.metric('Number of live feeds', f'{st.session_state.num_feeds:,}')
             # st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
             # st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
         with cols[1]:
+            fig, ax = plt.subplots(1, 1)
+            plt.style.use('ggplot') # Add the ggplot theme
+            ax.set(facecolor = "white")
+            st.session_state.gdf_total_regions_counts.plot(
+                column='percentage',
+                cmap='YlOrRd',
+                legend = True,
+                ax=ax,
+            )
+            ax.set_xticks([])
+            ax.set_yticks([])
+            st.pyplot(fig)
+            plt.close(fig)
+        with cols[2]:
             st.metric('Number of live opportunities', f'{st.session_state.total_num_opportunities:,}')
             # st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
             # st.metric('Number of live opportunities with locations', f'{st.session_state.total_num_opportunities_with_coords:,}')
