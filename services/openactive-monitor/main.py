@@ -242,7 +242,7 @@ with tabs[3]:
     joined_gdf = gpd.sjoin(data_gdf, gdf, how='left', predicate='intersects')
 
     # Group by shapefile ID and sum the counts
-    counts_by_shape = joined_gdf.groupby('RGN23NM')['count'].sum().reset_index()
+    counts_by_shape = joined_gdf.groupby('eer18nm')['count'].sum().reset_index()
     # Sort counts_by_shape by 'count' in descending order
     counts_by_shape = counts_by_shape.sort_values(by='count', ascending=False)
     # Calculate total count for percentage calculation
@@ -252,7 +252,7 @@ with tabs[3]:
     counts_by_shape['percentage'] = round((counts_by_shape['count'] / total_count) * 100,1)
 
     # Merge counts with the shapefile GeoDataFrame
-    merged_gdf = gdf.merge(counts_by_shape, on='RGN23NM', how='left')
+    merged_gdf = gdf.merge(counts_by_shape, on='eer18nm', how='left')
 
     # Convert count to percentage
     merged_gdf['percentage'] = (merged_gdf['count'] / total_count) * 100
@@ -269,7 +269,7 @@ with tabs[3]:
 
     
     with col1:
-        st.dataframe(counts_by_shape.set_index('RGN23NM'))
+        st.dataframe(counts_by_shape.set_index('eer18nm'))
 
     with col2:
         st.pyplot(fig)
