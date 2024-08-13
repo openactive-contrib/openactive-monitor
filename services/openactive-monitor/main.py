@@ -7,7 +7,7 @@ import seaborn as sns
 import streamlit as st
 from datetime import datetime
 from os import getenv
-
+from millify import millify
 # --------------------------------------------------------------------------------------------------
 
 def is_feed_to_include(filename, feeds_to_include='all'):
@@ -384,7 +384,7 @@ if (not st.session_state.error):
             st.pyplot(fig)
             plt.close(fig)
         with cols[2]:
-            st.metric('Number of live opportunities', f'{st.session_state.total_num_opportunities:,}')
+            st.metric('Number of live opportunities', millify(st.session_state.total_num_opportunities, precision=1))
             # st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
             # st.metric('Number of live opportunities with locations', f'{st.session_state.total_num_opportunities_with_coords:,}')
 
