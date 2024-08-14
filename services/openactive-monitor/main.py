@@ -7,7 +7,7 @@ import seaborn as sns
 import streamlit as st
 from datetime import datetime
 from os import getenv
-
+from millify import millify
 # --------------------------------------------------------------------------------------------------
 
 def is_feed_to_include(filename, feeds_to_include='all'):
@@ -280,8 +280,13 @@ if (not st.session_state):
         # df_oa_se_mapping.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + st.session_state.FILENAME_OA_SE_MAPPING)
 
         # Columns: ['activity', 'count', 'sport_and_discipline']
-        st.session_state.df_total_sad_counts = pd.merge(st.session_state.df_total_activities_counts.drop(columns=['percentage']), df_oa_se_mapping, how='left')
+        st.session_state.df_total_sad_counts = pd.merge(
+            st.session_state.df_total_activities_counts.drop(columns=['percentage']).assign(activity=lambda x: x['activity'].str.strip()), 
+            df_oa_se_mapping, how='left')
+        # Pull out non matching activites before they are changed to 'No Match'
+        st.session_state.df_total_sad_na = st.session_state.df_total_sad_counts.loc[st.session_state.df_total_sad_counts['sport_and_discipline'].isna()]
         st.session_state.df_total_sad_counts['sport_and_discipline'].fillna('No Match', inplace=True)
+
 
         st.session_state.df_total_sad_counts_matched = st.session_state.df_total_sad_counts.loc[st.session_state.df_total_sad_counts['sport_and_discipline'] != 'No Match']
         st.session_state.df_total_sad_counts_unmatched = st.session_state.df_total_sad_counts.loc[st.session_state.df_total_sad_counts['sport_and_discipline'] == 'No Match']
@@ -316,6 +321,9 @@ if (not st.session_state):
             'activity',
             'count_opportunities',
         ]
+
+        st.session_state.df_total_sad_na.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + 'unmatched_activities.csv', index=False)
+        print("Activities not matched to SE Sports and Disciplines saved to 'unmatched_activities.csv'")
 
         st.session_state.total_num_activities_with_sad = st.session_state.df_total_sad_counts_matched['count_activities'].sum()
         st.session_state.total_num_activities_without_sad = st.session_state.df_total_sad_counts_unmatched.shape[0]
@@ -384,7 +392,7 @@ if (not st.session_state.error):
             st.pyplot(fig)
             plt.close(fig)
         with cols[2]:
-            st.metric('Number of live opportunities', f'{st.session_state.total_num_opportunities:,}')
+            st.metric('Number of live opportunities', millify(st.session_state.total_num_opportunities, precision=1))
             # st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
             # st.metric('Number of live opportunities with locations', f'{st.session_state.total_num_opportunities_with_coords:,}')
 
