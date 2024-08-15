@@ -469,6 +469,12 @@ if (not st.session_state):
 # --------------------------------------------------------------------------------------------------
 
 if (not st.session_state.error):
+    
+    # Streamline display for iframe
+    st.markdown('<style>[data-testid="stHeader"]{display: none;} \
+            .st-emotion-cache-1jicfl2 {padding: 0.5rem 1rem 0.5rem;} \
+            [data-testid="stVerticalBlock"] {gap:0px;} </style>', unsafe_allow_html=True)
+    
     tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'KPIs'])
 
     with tabs[0]:
@@ -479,41 +485,75 @@ if (not st.session_state.error):
             '<style>#tabs-bui3-tabpanel-0 [data-testid="stMetric"] { \
                 display: flex; \
                 flex-direction: column-reverse; \
-                align-items: center; \
+                align-items: center;\
                 color: #223582; \
                 background-color: rgba(116,203,242,0.15); \
-                padding: 20px; \
+                margin: 10px 20% 10px 20%; \
+                padding: 20px 10px 20px 10px; \
                 border: 2px solid; \
                 border-radius: 10px; \
                 box-shadow: 10px; \
-            }</style>',
-            unsafe_allow_html=True,
+                overflow: visible; overflow-wrap: break-word; white-space: normal; \
+                } \
+                label.st-emotion-cache-17c4ue.e1i5pmia2 { \
+                overflow: visible; overflow-wrap: break-word; white-space: normal;\
+                } \
+                div.st-emotion-cache-1wivap2 { \
+                overflow: visible; overflow-wrap: break-word; white-space: normal;\
+                } \
+                .st-emotion-cache-1wivap2 > div { \
+                overflow: visible; overflow-wrap: break-word; white-space: normal;  \
+                } \
+                .st-emotion-cache-1wivap2 > div > p { \
+                overflow: visible; overflow-wrap: break-word; white-space: normal; \
+                text-align: center; } \
+                .st-emotion-cache-1whk732 { \
+                    margin-left: 0.2rem \
+                } </style>',unsafe_allow_html=True,
         )
 
-        cols = st.columns(3)
+
+        cols = st.columns([1,1,2])
+
         with cols[0]:
-            st.metric('Number of live feeds', f'{st.session_state.num_feeds:,}')
-            # st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
+            st.metric('OpenActive data feeds', f'{st.session_state.num_feeds:,}',
+                      help = "OpenActive is a decentralised open data initiative. Each data publisher shares one or more data feeds, providing near real time availability of their activities and facilities.")
+            st.metric(
+                "Different activities and facilities", 
+                f'{st.session_state.total_num_activities:,}',
+                help="While the official OpenActive actvity list contains over 700 standardised activity names, publishers can and do use their own wording for activity and facility names."
+            )
             # st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
+            st.metric('Number of live opportunities', millify(st.session_state.total_num_opportunities, precision=1),
+                      help="OpenActive describes standards to make sharing information about 'opportunities for sport and physical activity' easier and more effective. We use the word 'opportunity' to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunties shows that more activity and facility data is being made open, and we think that is a good thing!")
+            
         with cols[1]:
-            fig, ax = plt.subplots(1, 1)
-            plt.style.use('ggplot')
-            ax.set(facecolor='white')
-            st.session_state.gdf_total_regions_counts.plot(
+
+            fig, ax = plt.subplots(1, 1, figsize=(5, 10))
+            plt.style.use('ggplot') # Add the ggplot theme
+
+            p = st.session_state.gdf_total_regions_counts.plot(
                 column='percentage',
                 cmap='YlOrRd',
-                legend=True,
                 ax=ax,
             )
             ax.set_xticks([])
             ax.set_yticks([])
+            ax.set(facecolor = "white")
+            plt.title('% of OpenActive Opportunities by Region')
+            # Get the ScalarMappable from the plot
+            sm = ax.collections[0]  # Assuming there's only one collection in the plot
+            # Position the colorbar at the bottom
+            # Position the colorbar at the bottom
+            cb = plt.colorbar(sm, orientation='horizontal', pad=-0.04)  # Adjust pad for spacing
+            cb.set_label('%') # Add text under the colorbar
             st.pyplot(fig)
             plt.close(fig)
+            
         with cols[2]:
-            st.metric('Number of live opportunities', millify(st.session_state.total_num_opportunities, precision=1))
-            # st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
-            # st.metric('Number of live opportunities with locations', f'{st.session_state.total_num_opportunities_with_coords:,}')
-
+            st.write()
+            # st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
+          
         st.write(f'These figures include data from {st.session_state.num_feeds_preview} preview feeds with {round(st.session_state.total_num_opportunities_preview / 1000000, 1)}m preview opportunities')
 
         st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
