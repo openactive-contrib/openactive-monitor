@@ -1,4 +1,13 @@
+beautifulsoup4==4.12.3
+certifi==2024.7.4
+charset-normalizer==3.3.2
 geographiclib==2.0
 geopy==2.4.1
+idna==3.7
+openactive==2.0.0
 python-dateutil==2.9.0.post0
+requests==2.32.3
 six==1.16.0
+soupsieve==2.5
+termcolor==2.4.0
+urllib3==2.2.2
