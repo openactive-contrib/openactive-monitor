@@ -217,6 +217,7 @@ def set_opportunities_sample():
             'duration': get_value(item, 'duration'),
             'min_age': get_value(item, 'ageRange', 'minValue'),
             'max_age': get_value(item, 'ageRange', 'maxValue'),
+            'max_age': get_value(item, 'ageRange', 'maxValue'),
             'offer_name': get_value(item, 'offers', 'name'),
             'offer_url': get_value(item, 'offers', 'url'),
             'offer_price': get_value(item, 'offers', 'price'),
@@ -550,24 +551,37 @@ if (not st.session_state.error):
 
         st.divider()
 
-        st.subheader('Sample opportunities')
+        st.subheader('Example OpenActive opportunities')
 
-        st.button('Shuffle', type='primary', on_click=set_opportunities_sample)
-
-        for sample_opportunity in st.session_state.opportunities_sample:
-            cols = st.columns(2)
-            with cols[0]:
-                st.write(sample_opportunity[0])
-            with cols[1]:
+        cols = st.columns(3)
+        
+        for x in range(0, 3):
+            with cols[x]:
+                sample_opportunity = st.session_state.opportunities_sample[x]
+                df_opportunity = pd.DataFrame(
+                    [
+                        {
+                            'name': sample_opportunity[1].get('name', ''),
+                            'description': sample_opportunity[1].get('description', ''),
+                            'startdate': sample_opportunity[1].get('startdate', ''),
+                            'image': sample_opportunity[1].get('image', ''),
+                            'type': '(' + sample_opportunity[1].get('type', '') + ')',
+                            'activity': sample_opportunity[1].get('activities'),
+                        }
+                    ]
+                )
+                
+                # Create the HTML table from the dataframe
                 st.html(f'''
-                    <div style="background-color: gainsboro; border-radius: 10px; padding: 15px 10px">
-                        <table style="color: dimgray;">
-                            {''.join([f'<tr><td style="border-right: 1px solid dimgray; padding: 0px 10px; white-space:nowrap;">{str(key).capitalize().replace("_", " ")}</td><td style="padding: 0px 10px;">{sample_opportunity[1][key]}</td></tr>' for key in sample_opportunity[1].keys()])}
+                    <div style="color: #223582;  border: 2px solid; border-radius: 10px; padding: 15px 10px">
+                        <table style="">
+                            {''.join([f'<tr><td style="padding: 0px 10px;">{df_opportunity[key].iloc[0]}</td></tr>' for key in df_opportunity.columns])}
                         </table>
                     </div>
                 ''')
-            st.divider()
-
+                                
+        st.button('Show some more examples', type='primary', on_click=set_opportunities_sample)
+        
     # --------------------------------------------------------------------------------------------------
 
     with tabs[2]:
