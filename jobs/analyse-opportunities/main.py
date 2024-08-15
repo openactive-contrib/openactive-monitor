@@ -6,6 +6,7 @@ import sys
 from datetime import datetime, timedelta
 from dateutil import tz # For timezone handling
 from geopy.geocoders import Nominatim
+from openactive import get_item_kinds, get_item_data_types
 from os import getenv, listdir
 from os.path import isfile
 from time import sleep
@@ -137,20 +138,24 @@ def analyse_opportunities():
                     'status': opportunities_in['status'],
                     'num_items': len(opportunities_in['items'].keys()),
                     'num_urls': len(opportunities_in['urls']),
+                    'item_kinds': get_item_kinds(opportunities_in),
+                    'item_data_types': get_item_data_types(opportunities_in),
                     'activities_counts': get_activities_counts(opportunities_in),
-                    'coords_counts': get_coords_counts(opportunities_in),
+                    'coords_counts': get_coords_counts(opportunities_in), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
                 }
 
                 items_this_week = get_items_this_week(opportunities_in)
-                items_this_week_sample = random.sample(items_this_week, min(20, len(items_this_week)))
+                items_this_week_sample = dict(random.sample(items_this_week.items(), min(20, len(items_this_week.keys()))))
 
                 analyses_this_week[filenames_with_infostamp_current[-1]] = {
                     'status': opportunities_in['status'],
-                    'num_items': len(items_this_week),
-                    'num_items_sample': len(items_this_week_sample),
+                    'num_items': len(items_this_week.keys()),
+                    'num_items_sample': len(items_this_week_sample.keys()),
                     'items_sample': items_this_week_sample,
-                    # 'activities_counts': get_activities_counts(items_this_week),
-                    # 'coords_counts': get_coords_counts(items_this_week),
+                    'item_kinds': get_item_kinds({'items': items_this_week}),
+                    'item_data_types': get_item_data_types({'items': items_this_week}),
+                    'activities_counts': get_activities_counts({'items': items_this_week}),
+                    'coords_counts': get_coords_counts({'items': items_this_week}),
                 }
 
         except Exception as error:
@@ -163,6 +168,11 @@ def analyse_opportunities():
 
     with open(RELATIVE_FILEPATH_ANALYSES + '/' + FILENAME_ANALYSES_THIS_WEEK, 'wb') as file_out:
         pickle.dump(analyses_this_week, file_out)
+
+    # TEMPORARY: For checking geographically localised high opportunity count spikes
+    # global coords_check
+    # with open(RELATIVE_FILEPATH_ANALYSES + '/' + 'coords_check.pickle', 'wb') as file_out:
+    #     pickle.dump(coords_check, file_out)
 
     # print(len(analyses_this_week))
     # print(analyses_this_week)
@@ -214,8 +224,14 @@ def get_item_activities(data):
 
 NUM_DECIMAL_PLACES_COORDS = 6
 
-def get_coords_counts(opportunities):
+# TEMPORARY: For checking geographically localised high opportunity count spikes
+# coords_check = {}
+
+def get_coords_counts(opportunities): #, filename=None)
     coords_counts = {}
+
+    # TEMPORARY: For checking geographically localised high opportunity count spikes
+    # global coords_check
 
     for item in opportunities['items'].values():
         item_coords = get_item_coords_from_geo(item)
@@ -227,6 +243,14 @@ def get_coords_counts(opportunities):
                 coords_counts[item_coords] = 1
             else:
                 coords_counts[item_coords] += 1
+            # TEMPORARY: For checking geographically localised high opportunity count spikes
+            # if (    (filename is not None)
+            #     and (item_coords == '52.069694,-2.722774')
+            # ):
+            #     if (filename not in coords_check.keys()):
+            #         coords_check[filename] = 1
+            #     else:
+            #         coords_check[filename] += 1
 
     return coords_counts
 
@@ -298,30 +322,31 @@ def get_item_coords_from_postalcode(data):
 # --------------------------------------------------------------------------------------------------
 
 def get_items_this_week(opportunities):
-    items_this_week = []
+    items_this_week = {}
+
     today = datetime.now(tz=tz.UTC).date()
 
-    for item in opportunities['items'].values():
-        item_start_date = get_item_start_date(item['data'])
+    for item_id, item in opportunities['items'].items():
+        item_start_date = get_item_start_date(item)
         if (    (item_start_date is not None)
             and (item_start_date.date() >= today)
             and (item_start_date.date() <= today + timedelta(days=7))
         ):
-            items_this_week.append(item)
+            items_this_week[item_id] = item
 
     return items_this_week
 
 # --------------------------------------------------------------------------------------------------
 
 def get_item_start_date(item):
-    if ('startDate' in item.keys()):
-        return parse_date(item['startDate'])
-    elif ('dateStart' in item.keys()):
-        return parse_date(item['dateStart'])
-    elif (  ('subEvent' in item.keys())
-        and (isinstance(item['subEvent'], list))
+    if ('startDate' in item['data'].keys()):
+        return parse_date(item['data']['startDate'])
+    elif ('dateStart' in item['data'].keys()):
+        return parse_date(item['data']['dateStart'])
+    elif (  ('subEvent' in item['data'].keys())
+        and (isinstance(item['data']['subEvent'], list))
     ):
-        for subevent in item['subEvent']:
+        for subevent in item['data']['subEvent']:
             if (    (isinstance(subevent, dict))
                 and ('startDate' in subevent.keys())
             ):

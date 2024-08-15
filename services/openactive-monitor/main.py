@@ -6,8 +6,9 @@ import random
 import seaborn as sns
 import streamlit as st
 from datetime import datetime
-from os import getenv
 from millify import millify
+from os import getenv
+
 # --------------------------------------------------------------------------------------------------
 
 def is_feed_to_include(filename, feeds_to_include='all'):
@@ -15,6 +16,70 @@ def is_feed_to_include(filename, feeds_to_include='all'):
         or  ((feeds_to_include == 'regular') and ('000-preview' not in filename))
         or  ((feeds_to_include == 'preview') and ('000-preview' in filename))
     )
+
+# --------------------------------------------------------------------------------------------------
+
+# This version of get_value() focuses on the parent key for logic branching, whereas the new version
+# focuses on the child key, and which seems more natural and simpler. Temporarily keeping this initial
+# version just in case of need to revert back.
+
+# def get_value(data, key_to_find, parent_key=None, continue_to_next_layer=True):
+#     if (isinstance(key_to_find, str)):
+#         key_to_find = [key_to_find]
+
+#     if (isinstance(data, dict)):
+#         value = None
+#         for key, val in data.items():
+#             if (parent_key is not None):
+#                 if (key == parent_key):
+#                     return get_value(val, key_to_find, continue_to_next_layer=False)
+#                 else:
+#                     value = get_value(val, key_to_find, parent_key=parent_key)
+#             else:
+#                 if (key in key_to_find):
+#                     return val
+#                 elif (continue_to_next_layer):
+#                     value = get_value(val, key_to_find)
+#             if (value is not None):
+#                 return value
+
+#     if (isinstance(data, list)):
+#         values = [get_value(i, key_to_find, parent_key=parent_key) for i in data]
+#         values = [value for value in values if (value is not None)]
+#         if (values):
+#             return values
+
+#     return None
+
+# --------------------------------------------------------------------------------------------------
+
+def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=True):
+    # This function accepts key_to_find as either a single string or a list of string variants e.g. ['type', '@type'],
+    # so if we receive a string then convert to a list for standard internal handling:
+    if (isinstance(key_to_find, str)):
+        key_to_find = [key_to_find]
+
+    if (isinstance(data, dict)):
+        for key, val in data.items():
+            if (key in key_to_find):
+                if (child_key_to_find is None):
+                    return val
+                else:
+                    # If we are seeking a parent-child key pair and have found the parent key, then child_key_to_find becomes
+                    # key_to_find for the next layer search. We also only want to search the immediate next layer and not
+                    # beyond, hence the keyword setting here:
+                    return get_value(val, child_key_to_find, continue_to_next_layer=False)
+            elif (continue_to_next_layer):
+                value = get_value(val, key_to_find, child_key_to_find)
+                if (value is not None):
+                    return value
+
+    if (isinstance(data, list)):
+        values = [get_value(val, key_to_find, child_key_to_find, continue_to_next_layer) for val in data]
+        if (any(values)):
+            return values
+
+    return None
 
 # --------------------------------------------------------------------------------------------------
 
@@ -50,8 +115,12 @@ def get_df_total_keys_counts(analyses, keys_counts, feeds_to_include='all'):
 
     if (keys_counts == 'activities_counts'):
         columns = ['activity', 'count']
+        # with open(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + 'total_activities_counts.pickle', 'wb') as file_out:
+        #     pickle.dump(total_keys_counts, file_out)
     elif (keys_counts == 'coords_counts'):
         columns = ['coords', 'count']
+        # with open(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + 'total_coords_counts.pickle', 'wb') as file_out:
+        #     pickle.dump(total_keys_counts, file_out)
 
     df_total_keys_counts = pd.DataFrame(
         sorted(
@@ -126,6 +195,46 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
     # print(gdf_total_locations_counts)
 
     return gdf_total_locations_counts, total_num_locations, total_num_opportunities_with_locations
+
+# --------------------------------------------------------------------------------------------------
+
+def set_opportunities_sample():
+    st.session_state.opportunities_sample = []
+
+    # Select some random feeds, and for each of them display a single random item from this week's sample:
+    for filename in random.sample(st.session_state.filenames_with_opportunities_sample, min(st.session_state.num_opportunities_sample, len(st.session_state.filenames_with_opportunities_sample))):
+        item = random.choice(list(st.session_state.analyses_this_week[filename]['items_sample'].values()))
+        info = {
+            'filename': filename,
+            'id': get_value(item, 'id'),
+            'kind': get_value(item, 'kind'),
+            'type': get_value(item, 'data', ['type', '@type']),
+            'name': get_value(item, 'data', 'name'),
+            'url': get_value(item, 'data', 'url'),
+            'description': get_value(item, 'data', 'description'),
+            'activities': get_value(item, 'activity', 'prefLabel'),
+            'startdate': get_value(item, 'startDate'),
+            'duration': get_value(item, 'duration'),
+            'min_age': get_value(item, 'ageRange', 'minValue'),
+            'max_age': get_value(item, 'ageRange', 'maxValue'),
+            'offer_name': get_value(item, 'offers', 'name'),
+            'offer_url': get_value(item, 'offers', 'url'),
+            'offer_price': get_value(item, 'offers', 'price'),
+            'offer_currency': get_value(item, 'offers', 'priceCurrency'),
+            'organiser_name': get_value(item, 'organizer', 'name'),
+            'organiser_url': get_value(item, 'organizer', 'url'),
+            'organiser_email': get_value(item, 'organizer', 'email'),
+            'organiser_telephone': get_value(item, 'organizer', 'telephone'),
+            'location_name': get_value(item, 'location', 'name'),
+            'location_url': get_value(item, 'location', 'url'),
+            'location_email': get_value(item, 'location', 'email'),
+            'location_telephone': get_value(item, 'location', 'telephone'),
+            'address': get_value(item, 'address', 'streetAddress'),
+            'postcode': get_value(item, 'address', 'postalCode'),
+            'latitude': get_value(item, 'geo', 'latitude'),
+            'longitude': get_value(item, 'geo', 'longitude'),
+        }
+        st.session_state.opportunities_sample.append((item, info))
 
 # --------------------------------------------------------------------------------------------------
 
@@ -208,6 +317,15 @@ if (not st.session_state):
         st.session_state.total_num_opportunities_this_week_preview = get_total_num_opportunities(st.session_state.analyses_this_week, feeds_to_include='preview')
         st.session_state.total_num_opportunities_this_week = st.session_state.total_num_opportunities_this_week_regular + st.session_state.total_num_opportunities_this_week_preview
 
+        st.session_state.filenames_with_opportunities_sample = [
+            filename
+            for filename in st.session_state.analyses_this_week.keys()
+            if (st.session_state.analyses_this_week[filename]['num_items_sample'] > 0)
+        ]
+
+        st.session_state.num_opportunities_sample = 5
+        set_opportunities_sample()
+
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Activities' tab
@@ -281,12 +399,14 @@ if (not st.session_state):
 
         # Columns: ['activity', 'count', 'sport_and_discipline']
         st.session_state.df_total_sad_counts = pd.merge(
-            st.session_state.df_total_activities_counts.drop(columns=['percentage']).assign(activity=lambda x: x['activity'].str.strip()), 
+            st.session_state.df_total_activities_counts.drop(columns=['percentage']).assign(activity=lambda x: x['activity'].str.strip()),
             df_oa_se_mapping, how='left')
-        # Pull out non matching activites before they are changed to 'No Match'
+        # Pull out non matching activities before they are changed to 'No Match':
         st.session_state.df_total_sad_na = st.session_state.df_total_sad_counts.loc[st.session_state.df_total_sad_counts['sport_and_discipline'].isna()]
+        # TODO: This file is written out on each page load, is it needed?
+        st.session_state.df_total_sad_na.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + 'unmatched_activities.csv', index=False)
+        print("Activities not matched to SE Sports and Disciplines saved to 'unmatched_activities.csv'")
         st.session_state.df_total_sad_counts['sport_and_discipline'].fillna('No Match', inplace=True)
-
 
         st.session_state.df_total_sad_counts_matched = st.session_state.df_total_sad_counts.loc[st.session_state.df_total_sad_counts['sport_and_discipline'] != 'No Match']
         st.session_state.df_total_sad_counts_unmatched = st.session_state.df_total_sad_counts.loc[st.session_state.df_total_sad_counts['sport_and_discipline'] == 'No Match']
@@ -315,15 +435,13 @@ if (not st.session_state):
 
         # Columns: ['sport_and_discipline', 'activity', 'count']
         st.session_state.df_total_sad_counts_unmatched = st.session_state.df_total_sad_counts_unmatched[['sport_and_discipline', 'activity', 'count']]
+        # Rename columns for consistency with df_total_sad_counts_matched, even though there's only one count here:
         # Columns: ['sport_and_discipline', 'activity', 'count_opportunities']
         st.session_state.df_total_sad_counts_unmatched.columns = [
             'sport_and_discipline',
             'activity',
             'count_opportunities',
         ]
-
-        st.session_state.df_total_sad_na.to_csv(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + 'unmatched_activities.csv', index=False)
-        print("Activities not matched to SE Sports and Disciplines saved to 'unmatched_activities.csv'")
 
         st.session_state.total_num_activities_with_sad = st.session_state.df_total_sad_counts_matched['count_activities'].sum()
         st.session_state.total_num_activities_without_sad = st.session_state.df_total_sad_counts_unmatched.shape[0]
@@ -364,7 +482,7 @@ if (not st.session_state.error):
                 align-items: center; \
                 color: #223582; \
                 background-color: rgba(116,203,242,0.15); \
-                padding: 20px 20px 20px 20px; \
+                padding: 20px; \
                 border: 2px solid; \
                 border-radius: 10px; \
                 box-shadow: 10px; \
@@ -372,19 +490,19 @@ if (not st.session_state.error):
             unsafe_allow_html=True,
         )
 
-        cols = st.columns([1,1,1])
+        cols = st.columns(3)
         with cols[0]:
             st.metric('Number of live feeds', f'{st.session_state.num_feeds:,}')
             # st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
             # st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
         with cols[1]:
             fig, ax = plt.subplots(1, 1)
-            plt.style.use('ggplot') # Add the ggplot theme
-            ax.set(facecolor = "white")
+            plt.style.use('ggplot')
+            ax.set(facecolor='white')
             st.session_state.gdf_total_regions_counts.plot(
                 column='percentage',
                 cmap='YlOrRd',
-                legend = True,
+                legend=True,
                 ax=ax,
             )
             ax.set_xticks([])
@@ -399,11 +517,11 @@ if (not st.session_state.error):
         st.write(f'These figures include data from {st.session_state.num_feeds_preview} preview feeds with {round(st.session_state.total_num_opportunities_preview / 1000000, 1)}m preview opportunities')
 
         st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
-        st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs).') # and last accessed on {TODO: date last accessed}.')
+        st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
         st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
 
         st.write(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}')
-        
+
         # dated_counts = {
         #     'Jan 17': 0,
         #     'Jul 17': 80000,
@@ -434,15 +552,21 @@ if (not st.session_state.error):
 
         st.subheader('Sample opportunities')
 
-        filenames_with_samples = [
-            filename
-            for filename in st.session_state.analyses_this_week.keys()
-            if (st.session_state.analyses_this_week[filename]['num_items_sample'] > 0)
-        ]
+        st.button('Shuffle', type='primary', on_click=set_opportunities_sample)
 
-        # Select some random feeds, and for each of them display a single random item from this week's sample:
-        for filename in random.sample(filenames_with_samples, min(5, len(filenames_with_samples))):
-            st.write(random.choice(st.session_state.analyses_this_week[filename]['items_sample']))
+        for sample_opportunity in st.session_state.opportunities_sample:
+            cols = st.columns(2)
+            with cols[0]:
+                st.write(sample_opportunity[0])
+            with cols[1]:
+                st.html(f'''
+                    <div style="background-color: gainsboro; border-radius: 10px; padding: 15px 10px">
+                        <table style="color: dimgray;">
+                            {''.join([f'<tr><td style="border-right: 1px solid dimgray; padding: 0px 10px; white-space:nowrap;">{str(key).capitalize().replace("_", " ")}</td><td style="padding: 0px 10px;">{sample_opportunity[1][key]}</td></tr>' for key in sample_opportunity[1].keys()])}
+                        </table>
+                    </div>
+                ''')
+            st.divider()
 
     # --------------------------------------------------------------------------------------------------
 
