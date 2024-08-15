@@ -1,5 +1,5 @@
 geopandas
 matplotlib
+millify
 seaborn
 streamlit
-millify
