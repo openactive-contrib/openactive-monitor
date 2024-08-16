@@ -31,9 +31,9 @@ st.set_page_config(
 # #tabs-bui3-tabpanel-0 [data-testid="stMetric"] {
 st.html('''
     <style>
-        [data-testid="stHeader"] {
-            display: none;
-        }
+        # [data-testid="stHeader"] {
+        #     display: none;
+        # }
         [data-testid="stVerticalBlock"] {
             gap: 5px;
         }
