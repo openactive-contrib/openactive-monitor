@@ -145,7 +145,7 @@ def analyse_opportunities():
                 }
 
                 items_this_week = get_items_this_week(opportunities_in)
-                items_this_week_sample = dict(random.sample(items_this_week.items(), min(20, len(items_this_week.keys()))))
+                items_this_week_sample = dict(random.sample(list(items_this_week.items()), min(2, len(items_this_week.keys()))))
 
                 analyses_this_week[filenames_with_infostamp_current[-1]] = {
                     'status': opportunities_in['status'],
