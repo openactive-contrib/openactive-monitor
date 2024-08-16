@@ -11,75 +11,91 @@ from os import getenv
 
 # --------------------------------------------------------------------------------------------------
 
+# st.set_page_config must be the first Streamlit command if it is present at all:
+st.set_page_config(
+    page_title='OpenActive',
+    page_icon='https://www.openactive.io/wp-content/themes/open-active-1_3/images/favicon.png',
+    layout='wide',
+    menu_items={
+        'Get help': 'mailto:hello@openactive.io',
+        'About': 'Copyright 2024 OpenActive',
+    }
+)
+
+# --------------------------------------------------------------------------------------------------
+
+# Set custom styles before doing anything else, as they can take a short while to load and can cause
+# twitchy behaviour if done later:
+
+# div.e1f1d6gn3 > div > div > div > div > div {
+# #tabs-bui3-tabpanel-0 [data-testid="stMetric"] {
+st.html('''
+    <style>
+        [data-testid="stHeader"] {
+            display: none;
+        }
+        [data-testid="stVerticalBlock"] {
+            gap: 5px;
+        }
+        [data-testid="stMetric"] {
+            display: flex;
+            flex-direction: column-reverse;
+            overflow: visible;
+            overflow-wrap: break-word;
+            white-space: normal;
+            align-items: center;
+            color: #009ee3;
+            background-color: #ddf2fc;
+            padding: 20px 10px 20px 10px;
+            border: 2px solid;
+            border-radius: 10px;
+            margin: 10px 20% 10px 20%;
+            box-shadow: 10px;
+        }
+        #opportunity-card {
+            color: #009ee3;
+            background-color: #ddf2fc;
+            padding: 15px 10px;
+            border: 2px solid;
+            border-radius: 10px;
+        }
+        label.st-emotion-cache-17c4ue.e1i5pmia2 {
+            overflow: visible;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+        div.st-emotion-cache-1wivap2 {
+            overflow: visible;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+        .st-emotion-cache-1wivap2 > div {
+            overflow: visible;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+        .st-emotion-cache-1wivap2 > div > p {
+            overflow: visible;
+            overflow-wrap: break-word;
+            white-space: normal;
+            text-align: center;
+        }
+        .st-emotion-cache-1jicfl2 {
+            padding: 0.5rem 1rem 0.5rem;
+        }
+        .st-emotion-cache-1whk732 {
+            margin-left: 0.2rem;
+        }
+    </style>
+''')
+
+# --------------------------------------------------------------------------------------------------
+
 def is_feed_to_include(filename, feeds_to_include='all'):
     return ((feeds_to_include == 'all')
         or  ((feeds_to_include == 'regular') and ('000-preview' not in filename))
         or  ((feeds_to_include == 'preview') and ('000-preview' in filename))
     )
-
-# --------------------------------------------------------------------------------------------------
-
-# This version of get_value() focuses on the parent key for logic branching, whereas the new version
-# focuses on the child key, and which seems more natural and simpler. Temporarily keeping this initial
-# version just in case of need to revert back.
-
-# def get_value(data, key_to_find, parent_key=None, continue_to_next_layer=True):
-#     if (isinstance(key_to_find, str)):
-#         key_to_find = [key_to_find]
-
-#     if (isinstance(data, dict)):
-#         value = None
-#         for key, val in data.items():
-#             if (parent_key is not None):
-#                 if (key == parent_key):
-#                     return get_value(val, key_to_find, continue_to_next_layer=False)
-#                 else:
-#                     value = get_value(val, key_to_find, parent_key=parent_key)
-#             else:
-#                 if (key in key_to_find):
-#                     return val
-#                 elif (continue_to_next_layer):
-#                     value = get_value(val, key_to_find)
-#             if (value is not None):
-#                 return value
-
-#     if (isinstance(data, list)):
-#         values = [get_value(i, key_to_find, parent_key=parent_key) for i in data]
-#         values = [value for value in values if (value is not None)]
-#         if (values):
-#             return values
-
-#     return None
-
-# --------------------------------------------------------------------------------------------------
-
-def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=True):
-    # This function accepts key_to_find as either a single string or a list of string variants e.g. ['type', '@type'],
-    # so if we receive a string then convert to a list for standard internal handling:
-    if (isinstance(key_to_find, str)):
-        key_to_find = [key_to_find]
-
-    if (isinstance(data, dict)):
-        for key, val in data.items():
-            if (key in key_to_find):
-                if (child_key_to_find is None):
-                    return val
-                else:
-                    # If we are seeking a parent-child key pair and have found the parent key, then child_key_to_find becomes
-                    # key_to_find for the next layer search. We also only want to search the immediate next layer and not
-                    # beyond, hence the keyword setting here:
-                    return get_value(val, child_key_to_find, continue_to_next_layer=False)
-            elif (continue_to_next_layer):
-                value = get_value(val, key_to_find, child_key_to_find)
-                if (value is not None):
-                    return value
-
-    if (isinstance(data, list)):
-        values = [get_value(val, key_to_find, child_key_to_find, continue_to_next_layer) for val in data]
-        if (any(values)):
-            return values
-
-    return None
 
 # --------------------------------------------------------------------------------------------------
 
@@ -198,11 +214,82 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
 
 # --------------------------------------------------------------------------------------------------
 
+# This version of get_value() focuses on the parent key for logic branching, whereas the new version
+# focuses on the child key, and which seems more natural and simpler. Temporarily keeping this initial
+# version just in case of need to revert back.
+
+# def get_value(data, key_to_find, parent_key=None, continue_to_next_layer=True):
+#     if (isinstance(key_to_find, str)):
+#         key_to_find = [key_to_find]
+
+#     if (isinstance(data, dict)):
+#         value = None
+#         for key, val in data.items():
+#             if (parent_key is not None):
+#                 if (key == parent_key):
+#                     return get_value(val, key_to_find, continue_to_next_layer=False)
+#                 else:
+#                     value = get_value(val, key_to_find, parent_key=parent_key)
+#             else:
+#                 if (key in key_to_find):
+#                     return val
+#                 elif (continue_to_next_layer):
+#                     value = get_value(val, key_to_find)
+#             if (value is not None):
+#                 return value
+
+#     if (isinstance(data, list)):
+#         values = [get_value(i, key_to_find, parent_key=parent_key) for i in data]
+#         values = [value for value in values if (value is not None)]
+#         if (values):
+#             return values
+
+#     return None
+
+# --------------------------------------------------------------------------------------------------
+
+def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=True):
+    # This function accepts key_to_find as either a single string or a list of string variants e.g. ['type', '@type'],
+    # so if we receive a string then convert to a list for standard internal handling:
+    if (isinstance(key_to_find, str)):
+        key_to_find = [key_to_find]
+
+    if (isinstance(data, dict)):
+        for key, val in data.items():
+            if (key in key_to_find):
+                if (child_key_to_find is None):
+                    return val
+                else:
+                    # If we are seeking a parent-child key pair and have found the parent key, then child_key_to_find becomes
+                    # key_to_find for the next layer search. We also only want to search the immediate next layer and not
+                    # beyond, hence the keyword setting here:
+                    return get_value(val, child_key_to_find, continue_to_next_layer=False)
+            elif (continue_to_next_layer):
+                value = get_value(val, key_to_find, child_key_to_find, continue_to_next_layer)
+                if (value is not None):
+                    return value
+
+    if (isinstance(data, list)):
+        values = [get_value(val, key_to_find, child_key_to_find, continue_to_next_layer) for val in data]
+        if (any(values)):
+            return values
+
+    return None
+
+# --------------------------------------------------------------------------------------------------
+
 def set_opportunities_sample():
     st.session_state.opportunities_sample = []
 
-    # Select some random feeds, and for each of them display a single random item from this week's sample:
-    for filename in random.sample(st.session_state.filenames_with_opportunities_sample, min(st.session_state.num_opportunities_sample, len(st.session_state.filenames_with_opportunities_sample))):
+    # Select some random feeds, and for each of them get a single random item from this week's sample:
+    random_filenames_with_opportunities_sample = random.sample(
+        st.session_state.filenames_with_opportunities_sample,
+        min(st.session_state.num_filenames_with_opportunities_sample,
+            st.session_state.max_num_random_filenames_with_opportunities_sample
+        )
+    )
+
+    for filename in random_filenames_with_opportunities_sample:
         item = random.choice(list(st.session_state.analyses_this_week[filename]['items_sample'].values()))
         info = {
             'filename': filename,
@@ -216,7 +303,6 @@ def set_opportunities_sample():
             'startdate': get_value(item, 'startDate'),
             'duration': get_value(item, 'duration'),
             'min_age': get_value(item, 'ageRange', 'minValue'),
-            'max_age': get_value(item, 'ageRange', 'maxValue'),
             'max_age': get_value(item, 'ageRange', 'maxValue'),
             'offer_name': get_value(item, 'offers', 'name'),
             'offer_url': get_value(item, 'offers', 'url'),
@@ -236,18 +322,6 @@ def set_opportunities_sample():
             'longitude': get_value(item, 'geo', 'longitude'),
         }
         st.session_state.opportunities_sample.append((item, info))
-
-# --------------------------------------------------------------------------------------------------
-
-st.set_page_config(
-    page_title='OpenActive',
-    page_icon='https://www.openactive.io/wp-content/themes/open-active-1_3/images/favicon.png',
-    layout='wide',
-    menu_items={
-        'Get help': 'mailto:hello@openactive.io',
-        'About': 'Copyright 2024 OpenActive',
-    }
-)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -324,7 +398,8 @@ if (not st.session_state):
             if (st.session_state.analyses_this_week[filename]['num_items_sample'] > 0)
         ]
 
-        st.session_state.num_opportunities_sample = 5
+        st.session_state.num_filenames_with_opportunities_sample = len(st.session_state.filenames_with_opportunities_sample)
+        st.session_state.max_num_random_filenames_with_opportunities_sample = 5
         set_opportunities_sample()
 
         # --------------------------------------------------------------------------------------------------
@@ -470,98 +545,51 @@ if (not st.session_state):
 # --------------------------------------------------------------------------------------------------
 
 if (not st.session_state.error):
-    
-    # Streamline display for iframe
-    st.markdown('<style>[data-testid="stHeader"]{display: none;} \
-            .st-emotion-cache-1jicfl2 {padding: 0.5rem 1rem 0.5rem;} \
-            [data-testid="stVerticalBlock"] {gap:0px;} </style>', unsafe_allow_html=True)
-    
     tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'KPIs'])
 
     with tabs[0]:
-
-        # Restyle metrics using css:
-        st.markdown(
-            #'<style> div.e1f1d6gn3 > div > div > div > div > div { \
-            '<style>#tabs-bui3-tabpanel-0 [data-testid="stMetric"] { \
-                display: flex; \
-                flex-direction: column-reverse; \
-                align-items: center;\
-                color: #223582; \
-                background-color: rgba(116,203,242,0.15); \
-                margin: 10px 20% 10px 20%; \
-                padding: 20px 10px 20px 10px; \
-                border: 2px solid; \
-                border-radius: 10px; \
-                box-shadow: 10px; \
-                overflow: visible; overflow-wrap: break-word; white-space: normal; \
-                } \
-                label.st-emotion-cache-17c4ue.e1i5pmia2 { \
-                overflow: visible; overflow-wrap: break-word; white-space: normal;\
-                } \
-                div.st-emotion-cache-1wivap2 { \
-                overflow: visible; overflow-wrap: break-word; white-space: normal;\
-                } \
-                .st-emotion-cache-1wivap2 > div { \
-                overflow: visible; overflow-wrap: break-word; white-space: normal;  \
-                } \
-                .st-emotion-cache-1wivap2 > div > p { \
-                overflow: visible; overflow-wrap: break-word; white-space: normal; \
-                text-align: center; } \
-                .st-emotion-cache-1whk732 { \
-                    margin-left: 0.2rem \
-                } </style>',unsafe_allow_html=True,
-        )
-
-
-        cols = st.columns([1,1,2])
-
+        cols = st.columns([1, 1, 2])
         with cols[0]:
-            st.metric('OpenActive data feeds', f'{st.session_state.num_feeds:,}',
-                      help = "OpenActive is a decentralised open data initiative. Each data publisher shares one or more data feeds, providing near real time availability of their activities and facilities.")
             st.metric(
-                "Different activities and facilities", 
-                f'{st.session_state.total_num_activities:,}',
-                help="While the official OpenActive actvity list contains over 700 standardised activity names, publishers can and do use their own wording for activity and facility names."
+                'OpenActive data feeds',
+                f'{st.session_state.num_feeds:,}',
+                help='OpenActive is a decentralised open data initiative. Each data publisher shares one or more data feeds, providing near real time availability of their activities and facilities.',
             )
-            # st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
-            st.metric('Number of live opportunities', millify(st.session_state.total_num_opportunities, precision=1),
-                      help="OpenActive describes standards to make sharing information about 'opportunities for sport and physical activity' easier and more effective. We use the word 'opportunity' to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunties shows that more activity and facility data is being made open, and we think that is a good thing!")
-            
+            st.metric(
+                # TODO: Why does this say "and facilities"? This is purely a count of the activities ...
+                'Activities and facilities',
+                f'{st.session_state.total_num_activities:,}',
+                help='While the official OpenActive activity list contains over 700 standardised activity names, publishers can and do use their own wording for activity and facility names.',
+            )
+            st.metric(
+                'Live opportunities',
+                millify(st.session_state.total_num_opportunities, precision=1),
+                help='OpenActive describes standards to make sharing information about "opportunities for sport and physical activity" easier and more effective. We use the word "opportunity" to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total "opportunity" count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!',
+            )
         with cols[1]:
-
             fig, ax = plt.subplots(1, 1, figsize=(5, 10))
-            plt.style.use('ggplot') # Add the ggplot theme
-
-            p = st.session_state.gdf_total_regions_counts.plot(
+            plt.style.use('ggplot')
+            st.session_state.gdf_total_regions_counts.plot(
                 column='percentage',
-                cmap='YlOrRd',
+                # cmap='YlOrRd',
+                cmap='inferno_r',
                 ax=ax,
             )
+            ax.set(facecolor='white')
             ax.set_xticks([])
             ax.set_yticks([])
-            ax.set(facecolor = "white")
-            plt.title('% of OpenActive Opportunities by Region')
-            # Get the ScalarMappable from the plot
-            sm = ax.collections[0]  # Assuming there's only one collection in the plot
-            # Position the colorbar at the bottom
-            # Position the colorbar at the bottom
-            cb = plt.colorbar(sm, orientation='horizontal', pad=-0.04)  # Adjust pad for spacing
-            cb.set_label('%') # Add text under the colorbar
+            ax.set_title('% of OpenActive Opportunities by Region')
+            scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
+            colorbar = plt.colorbar(scalarmappable, orientation='horizontal', pad=-0.04)
+            colorbar.set_label('%')
             st.pyplot(fig)
             plt.close(fig)
-            
-        with cols[2]:
-            st.write()
-            # st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
-          
-        st.write(f'These figures include data from {st.session_state.num_feeds_preview} preview feeds with {round(st.session_state.total_num_opportunities_preview / 1000000, 1)}m preview opportunities')
 
+        st.write(f'These figures include data from {st.session_state.num_feeds_preview} preview feeds with {millify(st.session_state.total_num_opportunities_preview, precision=1)} preview opportunities.')
         st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
         st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
         st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
-
-        st.write(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}')
+        st.write(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}.')
 
         # dated_counts = {
         #     'Jan 17': 0,
@@ -587,58 +615,51 @@ if (not st.session_state.error):
     with tabs[1]:
         st.header('OpenActive opportunities over the next 7 days')
 
-        st.metric('Number of live OpenActive opportunities over the next 7 days', f'{st.session_state.total_num_opportunities_this_week:,}')
+        cols = st.columns(3)
+        with cols[1]:
+            st.metric(
+                'Live opportunities over the next 7 days',
+                f'{st.session_state.total_num_opportunities_this_week:,}',
+            )
 
         st.divider()
 
         st.subheader('Example OpenActive opportunities')
+        st.button(
+            'Show some more examples',
+            type='primary',
+            on_click=set_opportunities_sample,
+        )
 
-        cols = st.columns(3)
-        
-        for x in range(0, 3):
-            with cols[x]:
-                sample_opportunity = st.session_state.opportunities_sample[x]
-                df_opportunity = pd.DataFrame(
-                    [
-                        {
-                            'name': sample_opportunity[1].get('name', ''),
-                            'description': sample_opportunity[1].get('description', ''),
-                            'startdate': sample_opportunity[1].get('startdate', ''),
-                            'image': sample_opportunity[1].get('image', ''),
-                            'type': '(' + sample_opportunity[1].get('type', '') + ')',
-                            'activity': sample_opportunity[1].get('activities'),
-                        }
-                    ]
-                )
-                
-                # Create the HTML table from the dataframe
+        for idx_col, col in enumerate(st.columns(3)):
+            with col:
+                opportunity = st.session_state.opportunities_sample[idx_col]
+                # TODO: Why convert to a dataframe? This will always have only one row ...
+                df_opportunity = pd.DataFrame([
+                    {
+                        'name': opportunity[1]['name'],
+                        'offer_name': opportunity[1]['offer_name'],
+                        'description': opportunity[1]['description'],
+                        'startdate': opportunity[1]['startdate'],
+                        'type': f"({opportunity[1]['type']})",
+                        'activity': opportunity[1]['activities'],
+                    }
+                ])
                 st.html(f'''
-                    <div style="color: #223582;  border: 2px solid; border-radius: 10px; padding: 15px 10px">
-                        <table style="">
+                    <div id="opportunity-card">
+                        <table>
                             {''.join([f'<tr><td style="padding: 0px 10px;">{df_opportunity[key].iloc[0]}</td></tr>' for key in df_opportunity.columns])}
                         </table>
                     </div>
                 ''')
-                                
-        st.button('Show some more examples', type='primary', on_click=set_opportunities_sample)
-        
+
     # --------------------------------------------------------------------------------------------------
 
     with tabs[2]:
         st.header('OpenActive opportunities by activity')
 
-        # cols = st.columns([1, 3])
-        # with cols[0]:
-        #     st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
-        # with cols[1]:
-        #     st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
-
         cols = st.columns([1, 2])
         with cols[0]:
-            # st.markdown(
-            #     '<div style="text-align: center;">All live OA activities</div>',
-            #     unsafe_allow_html=True,
-            # )
             st.dataframe(
                 st.session_state.df_total_activities_counts,
                 use_container_width=True,
@@ -655,10 +676,6 @@ if (not st.session_state.error):
             st.write(f'Num. activities: {st.session_state.total_num_activities:,}')
             st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_with_activities:,}')
         with cols[1]:
-            st.markdown(
-                f'<div style="text-align: center;">Top {st.session_state.num_activities_top} live OA activities</div>',
-                unsafe_allow_html=True,
-            )
             fig, ax = plt.subplots(1, 1, figsize=(10, 5))
             sns.barplot(
                 st.session_state.df_total_activities_counts[:st.session_state.num_activities_top],
@@ -668,6 +685,7 @@ if (not st.session_state.error):
             )
             ax.set_xlabel('Num. opportunities')
             ax.set_ylabel('OA activity')
+            ax.set_title(f'Top {st.session_state.num_activities_top} live OA activities')
             ax.bar_label(ax.containers[0], fontsize=8)
             st.pyplot(fig)
             plt.close(fig)
@@ -676,12 +694,6 @@ if (not st.session_state.error):
 
     with tabs[3]:
         st.header('OpenActive opportunities by location')
-
-        # cols = st.columns([1, 3])
-        # with cols[0]:
-        #     st.metric('Number of live locations', f'{st.session_state.total_num_coords:,}')
-        # with cols[1]:
-        #     st.metric('Number of live opportunities with locations', f'{st.session_state.total_num_opportunities_with_coords:,}')
 
         cols = st.columns(3)
         with cols[0]:
@@ -704,10 +716,12 @@ if (not st.session_state.error):
             fig, ax = plt.subplots(1, 1, figsize=(8, 8))
             st.session_state.gdf_total_regions_counts.plot(
                 column='percentage',
-                cmap='YlOrRd',
+                # cmap='YlOrRd',
+                cmap='inferno_r',
                 legend=True,
                 ax=ax,
             )
+            ax.set(facecolor='white')
             ax.set_xticks([])
             ax.set_yticks([])
             st.pyplot(fig)
@@ -736,10 +750,12 @@ if (not st.session_state.error):
             fig, ax = plt.subplots(1, 1, figsize=(8, 8))
             st.session_state.gdf_total_lads_counts.plot(
                 column='percentage',
-                cmap='YlOrRd',
+                # cmap='YlOrRd',
+                cmap='inferno_r',
                 legend=True,
                 ax=ax,
             )
+            ax.set(facecolor='white')
             ax.set_xticks([])
             ax.set_yticks([])
             st.pyplot(fig)
@@ -753,15 +769,6 @@ if (not st.session_state.error):
         st.subheader('Growth of OpenActive')
         st.subheader(f'{st.session_state.percentage_sad_matched:.1f}% of Sport England recognised Sports and Disciplines appear in OpenActive data feeds')
         with st.expander('A higher value means more of the sports and disciplines recognised by Sport England are discoverable through the OpenActive ecosystem. Click here for more details.'):
-
-            # cols = st.columns([1, 1, 2])
-            # with cols[0]:
-            #     st.metric('Number of live activity labels', f'{st.session_state.total_num_activities:,}')
-            # with cols[1]:
-            #     st.metric('Number of live opportunities with activity labels', f'{st.session_state.total_num_opportunities_with_activities:,}')
-            # with cols[2]:
-            #     st.metric('Number of Sport England categories', st.session_state.num_sad)
-
             cols = st.columns([2, 1])
             with cols[0]:
                 st.write(f'Matched SE categories: {st.session_state.num_sad_matched} / {st.session_state.num_sad} ({st.session_state.percentage_sad_matched:.1f}%)')
