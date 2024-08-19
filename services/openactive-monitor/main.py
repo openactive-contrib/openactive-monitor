@@ -12,6 +12,7 @@ from os import getenv
 # --------------------------------------------------------------------------------------------------
 
 # st.set_page_config must be the first Streamlit command if it is present at all:
+
 st.set_page_config(
     page_title='OpenActive',
     page_icon='https://www.openactive.io/wp-content/themes/open-active-1_3/images/favicon.png',
@@ -27,65 +28,20 @@ st.set_page_config(
 # Set custom styles before doing anything else, as they can take a short while to load and can cause
 # twitchy behaviour if done later:
 
-# div.e1f1d6gn3 > div > div > div > div > div {
-# #tabs-bui3-tabpanel-0 [data-testid="stMetric"] {
-st.html('''
+if ('style' not in st.session_state):
+    with open('style.css', 'r') as file_in:
+        st.session_state.style = file_in.read()
+
+    # Even with no parameters given to set_theme(), simply running it empty initialises general Seaborn
+    # theming, otherwise we have general Matplotlib theming:
+    sns.set_theme(rc={
+        # 'figure.figsize': (10, 4),
+        'patch.linewidth': 0.0, # Border width around individual bars of a barplot
+    })
+
+st.html(f'''
     <style>
-        [data-testid="stHeader"] {
-            display: none;
-        }
-        [data-testid="stVerticalBlock"] {
-            gap: 5px;
-        }
-        [data-testid="stMetric"] {
-            display: flex;
-            flex-direction: column-reverse;
-            overflow: visible;
-            overflow-wrap: break-word;
-            white-space: normal;
-            align-items: center;
-            color: #009ee3;
-            background-color: #ddf2fc;
-            padding: 20px 10px 20px 10px;
-            border: 2px solid;
-            border-radius: 10px;
-            margin: 10px 20% 10px 20%;
-            box-shadow: 10px;
-        }
-        #opportunity-card {
-            color: #009ee3;
-            background-color: #ddf2fc;
-            padding: 15px 10px;
-            border: 2px solid;
-            border-radius: 10px;
-        }
-        label.st-emotion-cache-17c4ue.e1i5pmia2 {
-            overflow: visible;
-            overflow-wrap: break-word;
-            white-space: normal;
-        }
-        div.st-emotion-cache-1wivap2 {
-            overflow: visible;
-            overflow-wrap: break-word;
-            white-space: normal;
-        }
-        .st-emotion-cache-1wivap2 > div {
-            overflow: visible;
-            overflow-wrap: break-word;
-            white-space: normal;
-        }
-        .st-emotion-cache-1wivap2 > div > p {
-            overflow: visible;
-            overflow-wrap: break-word;
-            white-space: normal;
-            text-align: center;
-        }
-        .st-emotion-cache-1jicfl2 {
-            padding: 0.5rem 1rem 0.5rem;
-        }
-        .st-emotion-cache-1whk732 {
-            margin-left: 0.2rem;
-        }
+        {st.session_state.style}
     </style>
 ''')
 
@@ -325,7 +281,7 @@ def set_opportunities_sample():
 
 # --------------------------------------------------------------------------------------------------
 
-if (not st.session_state):
+if ('initialised' not in st.session_state):
     # These folders must have been made via the Google Cloud browser console under Cloud Storage for this
     # project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. With
     # this service called 'openactive-monitor', this was done as follows (note that the volume and its mount-path
@@ -364,13 +320,6 @@ if (not st.session_state):
         st.error('Error retrieving data')
     else:
         st.session_state.error = False
-
-        # Even with no parameters given to set_theme(), simply running it empty initialises general Seaborn
-        # theming, otherwise we have general Matplotlib theming:
-        sns.set_theme(rc={
-            # 'figure.figsize': (10, 4),
-            'patch.linewidth': 0.0, # Border width around individual bars of a barplot
-        })
 
         # --------------------------------------------------------------------------------------------------
 
@@ -542,9 +491,15 @@ if (not st.session_state):
             .isin(st.session_state.df_total_sad_counts_matched['sport_and_discipline'])
         ]
 
+    # --------------------------------------------------------------------------------------------------
+
+    st.session_state.initialised = True
+
 # --------------------------------------------------------------------------------------------------
 
-if (not st.session_state.error):
+if (    ('error' in st.session_state)
+    and (not st.session_state.error)
+):
     tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'KPIs'])
 
     with tabs[0]:

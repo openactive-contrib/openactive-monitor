@@ -1,0 +1,67 @@
+/* div.e1f1d6gn3 > div > div > div > div > div { */
+/* #tabs-bui3-tabpanel-0 [data-testid="stMetric"] { */
+
+[data-testid='stHeader'] {
+    display: none;
+}
+
+[data-testid='stVerticalBlock'] {
+    gap: 5px;
+}
+
+[data-testid='stMetric'] {
+    display: flex;
+    flex-direction: column-reverse;
+    overflow: visible;
+    overflow-wrap: break-word;
+    white-space: normal;
+    align-items: center;
+    color: #009ee3;
+    background-color: #ddf2fc;
+    padding: 20px 10px 20px 10px;
+    border: 2px solid;
+    border-radius: 10px;
+    margin: 10px 20% 10px 20%;
+    box-shadow: 10px;
+}
+
+#opportunity-card {
+    color: #009ee3;
+    background-color: #ddf2fc;
+    padding: 15px 10px;
+    border: 2px solid;
+    border-radius: 10px;
+}
+
+label.st-emotion-cache-17c4ue.e1i5pmia2 {
+    overflow: visible;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+div.st-emotion-cache-1wivap2 {
+    overflow: visible;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.st-emotion-cache-1wivap2 > div {
+    overflow: visible;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.st-emotion-cache-1wivap2 > div > p {
+    overflow: visible;
+    overflow-wrap: break-word;
+    white-space: normal;
+    text-align: center;
+}
+
+.st-emotion-cache-1jicfl2 {
+    padding: 0.5rem 1rem 0.5rem;
+}
+
+.st-emotion-cache-1whk732 {
+    margin-left: 0.2rem;
+}
