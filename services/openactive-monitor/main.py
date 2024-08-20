@@ -234,6 +234,32 @@ def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=
 
 # --------------------------------------------------------------------------------------------------
 
+def parse_date(date_string):
+    if (isinstance(date_string,list)):
+        date_string = date_string[0]    
+    date_formats = [
+        '%Y-%m-%dT%H:%M:%SZ', # ISO 8601 format
+        '%Y-%m-%d %H:%M:%S', # Common date/time format
+        '%Y-%m-%d', # Date only format
+        '%Y/%m/%d', # Another common date format
+        '%Y-%m-%dT%H:%M:%S.%fZ', # ISO 8601 with milliseconds
+        '%Y-%m-%dT%H:%M:%S.%f', # ISO 8601 with milliseconds (no Z)
+        '%Y-%m-%dT%H:%M:%S%z', # ISO 8601 with timezone offset
+        '%Y-%m-%dT%H:%M:%S%Z', # ISO 8601 with timezone name
+    ]
+
+    for date_format in date_formats:
+        try:
+            parsed_datetime = datetime.strptime(date_string, date_format)
+            formatted_date = parsed_datetime.strftime('%a %d %b %I%p').replace(' 0', ' ')  
+            return formatted_date
+        except:
+            pass
+
+    return date_string
+
+# --------------------------------------------------------------------------------------------------
+
 def set_opportunities_sample():
     st.session_state.opportunities_sample = []
 
@@ -256,7 +282,7 @@ def set_opportunities_sample():
             'url': get_value(item, 'data', 'url'),
             'description': get_value(item, 'data', 'description'),
             'activities': get_value(item, 'activity', 'prefLabel'),
-            'startdate': get_value(item, 'startDate'),
+            'startdate': parse_date(get_value(item, 'startDate')),
             'duration': get_value(item, 'duration'),
             'min_age': get_value(item, 'ageRange', 'minValue'),
             'max_age': get_value(item, 'ageRange', 'maxValue'),
@@ -276,6 +302,7 @@ def set_opportunities_sample():
             'postcode': get_value(item, 'address', 'postalCode'),
             'latitude': get_value(item, 'geo', 'latitude'),
             'longitude': get_value(item, 'geo', 'longitude'),
+            'image': get_value(item, 'logo', 'url'),
         }
         st.session_state.opportunities_sample.append((item, info))
 
@@ -541,9 +568,6 @@ if (    ('error' in st.session_state)
             plt.close(fig)
 
         st.write(f'These figures include data from {st.session_state.num_feeds_preview} preview feeds with {millify(st.session_state.total_num_opportunities_preview, precision=1)} preview opportunities.')
-        st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
-        st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
-        st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
         st.write(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}.')
 
         # dated_counts = {
@@ -579,12 +603,15 @@ if (    ('error' in st.session_state)
 
         st.divider()
 
-        st.subheader('Example OpenActive opportunities')
-        st.button(
-            'Show some more examples',
-            type='primary',
-            on_click=set_opportunities_sample,
-        )
+        cols = st.columns([4, 1])
+        with cols[0]:
+            st.subheader('Example OpenActive opportunities')
+        with cols[1]:
+            st.button(
+                'Show some more examples',
+                type='primary',
+                on_click=set_opportunities_sample,
+            )
 
         for idx_col, col in enumerate(st.columns(3)):
             with col:
@@ -600,13 +627,26 @@ if (    ('error' in st.session_state)
                         'activity': opportunity[1]['activities'],
                     }
                 ])
+                opp_image = opportunity[1]['image']
+                if isinstance(opportunity[1]['activities'], list):
+                    opp_activity = opportunity[1]['activities'][0]
+                else: 
+                    opp_activity = opportunity[1]['activities']
+                if isinstance(opportunity[1]['offer_name'], list):
+                    opp_offer= opportunity[1]['offer_name'][0]
+                else: 
+                    opp_offer= opportunity[1]['offer_name']
+                opp_startdate = opportunity[1]['startdate']
+                opp_type = f"({opportunity[1]['type']})"
                 st.html(f'''
                     <div id="opportunity-card">
+                        <img src={opp_image} alt=""</img>
                         <table>
-                            {''.join([f'<tr><td style="padding: 0px 10px;">{df_opportunity[key].iloc[0]}</td></tr>' for key in df_opportunity.columns])}
+                            {''.join([f'<tr><td style="text-align: left;">{key}</td></tr>' for key in [opp_activity, opp_offer, opp_startdate,opp_type] if not isinstance(key, type(None))])}
                         </table>
                     </div>
                 ''')
+
 
     # --------------------------------------------------------------------------------------------------
 
@@ -762,8 +802,13 @@ if (    ('error' in st.session_state)
                         'discipline': 'SE discipline',
                     }
                 )
+            
+            st.divider()
+            st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
+            st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
+            st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
+            st.divider()
 
-            # st.divider()
 
             # st.write('Unmatched OA activities')
             # st.dataframe(

@@ -26,11 +26,23 @@
 }
 
 #opportunity-card {
-    color: #009ee3;
-    background-color: #ddf2fc;
+    color: #fff;
+    background-color: #223582;
+    margin-top: 15px;
     padding: 15px 10px;
     border: 2px solid;
     border-radius: 10px;
+    box-shadow: 10px 10px 3px #009ee3;
+    text-align: center;
+    min-height: 250px;
+}
+
+#opportunity-card img {
+    max-width:95%;
+    max-height: 150px;
+    background-color:#009ee3;
+    border-radius: 10px;
+    margin: 5px 5px 5px 5px;
 }
 
 label.st-emotion-cache-17c4ue.e1i5pmia2 {
