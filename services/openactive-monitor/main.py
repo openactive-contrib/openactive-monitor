@@ -237,7 +237,6 @@ def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=
 def parse_date(date_string):
     if (isinstance(date_string,list)):
         date_string = date_string[0]    
-    print(date_string)
     date_formats = [
         '%Y-%m-%dT%H:%M:%SZ', # ISO 8601 format
         '%Y-%m-%d %H:%M:%S', # Common date/time format
@@ -604,12 +603,15 @@ if (    ('error' in st.session_state)
 
         st.divider()
 
-        st.subheader('Example OpenActive opportunities')
-        st.button(
-            'Show some more examples',
-            type='primary',
-            on_click=set_opportunities_sample,
-        )
+        cols = st.columns([4, 1])
+        with cols[0]:
+            st.subheader('Example OpenActive opportunities')
+        with cols[1]:
+            st.button(
+                'Show some more examples',
+                type='primary',
+                on_click=set_opportunities_sample,
+            )
 
         for idx_col, col in enumerate(st.columns(3)):
             with col:
@@ -640,7 +642,7 @@ if (    ('error' in st.session_state)
                     <div id="opportunity-card">
                         <img src={opp_image} alt=""</img>
                         <table>
-                            {''.join([f'<tr><td style="padding: 0px 10px;">{key}</td></tr>' for key in [opp_activity, opp_offer, opp_startdate,opp_type] if not isinstance(key, type(None))])}
+                            {''.join([f'<tr><td style="text-align: left;">{key}</td></tr>' for key in [opp_activity, opp_offer, opp_startdate,opp_type] if not isinstance(key, type(None))])}
                         </table>
                     </div>
                 ''')
