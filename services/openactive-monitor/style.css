@@ -1,3 +1,24 @@
+/*
+OpenActive colours:
+
+The 'OA' logo colours going clockwise around the 'O' from bottom left:
+#433d90 - Dark purple
+#0067b1 - Dark blue
+#009ee3 - Medium blue (DQE log dot 'done' status)
+#74cbf3 - Light blue (DQE feedback email address)
+
+The 'OA' logo colours going clockwise around the 'A' from bottom left:
+#931e80 - Purple (DQE log dot 'busy' status, DQE 'Go' button)
+#e11482 - Pink
+#e63b2e - Red (DQE log dot 'error' status)
+#f6a635 - Orange (DQE log dot 'warn' status, DQE warning message border)
+
+Others:
+#253882 - Very dark blue (DQE main heading background)
+#f7cf4c - Yellow (DQE warning message background)
+#6c757d - Grey (DQE 'Clear' button)
+*/
+
 /* div.e1f1d6gn3 > div > div > div > div > div { */
 /* #tabs-bui3-tabpanel-0 [data-testid="stMetric"] { */
 
@@ -38,7 +59,7 @@
 }
 
 #opportunity-card img {
-    max-width:95%;
+    max-width: 95%;
     max-height: 150px;
     background-color:#009ee3;
     border-radius: 10px;
