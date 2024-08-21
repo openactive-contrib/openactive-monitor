@@ -235,8 +235,9 @@ def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=
 # --------------------------------------------------------------------------------------------------
 
 def parse_date(date_string):
-    if (isinstance(date_string,list)):
-        date_string = date_string[0]    
+    if (isinstance(date_string, list)):
+        date_string = date_string[0]
+
     date_formats = [
         '%Y-%m-%dT%H:%M:%SZ', # ISO 8601 format
         '%Y-%m-%d %H:%M:%S', # Common date/time format
@@ -251,7 +252,7 @@ def parse_date(date_string):
     for date_format in date_formats:
         try:
             parsed_datetime = datetime.strptime(date_string, date_format)
-            formatted_date = parsed_datetime.strftime('%a %d %b %I%p').replace(' 0', ' ')  
+            formatted_date = parsed_datetime.strftime('%a %d %b %I%p').replace(' 0', ' ')
             return formatted_date
         except:
             pass
@@ -351,6 +352,40 @@ if ('initialised' not in st.session_state):
         # --------------------------------------------------------------------------------------------------
 
         # For the 'Overview' tab
+
+        # TODO: Remove use of .get once the new type of opportunities dictionary with 'feed' is fully established
+
+        st.session_state.num_publishers_regular = len(set([
+            analysis['feed']['publisherName']
+            for filename, analysis in st.session_state.analyses.items()
+            if (    (is_feed_to_include(filename, feeds_to_include='regular'))
+                and (analysis.get('feed', None) is not None)
+            )
+        ]))
+        st.session_state.num_publishers_preview = len(set([
+            analysis['feed']['publisherName']
+            for filename, analysis in st.session_state.analyses.items()
+            if (    (is_feed_to_include(filename, feeds_to_include='preview'))
+                and (analysis.get('feed', None) is not None)
+            )
+        ]))
+        st.session_state.num_publishers = st.session_state.num_publishers_regular + st.session_state.num_publishers_preview
+
+        st.session_state.num_datasets_regular = len(set([
+            analysis['feed']['datasetUrl']
+            for filename, analysis in st.session_state.analyses.items()
+            if (    (is_feed_to_include(filename, feeds_to_include='regular'))
+                and (analysis.get('feed', None) is not None)
+            )
+        ]))
+        st.session_state.num_datasets_preview = len(set([
+            analysis['feed']['datasetUrl']
+            for filename, analysis in st.session_state.analyses.items()
+            if (    (is_feed_to_include(filename, feeds_to_include='preview'))
+                and (analysis.get('feed', None) is not None)
+            )
+        ]))
+        st.session_state.num_datasets = st.session_state.num_datasets_regular + st.session_state.num_datasets_preview
 
         st.session_state.num_feeds_regular = len([filename for filename in st.session_state.analyses.keys() if (is_feed_to_include(filename, feeds_to_include='regular'))])
         st.session_state.num_feeds_preview = len([filename for filename in st.session_state.analyses.keys() if (is_feed_to_include(filename, feeds_to_include='preview'))])
@@ -533,12 +568,19 @@ if (    ('error' in st.session_state)
         cols = st.columns([1, 1, 2])
         with cols[0]:
             st.metric(
-                'OpenActive data feeds',
-                f'{st.session_state.num_feeds:,}',
-                help='OpenActive is a decentralised open data initiative. Each data publisher shares one or more data feeds, providing near real time availability of their activities and facilities.',
+                'Publishers',
+                f'{st.session_state.num_publishers:,}',
+                help='OpenActive is a decentralised open data initiative. Each data publisher shares one or more data sets, each with one or more data feeds, providing near real time availability of their activities and facilities.',
             )
             st.metric(
-                # TODO: Why does this say "and facilities"? This is purely a count of the activities ...
+                'Data sets',
+                f'{st.session_state.num_datasets:,}',
+            )
+            st.metric(
+                'Data feeds',
+                f'{st.session_state.num_feeds:,}',
+            )
+            st.metric(
                 'Activities and facilities',
                 f'{st.session_state.total_num_activities:,}',
                 help='While the official OpenActive activity list contains over 700 standardised activity names, publishers can and do use their own wording for activity and facility names.',
@@ -630,11 +672,11 @@ if (    ('error' in st.session_state)
                 opp_image = opportunity[1]['image']
                 if isinstance(opportunity[1]['activities'], list):
                     opp_activity = opportunity[1]['activities'][0]
-                else: 
+                else:
                     opp_activity = opportunity[1]['activities']
                 if isinstance(opportunity[1]['offer_name'], list):
                     opp_offer= opportunity[1]['offer_name'][0]
-                else: 
+                else:
                     opp_offer= opportunity[1]['offer_name']
                 opp_startdate = opportunity[1]['startdate']
                 opp_type = f"({opportunity[1]['type']})"
@@ -646,7 +688,6 @@ if (    ('error' in st.session_state)
                         </table>
                     </div>
                 ''')
-
 
     # --------------------------------------------------------------------------------------------------
 
@@ -802,13 +843,12 @@ if (    ('error' in st.session_state)
                         'discipline': 'SE discipline',
                     }
                 )
-            
+
             st.divider()
             st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
             st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
             st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
             st.divider()
-
 
             # st.write('Unmatched OA activities')
             # st.dataframe(
