@@ -46,7 +46,7 @@ Others:
     box-shadow: 10px;
 }
 
-#opportunity-card {
+.st-emotion-cache-j5r0tf.e1f1d6gn3 {
     color: #fff;
     background-color: #223582;
     margin-top: 15px;
@@ -58,12 +58,17 @@ Others:
     min-height: 250px;
 }
 
-#opportunity-card img {
+.opportunity-card img {
     max-width: 95%;
     max-height: 150px;
     background-color:#009ee3;
     border-radius: 10px;
     margin: 5px 5px 5px 5px;
+}
+
+.st-emotion-cache-j5r0tf.e1f1d6gn3 .plot-container-plotly {
+    width: 95%;
+    height: 150px;
 }
 
 label.st-emotion-cache-17c4ue.e1i5pmia2 {

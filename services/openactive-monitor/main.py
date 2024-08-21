@@ -1,5 +1,6 @@
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import plotly.express as px
 import pandas as pd
 import pickle
 import random
@@ -633,6 +634,12 @@ if (    ('error' in st.session_state)
 
     # --------------------------------------------------------------------------------------------------
 
+    def display_map(location_data:pd.DataFrame):
+        fig = px.scatter_mapbox(location_data, lat="latitude", lon="longitude", zoom=5)
+        fig.update_layout(mapbox_style="open-street-map")
+        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+        return fig
+
     with tabs[1]:
         st.header('OpenActive opportunities over the next 7 days')
 
@@ -645,17 +652,14 @@ if (    ('error' in st.session_state)
 
         st.divider()
 
-        cols = st.columns([4, 1])
-        with cols[0]:
-            st.subheader('Example OpenActive opportunities')
-        with cols[1]:
-            st.button(
+        st.subheader('Example OpenActive opportunities')
+        st.button(
                 'Show some more examples',
                 type='primary',
                 on_click=set_opportunities_sample,
             )
 
-        for idx_col, col in enumerate(st.columns(3)):
+        for idx_col, col in enumerate(st.columns(5)):
             with col:
                 opportunity = st.session_state.opportunities_sample[idx_col]
                 # TODO: Why convert to a dataframe? This will always have only one row ...
@@ -680,14 +684,19 @@ if (    ('error' in st.session_state)
                     opp_offer= opportunity[1]['offer_name']
                 opp_startdate = opportunity[1]['startdate']
                 opp_type = f"({opportunity[1]['type']})"
-                st.html(f'''
-                    <div id="opportunity-card">
+                
+                if opportunity[1]['latitude'] != None:
+                    px_map = display_map(opportunity)
+                    st.plotly_chart(px_map, use_container_width=True)
+                    
+                st.html(f'''<div class="opportunity-card">
                         <img src={opp_image} alt=""</img>
                         <table>
                             {''.join([f'<tr><td style="text-align: left;">{key}</td></tr>' for key in [opp_activity, opp_offer, opp_startdate,opp_type] if not isinstance(key, type(None))])}
                         </table>
-                    </div>
+                        </div>
                 ''')
+
 
     # --------------------------------------------------------------------------------------------------
 
