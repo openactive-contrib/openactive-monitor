@@ -137,12 +137,20 @@ def analyse_opportunities():
                 # TODO: Remove use of .get once the new type of opportunities dictionary with 'feed' is fully established
 
                 analyses[filenames_with_infostamp_current[-1]] = {
-                    'feed': opportunities_in.get('feed', None),
+                    'file_name': filenames_with_infostamp_current[-1],
+                    'feed_name': opportunities_in.get('feed', {}).get('name'),
+                    'feed_type': opportunities_in.get('feed', {}).get('type'),
+                    'feed_url': opportunities_in.get('feed', {}).get('url'),
+                    'dataset_url': opportunities_in.get('feed', {}).get('datasetUrl'),
+                    'discussion_url': opportunities_in.get('feed', {}).get('discussionUrl'),
+                    'license_url': opportunities_in.get('feed', {}).get('licenseUrl'),
+                    'publisher_name': opportunities_in.get('feed', {}).get('publisherName'),
+                    'is_regular': '000-preview' not in filenames_with_infostamp_current[-1],
                     'status': opportunities_in['status'],
                     'num_items': len(opportunities_in['items'].keys()),
                     'num_urls': len(opportunities_in['urls']),
-                    'item_kinds': get_item_kinds(opportunities_in),
-                    'item_data_types': get_item_data_types(opportunities_in),
+                    'item_kinds_counts': get_item_kinds(opportunities_in),
+                    'item_data_types_counts': get_item_data_types(opportunities_in),
                     'activities_counts': get_activities_counts(opportunities_in),
                     'coords_counts': get_coords_counts(opportunities_in), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
                 }
@@ -151,13 +159,21 @@ def analyse_opportunities():
                 items_this_week_sample = dict(random.sample(list(items_this_week.items()), min(2, len(items_this_week.keys()))))
 
                 analyses_this_week[filenames_with_infostamp_current[-1]] = {
-                    'feed': opportunities_in.get('feed', None),
+                    'file_name': filenames_with_infostamp_current[-1],
+                    'feed_name': opportunities_in.get('feed', {}).get('name'),
+                    'feed_type': opportunities_in.get('feed', {}).get('type'),
+                    'feed_url': opportunities_in.get('feed', {}).get('url'),
+                    'dataset_url': opportunities_in.get('feed', {}).get('datasetUrl'),
+                    'discussion_url': opportunities_in.get('feed', {}).get('discussionUrl'),
+                    'license_url': opportunities_in.get('feed', {}).get('licenseUrl'),
+                    'publisher_name': opportunities_in.get('feed', {}).get('publisherName'),
+                    'is_regular': '000-preview' not in filenames_with_infostamp_current[-1],
                     'status': opportunities_in['status'],
                     'num_items': len(items_this_week.keys()),
                     'num_items_sample': len(items_this_week_sample.keys()),
                     'items_sample': items_this_week_sample,
-                    'item_kinds': get_item_kinds({'items': items_this_week}),
-                    'item_data_types': get_item_data_types({'items': items_this_week}),
+                    'item_kinds_counts': get_item_kinds({'items': items_this_week}),
+                    'item_data_types_counts': get_item_data_types({'items': items_this_week}),
                     'activities_counts': get_activities_counts({'items': items_this_week}),
                     'coords_counts': get_coords_counts({'items': items_this_week}),
                 }
