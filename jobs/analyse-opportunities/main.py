@@ -134,7 +134,10 @@ def analyse_opportunities():
                     opportunities_in = pickle.load(file_in)
 
             if (opportunities_in is not None):
+                # TODO: Remove use of .get once the new type of opportunities dictionary with 'feed' is fully established
+
                 analyses[filenames_with_infostamp_current[-1]] = {
+                    'feed': opportunities_in.get('feed', None),
                     'status': opportunities_in['status'],
                     'num_items': len(opportunities_in['items'].keys()),
                     'num_urls': len(opportunities_in['urls']),
@@ -148,6 +151,7 @@ def analyse_opportunities():
                 items_this_week_sample = dict(random.sample(list(items_this_week.items()), min(2, len(items_this_week.keys()))))
 
                 analyses_this_week[filenames_with_infostamp_current[-1]] = {
+                    'feed': opportunities_in.get('feed', None),
                     'status': opportunities_in['status'],
                     'num_items': len(items_this_week.keys()),
                     'num_items_sample': len(items_this_week_sample.keys()),
@@ -194,11 +198,13 @@ def get_activities_counts(opportunities):
 
 # --------------------------------------------------------------------------------------------------
 
+# Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat
+# similar in use:
 def get_item_activities(data):
     item_activities = []
 
     for key, val in data.items():
-        if (key in ['facilityType', 'activity']):
+        if (key in ['activity', 'facilityType']):
             if (isinstance(val, list)):
                 item_activities = [
                     i['prefLabel']
