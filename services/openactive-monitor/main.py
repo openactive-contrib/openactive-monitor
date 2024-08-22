@@ -1,13 +1,14 @@
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import plotly.express as px
 import pandas as pd
 import pickle
+import plotly.express as px
 import random
 import seaborn as sns
 import streamlit as st
 from datetime import datetime
 from millify import millify
+from numpy import nan
 from os import getenv
 
 # --------------------------------------------------------------------------------------------------
@@ -48,69 +49,45 @@ st.html(f'''
 
 # --------------------------------------------------------------------------------------------------
 
-def is_feed_to_include(filename, feeds_to_include='all'):
-    return ((feeds_to_include == 'all')
-        or  ((feeds_to_include == 'regular') and ('000-preview' not in filename))
-        or  ((feeds_to_include == 'preview') and ('000-preview' in filename))
-    )
-
-# --------------------------------------------------------------------------------------------------
-
-def get_analyses(filename):
+def get_df_analyses(filename):
     try:
         with open(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + filename, 'rb') as file_in:
-            analyses = pickle.load(file_in)
-        return analyses
+            df_analyses = pd.DataFrame(pickle.load(file_in).values())
+        return df_analyses
     except:
         return None
 
 # --------------------------------------------------------------------------------------------------
 
-def get_total_num_opportunities(analyses, feeds_to_include='all'):
-    return sum([
-        analysis['num_items']
-        for filename, analysis in analyses.items()
-        if (is_feed_to_include(filename, feeds_to_include=feeds_to_include))
-    ])
+def get_df_total_keys_counts(df_analyses, keys_counts, feeds_to_include='all'):
+    if (feeds_to_include == 'all'):
+        df_total_keys_counts = df_analyses
+    elif (feeds_to_include == 'regular'):
+        df_total_keys_counts = df_analyses.loc[df_analyses['is_regular']]
+    elif (feeds_to_include == 'preview'):
+        df_total_keys_counts = df_analyses.loc[~df_analyses['is_regular']]
 
-# --------------------------------------------------------------------------------------------------
+    df_total_keys_counts = \
+        df_total_keys_counts[keys_counts] \
+        .apply(pd.Series) \
+        .sum() \
+        .apply(int) \
+        .sort_values(ascending=False) \
+        .reset_index()
 
-def get_df_total_keys_counts(analyses, keys_counts, feeds_to_include='all'):
-    total_keys_counts = {}
-
-    for filename, analysis in analyses.items():
-        if (is_feed_to_include(filename, feeds_to_include=feeds_to_include)):
-            for key, count in analysis[keys_counts].items():
-                if (key not in total_keys_counts.keys()):
-                    total_keys_counts[key] = count
-                else:
-                    total_keys_counts[key] += count
-
-    if (keys_counts == 'activities_counts'):
-        columns = ['activity', 'count']
-        # with open(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + 'total_activities_counts.pickle', 'wb') as file_out:
-        #     pickle.dump(total_keys_counts, file_out)
+    if (keys_counts == 'item_kinds_counts'):
+        df_total_keys_counts.columns = ['item_kind', 'count']
+    elif (keys_counts == 'item_data_types_counts'):
+        df_total_keys_counts.columns = ['item_data_type', 'count']
+    elif (keys_counts == 'activities_counts'):
+        df_total_keys_counts.columns = ['activity', 'count']
     elif (keys_counts == 'coords_counts'):
-        columns = ['coords', 'count']
-        # with open(st.session_state.RELATIVE_FILEPATH_ANALYSES + '/' + 'total_coords_counts.pickle', 'wb') as file_out:
-        #     pickle.dump(total_keys_counts, file_out)
-
-    df_total_keys_counts = pd.DataFrame(
-        sorted(
-            total_keys_counts.items(),
-            key=lambda item: item[1],
-            reverse=True,
-        ),
-        columns=columns,
-    )
+        df_total_keys_counts.columns = ['coords', 'count']
 
     total_num_keys = df_total_keys_counts.shape[0]
     total_num_opportunities_with_keys = df_total_keys_counts['count'].sum()
 
     df_total_keys_counts['percentage'] = (df_total_keys_counts['count'] / total_num_opportunities_with_keys) * 100
-
-    # print(f'df_total_keys_counts ({keys_counts}):')
-    # print(df_total_keys_counts)
 
     return df_total_keys_counts, total_num_keys, total_num_opportunities_with_keys
 
@@ -171,40 +148,6 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
 
 # --------------------------------------------------------------------------------------------------
 
-# This version of get_value() focuses on the parent key for logic branching, whereas the new version
-# focuses on the child key, and which seems more natural and simpler. Temporarily keeping this initial
-# version just in case of need to revert back.
-
-# def get_value(data, key_to_find, parent_key=None, continue_to_next_layer=True):
-#     if (isinstance(key_to_find, str)):
-#         key_to_find = [key_to_find]
-
-#     if (isinstance(data, dict)):
-#         value = None
-#         for key, val in data.items():
-#             if (parent_key is not None):
-#                 if (key == parent_key):
-#                     return get_value(val, key_to_find, continue_to_next_layer=False)
-#                 else:
-#                     value = get_value(val, key_to_find, parent_key=parent_key)
-#             else:
-#                 if (key in key_to_find):
-#                     return val
-#                 elif (continue_to_next_layer):
-#                     value = get_value(val, key_to_find)
-#             if (value is not None):
-#                 return value
-
-#     if (isinstance(data, list)):
-#         values = [get_value(i, key_to_find, parent_key=parent_key) for i in data]
-#         values = [value for value in values if (value is not None)]
-#         if (values):
-#             return values
-
-#     return None
-
-# --------------------------------------------------------------------------------------------------
-
 def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=True):
     # This function accepts key_to_find as either a single string or a list of string variants e.g. ['type', '@type'],
     # so if we receive a string then convert to a list for standard internal handling:
@@ -262,21 +205,23 @@ def parse_date(date_string):
 
 # --------------------------------------------------------------------------------------------------
 
-def set_opportunities_sample():
-    st.session_state.opportunities_sample = []
-
+def set_opportunities_samples():
     # Select some random feeds, and for each of them get a single random item from this week's sample:
-    random_filenames_with_opportunities_sample = random.sample(
-        st.session_state.filenames_with_opportunities_sample,
-        min(st.session_state.num_filenames_with_opportunities_sample,
-            st.session_state.max_num_random_filenames_with_opportunities_sample
-        )
-    )
 
-    for filename in random_filenames_with_opportunities_sample:
-        item = random.choice(list(st.session_state.analyses_this_week[filename]['items_sample'].values()))
+    st.session_state.opportunities_samples = []
+
+    random_opportunities_samples = \
+        st.session_state.df_analyses_this_week['items_sample'] \
+            .loc[st.session_state.df_analyses_this_week['num_items_sample'] > 0] \
+            .sample(
+                min(st.session_state.num_feeds_with_opportunities_sample,
+                    st.session_state.max_num_random_feeds_with_opportunities_sample
+                )
+            )
+
+    for random_opportunities_sample in random_opportunities_samples:
+        item = random.choice(list(random_opportunities_sample.values()))
         info = {
-            'filename': filename,
             'id': get_value(item, 'id'),
             'kind': get_value(item, 'kind'),
             'type': get_value(item, 'data', ['type', '@type']),
@@ -306,7 +251,7 @@ def set_opportunities_sample():
             'longitude': get_value(item, 'geo', 'longitude'),
             'image': get_value(item, 'logo', 'url'),
         }
-        st.session_state.opportunities_sample.append((item, info))
+        st.session_state.opportunities_samples.append((item, info))
 
 # --------------------------------------------------------------------------------------------------
 
@@ -339,11 +284,11 @@ if ('initialised' not in st.session_state):
 
     # --------------------------------------------------------------------------------------------------
 
-    st.session_state.analyses = get_analyses(st.session_state.FILENAME_ANALYSES)
-    st.session_state.analyses_this_week = get_analyses(st.session_state.FILENAME_ANALYSES_THIS_WEEK)
+    st.session_state.df_analyses = get_df_analyses(st.session_state.FILENAME_ANALYSES)
+    st.session_state.df_analyses_this_week = get_df_analyses(st.session_state.FILENAME_ANALYSES_THIS_WEEK)
 
-    if (    (st.session_state.analyses is None)
-        or  (st.session_state.analyses_this_week is None)
+    if (    (st.session_state.df_analyses is None)
+        or  (st.session_state.df_analyses_this_week is None)
     ):
         st.session_state.error = True
         st.error('Error retrieving data')
@@ -354,65 +299,34 @@ if ('initialised' not in st.session_state):
 
         # For the 'Overview' tab
 
-        # TODO: Remove use of .get once the new type of opportunities dictionary with 'feed' is fully established
+        st.session_state.num_publishers_regular = st.session_state.df_analyses['publisher_name'].loc[st.session_state.df_analyses['is_regular']].replace('', nan).nunique()
+        st.session_state.num_publishers_preview = st.session_state.df_analyses['publisher_name'].loc[~st.session_state.df_analyses['is_regular']].replace('', nan).nunique()
+        st.session_state.num_publishers = st.session_state.df_analyses['publisher_name'].replace('', nan).nunique()
 
-        st.session_state.num_publishers_regular = len(set([
-            analysis['feed']['publisherName']
-            for filename, analysis in st.session_state.analyses.items()
-            if (    (is_feed_to_include(filename, feeds_to_include='regular'))
-                and (analysis.get('feed', None) is not None)
-            )
-        ]))
-        st.session_state.num_publishers_preview = len(set([
-            analysis['feed']['publisherName']
-            for filename, analysis in st.session_state.analyses.items()
-            if (    (is_feed_to_include(filename, feeds_to_include='preview'))
-                and (analysis.get('feed', None) is not None)
-            )
-        ]))
-        st.session_state.num_publishers = st.session_state.num_publishers_regular + st.session_state.num_publishers_preview
+        st.session_state.num_datasets_regular = st.session_state.df_analyses['dataset_url'].loc[st.session_state.df_analyses['is_regular']].replace('', nan).nunique()
+        st.session_state.num_datasets_preview = st.session_state.df_analyses['dataset_url'].loc[~st.session_state.df_analyses['is_regular']].replace('', nan).nunique()
+        st.session_state.num_datasets = st.session_state.df_analyses['dataset_url'].replace('', nan).nunique()
 
-        st.session_state.num_datasets_regular = len(set([
-            analysis['feed']['datasetUrl']
-            for filename, analysis in st.session_state.analyses.items()
-            if (    (is_feed_to_include(filename, feeds_to_include='regular'))
-                and (analysis.get('feed', None) is not None)
-            )
-        ]))
-        st.session_state.num_datasets_preview = len(set([
-            analysis['feed']['datasetUrl']
-            for filename, analysis in st.session_state.analyses.items()
-            if (    (is_feed_to_include(filename, feeds_to_include='preview'))
-                and (analysis.get('feed', None) is not None)
-            )
-        ]))
-        st.session_state.num_datasets = st.session_state.num_datasets_regular + st.session_state.num_datasets_preview
-
-        st.session_state.num_feeds_regular = len([filename for filename in st.session_state.analyses.keys() if (is_feed_to_include(filename, feeds_to_include='regular'))])
-        st.session_state.num_feeds_preview = len([filename for filename in st.session_state.analyses.keys() if (is_feed_to_include(filename, feeds_to_include='preview'))])
+        st.session_state.num_feeds_regular = st.session_state.df_analyses.loc[st.session_state.df_analyses['is_regular']].shape[0]
+        st.session_state.num_feeds_preview = st.session_state.df_analyses.loc[~st.session_state.df_analyses['is_regular']].shape[0]
         st.session_state.num_feeds = st.session_state.num_feeds_regular + st.session_state.num_feeds_preview
 
-        st.session_state.total_num_opportunities_regular = get_total_num_opportunities(st.session_state.analyses, feeds_to_include='regular')
-        st.session_state.total_num_opportunities_preview = get_total_num_opportunities(st.session_state.analyses, feeds_to_include='preview')
+        st.session_state.total_num_opportunities_regular = st.session_state.df_analyses['num_items'].loc[st.session_state.df_analyses['is_regular']].sum()
+        st.session_state.total_num_opportunities_preview = st.session_state.df_analyses['num_items'].loc[~st.session_state.df_analyses['is_regular']].sum()
         st.session_state.total_num_opportunities = st.session_state.total_num_opportunities_regular + st.session_state.total_num_opportunities_preview
 
         # --------------------------------------------------------------------------------------------------
 
         # For the 'This week' tab
 
-        st.session_state.total_num_opportunities_this_week_regular = get_total_num_opportunities(st.session_state.analyses_this_week, feeds_to_include='regular')
-        st.session_state.total_num_opportunities_this_week_preview = get_total_num_opportunities(st.session_state.analyses_this_week, feeds_to_include='preview')
+        st.session_state.total_num_opportunities_this_week_regular = st.session_state.df_analyses_this_week['num_items'].loc[st.session_state.df_analyses_this_week['is_regular']].sum()
+        st.session_state.total_num_opportunities_this_week_preview = st.session_state.df_analyses_this_week['num_items'].loc[~st.session_state.df_analyses_this_week['is_regular']].sum()
         st.session_state.total_num_opportunities_this_week = st.session_state.total_num_opportunities_this_week_regular + st.session_state.total_num_opportunities_this_week_preview
 
-        st.session_state.filenames_with_opportunities_sample = [
-            filename
-            for filename in st.session_state.analyses_this_week.keys()
-            if (st.session_state.analyses_this_week[filename]['num_items_sample'] > 0)
-        ]
+        st.session_state.num_feeds_with_opportunities_sample = (st.session_state.df_analyses_this_week['num_items_sample'] > 0).sum()
+        st.session_state.max_num_random_feeds_with_opportunities_sample = 5
 
-        st.session_state.num_filenames_with_opportunities_sample = len(st.session_state.filenames_with_opportunities_sample)
-        st.session_state.max_num_random_filenames_with_opportunities_sample = 5
-        set_opportunities_sample()
+        set_opportunities_samples()
 
         # --------------------------------------------------------------------------------------------------
 
@@ -421,7 +335,7 @@ if ('initialised' not in st.session_state):
         # Columns: ['activity', 'count', 'percentage']
         st.session_state.df_total_activities_counts, \
         st.session_state.total_num_activities, \
-        st.session_state.total_num_opportunities_with_activities = get_df_total_keys_counts(st.session_state.analyses, 'activities_counts', feeds_to_include='all')
+        st.session_state.total_num_opportunities_with_activities = get_df_total_keys_counts(st.session_state.df_analyses, 'activities_counts', feeds_to_include='all')
 
         st.session_state.num_activities_top = 20
 
@@ -432,7 +346,7 @@ if ('initialised' not in st.session_state):
         # Columns: ['coords', 'count', 'percentage']
         st.session_state.df_total_coords_counts, \
         st.session_state.total_num_coords, \
-        st.session_state.total_num_opportunities_with_coords = get_df_total_keys_counts(st.session_state.analyses, 'coords_counts', feeds_to_include='all')
+        st.session_state.total_num_opportunities_with_coords = get_df_total_keys_counts(st.session_state.df_analyses, 'coords_counts', feeds_to_include='all')
         # Columns: ['coords', 'count', 'percentage', 'latitude', 'longitude']
         st.session_state.df_total_coords_counts[['latitude', 'longitude']] = pd.DataFrame(st.session_state.df_total_coords_counts['coords'].apply(lambda coords: coords.split(',')).tolist())
         # Columns: ['latitude', 'longitude', 'count', 'percentage']
@@ -635,9 +549,9 @@ if (    ('error' in st.session_state)
     # --------------------------------------------------------------------------------------------------
 
     def display_map(location_data:pd.DataFrame):
-        fig = px.scatter_mapbox(location_data, lat="latitude", lon="longitude", zoom=5)
-        fig.update_layout(mapbox_style="open-street-map")
-        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+        fig = px.scatter_mapbox(location_data, lat='latitude', lon='longitude', zoom=5)
+        fig.update_layout(mapbox_style='open-street-map')
+        fig.update_layout(margin={'r':0, 't':0, 'l':0, 'b':0})
         return fig
 
     with tabs[1]:
@@ -656,12 +570,12 @@ if (    ('error' in st.session_state)
         st.button(
                 'Show some more examples',
                 type='primary',
-                on_click=set_opportunities_sample,
+                on_click=set_opportunities_samples,
             )
 
         for idx_col, col in enumerate(st.columns(5)):
             with col:
-                opportunity = st.session_state.opportunities_sample[idx_col]
+                opportunity = st.session_state.opportunities_samples[idx_col]
                 # TODO: Why convert to a dataframe? This will always have only one row ...
                 df_opportunity = pd.DataFrame([
                     {
@@ -684,11 +598,11 @@ if (    ('error' in st.session_state)
                     opp_offer= opportunity[1]['offer_name']
                 opp_startdate = opportunity[1]['startdate']
                 opp_type = f"({opportunity[1]['type']})"
-                
+
                 if opportunity[1]['latitude'] != None:
                     px_map = display_map(opportunity)
                     st.plotly_chart(px_map, use_container_width=True)
-                    
+
                 st.html(f'''<div class="opportunity-card">
                         <img src={opp_image} alt=""</img>
                         <table>
@@ -854,10 +768,10 @@ if (    ('error' in st.session_state)
                 )
 
             st.divider()
+
             st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
             st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
             st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
-            st.divider()
 
             # st.write('Unmatched OA activities')
             # st.dataframe(
