@@ -229,6 +229,7 @@ def set_opportunities_samples():
             'url': get_value(item, 'data', 'url'),
             'description': get_value(item, 'data', 'description'),
             'activities': get_value(item, 'activity', 'prefLabel'),
+            'facilities': get_value(item, 'facilityType', 'prefLabel'),
             'startdate': parse_date(get_value(item, 'startDate')),
             'duration': get_value(item, 'duration'),
             'min_age': get_value(item, 'ageRange', 'minValue'),
@@ -252,6 +253,16 @@ def set_opportunities_samples():
             'image': get_value(item, 'logo', 'url'),
         }
         st.session_state.opportunities_samples.append((item, info))
+
+    # --------------------------------------------------------------------------------------------------
+
+    def display_map(location_data:pd.DataFrame):
+        fig = px.scatter_mapbox(location_data, lat="latitude", lon="longitude", zoom=6,
+                                 color_discrete_sequence=['#e11482'])
+        fig.update_layout(mapbox_style="open-street-map")
+        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},height=150)
+        fig.update_traces(marker=dict(size=10))
+        return fig
 
 # --------------------------------------------------------------------------------------------------
 
@@ -549,9 +560,11 @@ if (    ('error' in st.session_state)
     # --------------------------------------------------------------------------------------------------
 
     def display_map(location_data:pd.DataFrame):
-        fig = px.scatter_mapbox(location_data, lat='latitude', lon='longitude', zoom=5)
+        fig = px.scatter_mapbox(location_data, lat='latitude', lon='longitude', zoom=6,
+                                 color_discrete_sequence=['#e11482'])
         fig.update_layout(mapbox_style='open-street-map')
-        fig.update_layout(margin={'r':0, 't':0, 'l':0, 'b':0})
+        fig.update_layout(margin={'r':0, 't':0, 'l':0, 'b':0}, height=150)
+        fig.update_traces(marker=dict(size=10))
         return fig
 
     with tabs[1]:
@@ -592,25 +605,31 @@ if (    ('error' in st.session_state)
                     opp_activity = opportunity[1]['activities'][0]
                 else:
                     opp_activity = opportunity[1]['activities']
+                if isinstance(opportunity[1]['facilities'], list):
+                    opp_facility = opportunity[1]['facilities'][0]
+                else:
+                    opp_facility = opportunity[1]['facilities']
+ 
+                opp_activity = opp_activity or opp_facility or None
+                
                 if isinstance(opportunity[1]['offer_name'], list):
                     opp_offer= opportunity[1]['offer_name'][0]
                 else:
                     opp_offer= opportunity[1]['offer_name']
                 opp_startdate = opportunity[1]['startdate']
                 opp_type = f"({opportunity[1]['type']})"
-
+                
+                st.html(f'''<div class="opportunity-card">
+                  <table><tr style="vertical-align: top;"><td style="width:50%;">
+                    {''.join([f'<p style="text-align: left; margin-bottom:0.1rem;">{key}</p>' for key in [opp_activity, opp_offer, opp_startdate,opp_type] if not isinstance(key, type(None))])}
+                  </td><td style="width:50%;">
+                  <img src={opp_image} alt=""></img>
+                </td><tr></table></div>
+                ''')
+                
                 if opportunity[1]['latitude'] != None:
                     px_map = display_map(opportunity)
                     st.plotly_chart(px_map, use_container_width=True)
-
-                st.html(f'''<div class="opportunity-card">
-                        <img src={opp_image} alt=""</img>
-                        <table>
-                            {''.join([f'<tr><td style="text-align: left;">{key}</td></tr>' for key in [opp_activity, opp_offer, opp_startdate,opp_type] if not isinstance(key, type(None))])}
-                        </table>
-                        </div>
-                ''')
-
 
     # --------------------------------------------------------------------------------------------------
 
