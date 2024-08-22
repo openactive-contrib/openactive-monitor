@@ -254,15 +254,23 @@ def set_opportunities_samples():
         }
         st.session_state.opportunities_samples.append((item, info))
 
-    # --------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 
-    def display_map(location_data:pd.DataFrame):
-        fig = px.scatter_mapbox(location_data, lat="latitude", lon="longitude", zoom=6,
-                                 color_discrete_sequence=['#e11482'])
-        fig.update_layout(mapbox_style="open-street-map")
-        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},height=150)
-        fig.update_traces(marker=dict(size=10))
-        return fig
+def get_map(location_data:pd.DataFrame):
+    fig = px.scatter_mapbox(
+        location_data,
+        color_discrete_sequence=['#e11482'],
+        lat='latitude',
+        lon='longitude',
+        zoom=6,
+    )
+    fig.update_layout(
+        height=150,
+        mapbox_style='open-street-map',
+        margin={'t':0, 'r':0, 'b':0, 'l':0},
+    )
+    fig.update_traces(marker=dict(size=10))
+    return fig
 
 # --------------------------------------------------------------------------------------------------
 
@@ -559,14 +567,6 @@ if (    ('error' in st.session_state)
 
     # --------------------------------------------------------------------------------------------------
 
-    def display_map(location_data:pd.DataFrame):
-        fig = px.scatter_mapbox(location_data, lat='latitude', lon='longitude', zoom=6,
-                                 color_discrete_sequence=['#e11482'])
-        fig.update_layout(mapbox_style='open-street-map')
-        fig.update_layout(margin={'r':0, 't':0, 'l':0, 'b':0}, height=150)
-        fig.update_traces(marker=dict(size=10))
-        return fig
-
     with tabs[1]:
         st.header('OpenActive opportunities over the next 7 days')
 
@@ -609,16 +609,16 @@ if (    ('error' in st.session_state)
                     opp_facility = opportunity[1]['facilities'][0]
                 else:
                     opp_facility = opportunity[1]['facilities']
- 
+
                 opp_activity = opp_activity or opp_facility or None
-                
+
                 if isinstance(opportunity[1]['offer_name'], list):
                     opp_offer= opportunity[1]['offer_name'][0]
                 else:
                     opp_offer= opportunity[1]['offer_name']
                 opp_startdate = opportunity[1]['startdate']
                 opp_type = f"({opportunity[1]['type']})"
-                
+
                 st.html(f'''<div class="opportunity-card">
                   <table><tr style="vertical-align: top;"><td style="width:50%;">
                     {''.join([f'<p style="text-align: left; margin-bottom:0.1rem;">{key}</p>' for key in [opp_activity, opp_offer, opp_startdate,opp_type] if not isinstance(key, type(None))])}
@@ -626,9 +626,9 @@ if (    ('error' in st.session_state)
                   <img src={opp_image} alt=""></img>
                 </td><tr></table></div>
                 ''')
-                
+
                 if opportunity[1]['latitude'] != None:
-                    px_map = display_map(opportunity)
+                    px_map = get_map(opportunity)
                     st.plotly_chart(px_map, use_container_width=True)
 
     # --------------------------------------------------------------------------------------------------
