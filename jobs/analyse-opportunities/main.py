@@ -1,9 +1,12 @@
 import gzip
 import lzma
 import pickle
+import random
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil import tz # For timezone handling
 from geopy.geocoders import Nominatim
+from openactive import get_item_kinds, get_item_data_types
 from os import getenv, listdir
 from os.path import isfile
 from time import sleep
@@ -25,7 +28,7 @@ geolocator = Nominatim(user_agent='OpenActive Monitor', timeout=None)
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
 RELATIVE_FILEPATH_OPPORTUNITIES = getenv('RELATIVE_FILEPATH_OPPORTUNITIES', '../volume-1/data-opportunities')
-RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
+RELATIVE_FILEPATH_ANALYSES = getenv('RELATIVE_FILEPATH_ANALYSES', '../volume-1/data-analysis')
 
 FILENAME_FEEDS_SEEN = '000-feeds-seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAME_FEEDS_CRASHED = '000-feeds-crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
@@ -34,12 +37,15 @@ FORMAT_FILE_OPPORTUNITIES = 'pickle'
 COMPRESSION_FILE_OPPORTUNITIES = getenv('COMPRESSION_FILE_OPPORTUNITIES', 'gzip').lower() # 'none' / 'gzip' / 'xz'
 SUFFIX_FILENAME_OPPORTUNITIES = '.' + FORMAT_FILE_OPPORTUNITIES + (('.' + COMPRESSION_FILE_OPPORTUNITIES) if (COMPRESSION_FILE_OPPORTUNITIES != 'none') else '')
 LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
-FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
+FILENAME_ANALYSES = getenv('FILENAME_ANALYSES', 'analysis.pickle')
+FILENAME_ANALYSES_THIS_WEEK = getenv('FILENAME_ANALYSES_THIS_WEEK', 'analyses-this-week.pickle')
 
 print('Environment variables:')
 print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
-print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
-print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
+print('RELATIVE_FILEPATH_ANALYSES:', RELATIVE_FILEPATH_ANALYSES)
+print('COMPRESSION_FILE_OPPORTUNITIES:', COMPRESSION_FILE_OPPORTUNITIES)
+print('FILENAME_ANALYSES:', FILENAME_ANALYSES)
+print('FILENAME_ANALYSES_THIS_WEEK:', FILENAME_ANALYSES_THIS_WEEK)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -100,7 +106,8 @@ def get_filenames():
 # --------------------------------------------------------------------------------------------------
 
 def analyse_opportunities():
-    analysis = {}
+    analyses = {}
+    analyses_this_week = {}
 
     # --------------------------------------------------------------------------------------------------
 
@@ -127,12 +134,48 @@ def analyse_opportunities():
                     opportunities_in = pickle.load(file_in)
 
             if (opportunities_in is not None):
-                analysis[filenames_with_infostamp_current[-1]] = {
+                # TODO: Remove use of .get once the new type of opportunities dictionary with 'feed' is fully established
+
+                analyses[filenames_with_infostamp_current[-1]] = {
+                    'file_name': filenames_with_infostamp_current[-1],
+                    'feed_name': opportunities_in.get('feed', {}).get('name'),
+                    'feed_type': opportunities_in.get('feed', {}).get('type'),
+                    'feed_url': opportunities_in.get('feed', {}).get('url'),
+                    'dataset_url': opportunities_in.get('feed', {}).get('datasetUrl'),
+                    'discussion_url': opportunities_in.get('feed', {}).get('discussionUrl'),
+                    'license_url': opportunities_in.get('feed', {}).get('licenseUrl'),
+                    'publisher_name': opportunities_in.get('feed', {}).get('publisherName'),
+                    'is_regular': '000-preview' not in filenames_with_infostamp_current[-1],
+                    'status': opportunities_in['status'],
                     'num_items': len(opportunities_in['items'].keys()),
                     'num_urls': len(opportunities_in['urls']),
-                    'status': opportunities_in['status'],
+                    'item_kinds_counts': get_item_kinds(opportunities_in),
+                    'item_data_types_counts': get_item_data_types(opportunities_in),
                     'activities_counts': get_activities_counts(opportunities_in),
-                    'coords_counts': get_coords_counts(opportunities_in),
+                    'coords_counts': get_coords_counts(opportunities_in), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
+                }
+
+                items_this_week = get_items_this_week(opportunities_in)
+                items_this_week_sample = dict(random.sample(list(items_this_week.items()), min(2, len(items_this_week.keys()))))
+
+                analyses_this_week[filenames_with_infostamp_current[-1]] = {
+                    'file_name': filenames_with_infostamp_current[-1],
+                    'feed_name': opportunities_in.get('feed', {}).get('name'),
+                    'feed_type': opportunities_in.get('feed', {}).get('type'),
+                    'feed_url': opportunities_in.get('feed', {}).get('url'),
+                    'dataset_url': opportunities_in.get('feed', {}).get('datasetUrl'),
+                    'discussion_url': opportunities_in.get('feed', {}).get('discussionUrl'),
+                    'license_url': opportunities_in.get('feed', {}).get('licenseUrl'),
+                    'publisher_name': opportunities_in.get('feed', {}).get('publisherName'),
+                    'is_regular': '000-preview' not in filenames_with_infostamp_current[-1],
+                    'status': opportunities_in['status'],
+                    'num_items': len(items_this_week.keys()),
+                    'num_items_sample': len(items_this_week_sample.keys()),
+                    'items_sample': items_this_week_sample,
+                    'item_kinds_counts': get_item_kinds({'items': items_this_week}),
+                    'item_data_types_counts': get_item_data_types({'items': items_this_week}),
+                    'activities_counts': get_activities_counts({'items': items_this_week}),
+                    'coords_counts': get_coords_counts({'items': items_this_week}),
                 }
 
         except Exception as error:
@@ -140,8 +183,19 @@ def analyse_opportunities():
 
     # --------------------------------------------------------------------------------------------------
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'wb') as file_out:
-        pickle.dump(analysis, file_out)
+    with open(RELATIVE_FILEPATH_ANALYSES + '/' + FILENAME_ANALYSES, 'wb') as file_out:
+        pickle.dump(analyses, file_out)
+
+    with open(RELATIVE_FILEPATH_ANALYSES + '/' + FILENAME_ANALYSES_THIS_WEEK, 'wb') as file_out:
+        pickle.dump(analyses_this_week, file_out)
+
+    # TEMPORARY: For checking geographically localised high opportunity count spikes
+    # global coords_check
+    # with open(RELATIVE_FILEPATH_ANALYSES + '/' + 'coords_check.pickle', 'wb') as file_out:
+    #     pickle.dump(coords_check, file_out)
+
+    # print(len(analyses_this_week))
+    # print(analyses_this_week)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -160,11 +214,13 @@ def get_activities_counts(opportunities):
 
 # --------------------------------------------------------------------------------------------------
 
+# Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat
+# similar in use:
 def get_item_activities(data):
     item_activities = []
 
     for key, val in data.items():
-        if (key in ['facilityType', 'activity']):
+        if (key in ['activity', 'facilityType']):
             if (isinstance(val, list)):
                 item_activities = [
                     i['prefLabel']
@@ -190,8 +246,14 @@ def get_item_activities(data):
 
 NUM_DECIMAL_PLACES_COORDS = 6
 
-def get_coords_counts(opportunities):
+# TEMPORARY: For checking geographically localised high opportunity count spikes
+# coords_check = {}
+
+def get_coords_counts(opportunities): #, filename=None)
     coords_counts = {}
+
+    # TEMPORARY: For checking geographically localised high opportunity count spikes
+    # global coords_check
 
     for item in opportunities['items'].values():
         item_coords = get_item_coords_from_geo(item)
@@ -203,6 +265,14 @@ def get_coords_counts(opportunities):
                 coords_counts[item_coords] = 1
             else:
                 coords_counts[item_coords] += 1
+            # TEMPORARY: For checking geographically localised high opportunity count spikes
+            # if (    (filename is not None)
+            #     and (item_coords == '52.069694,-2.722774')
+            # ):
+            #     if (filename not in coords_check.keys()):
+            #         coords_check[filename] = 1
+            #     else:
+            #         coords_check[filename] += 1
 
     return coords_counts
 
@@ -270,6 +340,69 @@ def get_item_coords_from_postalcode(data):
             break
 
     return item_coords
+
+# --------------------------------------------------------------------------------------------------
+
+def get_items_this_week(opportunities):
+    items_this_week = {}
+
+    today = datetime.now(tz=tz.UTC).date()
+
+    for item_id, item in opportunities['items'].items():
+        item_start_date = get_item_start_date(item)
+        if (    (item_start_date is not None)
+            and (item_start_date.date() >= today)
+            and (item_start_date.date() <= today + timedelta(days=7))
+        ):
+            items_this_week[item_id] = item
+
+    return items_this_week
+
+# --------------------------------------------------------------------------------------------------
+
+def get_item_start_date(item):
+    if ('startDate' in item['data'].keys()):
+        return parse_date(item['data']['startDate'])
+    elif ('dateStart' in item['data'].keys()):
+        return parse_date(item['data']['dateStart'])
+    elif (  ('subEvent' in item['data'].keys())
+        and (isinstance(item['data']['subEvent'], list))
+    ):
+        for subevent in item['data']['subEvent']:
+            if (    (isinstance(subevent, dict))
+                and ('startDate' in subevent.keys())
+            ):
+                return parse_date(subevent['startDate'])
+
+    return None
+
+# --------------------------------------------------------------------------------------------------
+
+def parse_date(date_string):
+    date_formats = [
+        '%Y-%m-%dT%H:%M:%SZ', # ISO 8601 format
+        '%Y-%m-%d %H:%M:%S', # Common date/time format
+        '%Y-%m-%d', # Date only format
+        '%Y/%m/%d', # Another common date format
+        '%Y-%m-%dT%H:%M:%S.%fZ', # ISO 8601 with milliseconds
+        '%Y-%m-%dT%H:%M:%S.%f', # ISO 8601 with milliseconds (no Z)
+        '%Y-%m-%dT%H:%M:%S%z', # ISO 8601 with timezone offset
+        '%Y-%m-%dT%H:%M:%S%Z', # ISO 8601 with timezone name
+    ]
+
+    for date_format in date_formats:
+        try:
+            parsed_datetime = datetime.strptime(date_string, date_format)
+            # If the date string has a timezone, use it:
+            if (date_format in ['%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S%Z']):
+                return parsed_datetime.astimezone(tz.UTC)
+            # Otherwise, assume UTC and set the timezone:
+            else:
+                return parsed_datetime.replace(tzinfo=tz.UTC)
+        except:
+            pass
+
+    return None
 
 # --------------------------------------------------------------------------------------------------
 

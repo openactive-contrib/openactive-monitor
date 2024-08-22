@@ -1,3 +1,6 @@
-streamlit
 geopandas
 matplotlib
+millify
+plotly.express
+seaborn
+streamlit

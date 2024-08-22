@@ -114,6 +114,7 @@ opportunities_template = {
 }
 
 def get_opportunities(arg, **kwargs):
+    feed = kwargs.get('feed', None)
     seconds_timeout = kwargs.get('seconds_timeout', SECONDS_TIMEOUT_DEFAULT)
     seconds_wait_next = kwargs.get('seconds_wait_next', SECONDS_WAIT_NEXT_DEFAULT)
     verbose = kwargs.get('verbose', False)
@@ -158,6 +159,11 @@ def get_opportunities(arg, **kwargs):
     except:
         opportunities['status'] = 'ERROR'
         set_message('Issue encountered when getting feed: {}'.format(feed_url), 'error')
+
+    if (    (feed is not None)
+        and ('feed' not in opportunities.keys())
+    ):
+        opportunities['feed'] = feed
 
     return opportunities
 
@@ -384,12 +390,12 @@ def get_filenames():
 
 # --------------------------------------------------------------------------------------------------
 
-def run_get_opportunities(idx_feed_url, feed_url, **kwargs):
+def run_get_opportunities(idx_feed, feed, **kwargs):
     preview = kwargs.get('preview', False)
 
     # --------------------------------------------------------------------------------------------------
 
-    filename_without_infostamp_current = ('000-preview-' if preview else '') + sub('https://|http://|www.', '', feed_url).replace('.', '-').replace('/', '-').strip('-')
+    filename_without_infostamp_current = ('000-preview-' if preview else '') + sub('https://|http://|www.', '', feed['url']).replace('.', '-').replace('/', '-').strip('-')
     filenames_with_infostamp_current = sorted([
         filename_with_infostamp
         for filename_with_infostamp in filenames_with_infostamp
@@ -399,7 +405,7 @@ def run_get_opportunities(idx_feed_url, feed_url, **kwargs):
     # --------------------------------------------------------------------------------------------------
 
     if (len(filenames_with_infostamp_current) == 0):
-        opportunities_in = feed_url
+        opportunities_in = feed['url']
     else:
         opportunities_in = None
         relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
@@ -428,7 +434,7 @@ def run_get_opportunities(idx_feed_url, feed_url, **kwargs):
     t1 = datetime.now()
     # If opportunities_in is a dictionary, then it is modified by this function to become opportunities_out.
     # Both of these variables will then point to the same information in memory after this function:
-    opportunities_out = get_opportunities(opportunities_in, **kwargs)
+    opportunities_out = get_opportunities(opportunities_in, feed=feed, **kwargs)
     t2 = datetime.now()
 
     if (LOG_MEMORY):
@@ -466,19 +472,20 @@ def run_get_opportunities(idx_feed_url, feed_url, **kwargs):
         if (    (opportunities_out is None)
             or  (opportunities_out['status'] == 'ERROR')
         ):
-            if (feed_url not in feed_urls_retry.keys()):
-                feed_urls_retry[feed_url] = {
-                    'idx_feed_url': idx_feed_url,
+            if (feed['url'] not in feed_urls_retry.keys()):
+                feed_urls_retry[feed['url']] = {
+                    'idx_feed': idx_feed,
+                    'feed': feed,
                     'num_feed_tries_remaining': MAX_NUM_FEED_TRIES - 1,
                     'status': 'ERROR',
                 }
-        elif (feed_url in feed_urls_retry.keys()):
-            feed_urls_retry[feed_url]['num_feed_tries_remaining'] = 0
-            feed_urls_retry[feed_url]['status'] = opportunities_out['status']
+        elif (feed['url'] in feed_urls_retry.keys()):
+            feed_urls_retry[feed['url']]['num_feed_tries_remaining'] = 0
+            feed_urls_retry[feed['url']]['status'] = opportunities_out['status']
 
     # --------------------------------------------------------------------------------------------------
 
-    print(idx_feed_url, feed_url, opportunities_out['status'] if (opportunities_out is not None) else 'ERROR')
+    print(idx_feed, feed['url'], opportunities_out['status'] if (opportunities_out is not None) else 'ERROR')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -538,23 +545,24 @@ if (__name__ == '__main__'):
 
             # --------------------------------------------------------------------------------------------------
 
-            for idx_feed_url, feed_url in enumerate([feed['url'] for feed in feeds['feeds'][0:MAX_NUM_FEEDS]]):
-                print(idx_feed_url, feed_url, 'START')
+            for idx_feed, feed in enumerate(feeds['feeds'][0:MAX_NUM_FEEDS]):
+                print(idx_feed, feed['url'], 'START')
 
-                if (feed_url in feed_urls_skip):
+                if (feed['url'] in feed_urls_skip):
+                    feed_urls_skip.remove(feed['url'])
                     print('Feed URL in skip list, skipping')
                     continue
-                elif (feed_url in feed_urls_seen):
-                    feed_urls_seen.remove(feed_url)
+                elif (feed['url'] in feed_urls_seen):
+                    feed_urls_seen.remove(feed['url'])
                     print('Feed URL in seen list, skipping')
                     continue
 
                 try:
                     with open(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + FILENAME_FEEDS_SEEN, 'a') as file_out:
-                        file_out.write(str(datetime.now()) + ' ' + feed_url + '\n')
+                        file_out.write(str(datetime.now()) + ' ' + feed['url'] + '\n')
                     run_get_opportunities(
-                        idx_feed_url,
-                        feed_url,
+                        idx_feed,
+                        feed,
                         headers = HEADERS,
                         log_memory = LOG_MEMORY,
                         preview = preview,
@@ -588,13 +596,13 @@ if (__name__ == '__main__'):
                     # to work with:
                     get_filenames()
 
-                    for feed_url, feed_url_info in feed_urls_retry.items():
-                        if (feed_url_info['num_feed_tries_remaining'] > 0):
-                            print(feed_url_info['idx_feed_url'], feed_url, 'START')
+                    for feed_url, feed_info in feed_urls_retry.items():
+                        if (feed_info['num_feed_tries_remaining'] > 0):
+                            print(feed_info['idx_feed'], feed_url, 'START')
                             try:
                                 run_get_opportunities(
-                                    feed_url_info['idx_feed_url'],
-                                    feed_url,
+                                    feed_info['idx_feed'],
+                                    feed_info['feed'],
                                     headers = HEADERS,
                                     log_memory = LOG_MEMORY,
                                     preview = preview,
@@ -603,9 +611,9 @@ if (__name__ == '__main__'):
                                 )
                             except Exception as error:
                                 print('ERROR:', error)
-                            if (feed_url_info['num_feed_tries_remaining'] > 0):
-                                feed_url_info['num_feed_tries_remaining'] -= 1
-                            if (feed_url_info['num_feed_tries_remaining'] == 0):
+                            if (feed_info['num_feed_tries_remaining'] > 0):
+                                feed_info['num_feed_tries_remaining'] -= 1
+                            if (feed_info['num_feed_tries_remaining'] == 0):
                                 num_feed_urls_retry_remaining -= 1
 
                 feed_urls_retry = {}
