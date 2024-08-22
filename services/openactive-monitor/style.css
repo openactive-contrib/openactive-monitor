@@ -1,6 +1,8 @@
 /*
 OpenActive colours:
 
+See here: https://drive.google.com/drive/folders/1oCdFAj0d7Opn-fMJvml18k99jWylTWic?usp=drive_link
+
 The 'OA' logo colours going clockwise around the 'O' from bottom left:
 #433d90 - Dark purple
 #0067b1 - Dark blue
@@ -55,7 +57,7 @@ Others:
     border-radius: 10px;
     box-shadow: 10px 10px 3px #009ee3;
     text-align: center;
-    min-height: 250px;
+    min-height: 330px;
 }
 
 .opportunity-card img {
@@ -66,11 +68,7 @@ Others:
     margin: 5px 5px 5px 5px;
 }
 
-.st-emotion-cache-j5r0tf.e1f1d6gn3 .plot-container-plotly {
-    width: 95%;
-    height: 150px;
-}
-
+/*Ensuring text not hidden on metrics*/
 label.st-emotion-cache-17c4ue.e1i5pmia2 {
     overflow: visible;
     overflow-wrap: break-word;
