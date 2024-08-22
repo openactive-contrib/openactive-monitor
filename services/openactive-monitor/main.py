@@ -808,3 +808,4 @@ if (    ('error' in st.session_state)
             # )
             # st.write(f'Num. activities: {st.session_state.total_num_activities_without_sad:,}')
             # st.write(f'Num. opportunities: {st.session_state.total_num_opportunities_without_sad:,}')
+
