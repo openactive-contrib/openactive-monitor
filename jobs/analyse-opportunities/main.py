@@ -184,8 +184,8 @@ def analyse_opportunities():
                     'num_items_future': num_items_future,
                     'num_items_future_week': num_items_future_week,
                     'num_urls': len(opportunities_in['urls']),
-                    'item_kinds_counts': get_item_kinds(opportunities_in),
-                    'item_data_types_counts': get_item_data_types(opportunities_in),
+                    'kinds_counts': get_item_kinds(opportunities_in),
+                    'types_counts': get_item_data_types(opportunities_in),
                     'activities_counts': get_activities_counts(opportunities_in),
                     'coords_counts': get_coords_counts(opportunities_in), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
                 }
@@ -272,6 +272,20 @@ def analyse_opportunities():
     gdf_total_lads_counts, \
     total_num_lads, \
     total_num_opportunities_with_lads = get_gdf_total_locations_counts(df_total_coords_counts, gdf_lads, 'LAD24NM')
+
+    # --------------------------------------------------------------------------------------------------
+
+    # For the 'Feeds' tab
+
+    # Columns: ['kind', 'count', 'percentage']
+    df_total_kinds_counts, \
+    total_num_kinds, \
+    total_num_opportunities_with_kinds = get_df_total_keys_counts(df_analysis_data, 'kinds_counts', feeds_to_include='all')
+
+    # Columns: ['type', 'count', 'percentage']
+    df_total_types_counts, \
+    total_num_types, \
+    total_num_opportunities_with_types = get_df_total_keys_counts(df_analysis_data, 'types_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -419,6 +433,14 @@ def analyse_opportunities():
         'gdf_total_lads_counts': gdf_total_lads_counts,
         'total_num_lads': total_num_lads,
         'total_num_opportunities_with_lads': total_num_opportunities_with_lads,
+
+        'df_total_kinds_counts': df_total_kinds_counts,
+        'total_num_kinds': total_num_kinds,
+        'total_num_opportunities_with_kinds': total_num_opportunities_with_kinds,
+
+        'df_total_types_counts': df_total_types_counts,
+        'total_num_types': total_num_types,
+        'total_num_opportunities_with_types': total_num_opportunities_with_types,
 
         # 'df_total_sad_counts': df_total_sad_counts, # 2024-08-23 Not currently used in the dashboard
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
@@ -683,10 +705,10 @@ def get_df_total_keys_counts(df_analysis_data, keys_counts, feeds_to_include='al
         .sort_values(ascending=False) \
         .reset_index()
 
-    if (keys_counts == 'item_kinds_counts'):
-        df_total_keys_counts.columns = ['item_kind', 'count']
-    elif (keys_counts == 'item_data_types_counts'):
-        df_total_keys_counts.columns = ['item_data_type', 'count']
+    if (keys_counts == 'kinds_counts'):
+        df_total_keys_counts.columns = ['kind', 'count']
+    elif (keys_counts == 'types_counts'):
+        df_total_keys_counts.columns = ['type', 'count']
     elif (keys_counts == 'activities_counts'):
         df_total_keys_counts.columns = ['activity', 'count']
     elif (keys_counts == 'coords_counts'):

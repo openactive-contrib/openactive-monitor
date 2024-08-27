@@ -227,7 +227,7 @@ if ('initialised' not in st.session_state):
 if (    ('error' in st.session_state)
     and (not st.session_state.error)
 ):
-    tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'KPIs'])
+    tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'Feeds', 'KPIs'])
 
     with tabs[0]:
         cols = st.columns([1, 1, 2])
@@ -473,6 +473,45 @@ if (    ('error' in st.session_state)
     # --------------------------------------------------------------------------------------------------
 
     with tabs[4]:
+        st.header('OpenActive opportunities by feed label')
+
+        cols = st.columns(2)
+        with cols[0]:
+            st.dataframe(
+                st.session_state.analysis['df_total_kinds_counts'],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'kind': 'OA feed kind',
+                    'count': 'Num. opportunities',
+                    'percentage': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',
+                    ),
+                },
+            )
+            st.write(f"Num. feed kinds: {st.session_state.analysis['total_num_kinds']:,}")
+            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_kinds']:,}")
+        with cols[1]:
+            st.dataframe(
+                st.session_state.analysis['df_total_types_counts'],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'type': 'OA feed type',
+                    'count': 'Num. opportunities',
+                    'percentage': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',
+                    ),
+                },
+            )
+            st.write(f"Num. feed types: {st.session_state.analysis['total_num_types']:,}")
+            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_types']:,}")
+
+    # --------------------------------------------------------------------------------------------------
+
+    with tabs[5]:
         st.header('Key Performance Indicators')
 
         st.subheader('Growth of OpenActive')
