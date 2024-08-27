@@ -131,13 +131,13 @@ def get_opportunities(arg, **kwargs):
         opportunities = copy.deepcopy(opportunities_template)
         opportunities['nextUrl'] = get_opportunities_next_url(arg, opportunities)
     elif (type(arg) == dict):
-        if (    (sorted(arg.keys()) != sorted(opportunities_template.keys()))
-            or  (any([type(arg[key]) != type(opportunities_template[key]) for key in arg.keys()]))
-            or  (len(arg['firstUrlOrigin']) == 0)
-            or  (len(arg['nextUrl']) == 0)
-        ):
-            set_message('Invalid input, opportunities must be a dictionary with the expected content', 'warning')
-            return
+        # if (    (sorted(arg.keys()) != sorted(opportunities_template.keys()))
+        #     or  (any([type(arg[key]) != type(opportunities_template[key]) for key in arg.keys()]))
+        #     or  (len(arg['firstUrlOrigin']) == 0)
+        #     or  (len(arg['nextUrl']) == 0)
+        # ):
+        #     set_message('Invalid input, opportunities must be a dictionary with the expected content', 'warning')
+        #     return
         opportunities = arg
     else:
         set_message('Invalid input, must be a feed URL string or an opportunities dictionary', 'warning')
