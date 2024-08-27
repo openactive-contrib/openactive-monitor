@@ -132,8 +132,8 @@ def analyse_opportunities():
         'num_items_future',
         'num_items_future_week',
         'num_urls',
-        'item_kinds_counts',
-        'item_data_types_counts',
+        'kinds_counts',
+        'types_counts',
         'activities_counts',
         'coords_counts',
     ])
