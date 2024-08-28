@@ -275,7 +275,7 @@ def analyse_opportunities():
 
     # --------------------------------------------------------------------------------------------------
 
-    # For the 'Feeds' tab
+    # For the 'Labels' tab
 
     # Columns: ['kind', 'count', 'percentage']
     df_total_kinds_counts, \

@@ -227,7 +227,7 @@ if ('initialised' not in st.session_state):
 if (    ('error' in st.session_state)
     and (not st.session_state.error)
 ):
-    tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'Feeds', 'KPIs'])
+    tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'Labels', 'KPIs'])
 
     with tabs[0]:
         cols = st.columns([1, 1, 2])
@@ -473,7 +473,7 @@ if (    ('error' in st.session_state)
     # --------------------------------------------------------------------------------------------------
 
     with tabs[4]:
-        st.header('OpenActive opportunities by feed label')
+        st.header('OpenActive opportunities by label')
 
         cols = st.columns(2)
         with cols[0]:
@@ -482,7 +482,7 @@ if (    ('error' in st.session_state)
                 use_container_width=True,
                 hide_index=True,
                 column_config={
-                    'kind': 'OA feed kind',
+                    'kind': 'OA kind',
                     'count': 'Num. opportunities',
                     'percentage': st.column_config.NumberColumn(
                         '% opportunities',
@@ -490,7 +490,7 @@ if (    ('error' in st.session_state)
                     ),
                 },
             )
-            st.write(f"Num. feed kinds: {st.session_state.analysis['total_num_kinds']:,}")
+            st.write(f"Num. kinds: {st.session_state.analysis['total_num_kinds']:,}")
             st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_kinds']:,}")
         with cols[1]:
             st.dataframe(
@@ -498,7 +498,7 @@ if (    ('error' in st.session_state)
                 use_container_width=True,
                 hide_index=True,
                 column_config={
-                    'type': 'OA feed type',
+                    'type': 'OA type',
                     'count': 'Num. opportunities',
                     'percentage': st.column_config.NumberColumn(
                         '% opportunities',
@@ -506,7 +506,7 @@ if (    ('error' in st.session_state)
                     ),
                 },
             )
-            st.write(f"Num. feed types: {st.session_state.analysis['total_num_types']:,}")
+            st.write(f"Num. types: {st.session_state.analysis['total_num_types']:,}")
             st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_types']:,}")
 
     # --------------------------------------------------------------------------------------------------
