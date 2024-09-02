@@ -227,7 +227,7 @@ if ('initialised' not in st.session_state):
 if (    ('error' in st.session_state)
     and (not st.session_state.error)
 ):
-    tabs = st.tabs(['Overview', 'This week', 'Activities', 'Locations', 'Labels', 'KPIs'])
+    tabs = st.tabs(['Overview', 'This week', 'Activities', 'Organisers', 'Locations', 'Labels', 'KPIs'])
 
     with tabs[0]:
         cols = st.columns([1, 1, 2])
@@ -402,6 +402,43 @@ if (    ('error' in st.session_state)
     # --------------------------------------------------------------------------------------------------
 
     with tabs[3]:
+        st.header('OpenActive opportunities by organiser')
+
+        cols = st.columns([1, 2])
+        with cols[0]:
+            st.dataframe(
+                st.session_state.analysis['df_total_organisers_counts'],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'organiser': 'OA organiser',
+                    'count': 'Num. opportunities',
+                    'percentage': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',
+                    ),
+                },
+            )
+            st.write(f"Num. organisers: {st.session_state.analysis['total_num_organisers']:,}")
+            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_organisers']:,}")
+        with cols[1]:
+            fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+            sns.barplot(
+                st.session_state.analysis['df_total_organisers_counts'][:st.session_state.num_activities_top],
+                x='count',
+                y='organiser',
+                ax=ax,
+            )
+            ax.set_xlabel('Num. opportunities')
+            ax.set_ylabel('OA organiser')
+            ax.set_title(f'Top {st.session_state.num_activities_top} live OA organisers')
+            ax.bar_label(ax.containers[0], fontsize=8)
+            st.pyplot(fig)
+            plt.close(fig)
+
+    # --------------------------------------------------------------------------------------------------
+
+    with tabs[4]:
         st.header('OpenActive opportunities by location')
 
         cols = st.columns(3)
@@ -472,7 +509,7 @@ if (    ('error' in st.session_state)
 
     # --------------------------------------------------------------------------------------------------
 
-    with tabs[4]:
+    with tabs[5]:
         st.header('OpenActive opportunities by label')
 
         cols = st.columns(2)
@@ -511,7 +548,7 @@ if (    ('error' in st.session_state)
 
     # --------------------------------------------------------------------------------------------------
 
-    with tabs[5]:
+    with tabs[6]:
         st.header('Key Performance Indicators')
 
         st.subheader('Growth of OpenActive')
