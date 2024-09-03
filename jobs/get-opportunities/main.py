@@ -114,7 +114,6 @@ opportunities_template = {
 }
 
 def get_opportunities(arg, **kwargs):
-    feed = kwargs.get('feed', None)
     seconds_timeout = kwargs.get('seconds_timeout', SECONDS_TIMEOUT_DEFAULT)
     seconds_wait_next = kwargs.get('seconds_wait_next', SECONDS_WAIT_NEXT_DEFAULT)
     verbose = kwargs.get('verbose', False)
@@ -131,13 +130,15 @@ def get_opportunities(arg, **kwargs):
         opportunities = copy.deepcopy(opportunities_template)
         opportunities['nextUrl'] = get_opportunities_next_url(arg, opportunities)
     elif (type(arg) == dict):
-        # if (    (sorted(arg.keys()) != sorted(opportunities_template.keys()))
-        #     or  (any([type(arg[key]) != type(opportunities_template[key]) for key in arg.keys()]))
-        #     or  (len(arg['firstUrlOrigin']) == 0)
-        #     or  (len(arg['nextUrl']) == 0)
-        # ):
-        #     set_message('Invalid input, opportunities must be a dictionary with the expected content', 'warning')
-        #     return
+        # Note that we allow for extra keys in the incoming opportunities dictionary which aren't in the template,
+        # in case the user has added custom fields. These don't affect the processing herein, and so aren't
+        # restricted:
+        if (    (any([((key not in arg.keys()) or (type(arg[key]) != type(opportunities_template[key]))) for key in opportunities_template.keys()]))
+            or  (len(arg['firstUrlOrigin']) == 0)
+            or  (len(arg['nextUrl']) == 0)
+        ):
+            set_message('Invalid input, opportunities must be a dictionary with the expected content', 'warning')
+            return
         opportunities = arg
     else:
         set_message('Invalid input, must be a feed URL string or an opportunities dictionary', 'warning')
@@ -159,11 +160,6 @@ def get_opportunities(arg, **kwargs):
     except:
         opportunities['status'] = 'ERROR'
         set_message('Issue encountered when getting feed: {}'.format(feed_url), 'error')
-
-    if (    (feed is not None)
-        and ('feed' not in opportunities.keys())
-    ):
-        opportunities['feed'] = feed
 
     return opportunities
 
@@ -448,6 +444,9 @@ def run_get_opportunities(idx_feed, feed, **kwargs):
     # --------------------------------------------------------------------------------------------------
 
     if (opportunities_out is not None):
+        if ('feed' not in opportunities_out.keys()):
+            opportunities_out['feed'] = feed
+
         filenames_with_infostamp_current.append(filename_without_infostamp_current + Infostamp(opportunities_out, t1, t2).value)
         relative_filepath_opportunities_out = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
 
@@ -485,13 +484,11 @@ def run_get_opportunities(idx_feed, feed, **kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    print(idx_feed, feed['url'], opportunities_out['status'] if (opportunities_out is not None) else 'ERROR')
-
-    # --------------------------------------------------------------------------------------------------
-
     # 2024-06-14 Not currently using this as forced garbage collection is suspected of affecting Google
     # Cloud memory performance:
     # gc.collect()
+
+    return opportunities_out
 
 # --------------------------------------------------------------------------------------------------
 
@@ -546,7 +543,7 @@ if (__name__ == '__main__'):
             # --------------------------------------------------------------------------------------------------
 
             for idx_feed, feed in enumerate(feeds['feeds'][0:MAX_NUM_FEEDS]):
-                print(idx_feed, feed['url'], 'START')
+                print(idx_feed, feed['url'], 'STARTED')
 
                 if (feed['url'] in feed_urls_skip):
                     feed_urls_skip.remove(feed['url'])
@@ -557,10 +554,11 @@ if (__name__ == '__main__'):
                     print('Feed URL in seen list, skipping')
                     continue
 
+                opportunities = None
                 try:
                     with open(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + FILENAME_FEEDS_SEEN, 'a') as file_out:
                         file_out.write(str(datetime.now()) + ' ' + feed['url'] + '\n')
-                    run_get_opportunities(
+                    opportunities = run_get_opportunities(
                         idx_feed,
                         feed,
                         headers = HEADERS,
@@ -571,6 +569,8 @@ if (__name__ == '__main__'):
                     )
                 except Exception as error:
                     print('ERROR:', error)
+
+                print(idx_feed, feed['url'], 'FINISHED: ' + (opportunities['status'] if (opportunities is not None) else 'ERROR'))
 
             # --------------------------------------------------------------------------------------------------
 

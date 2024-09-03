@@ -132,9 +132,10 @@ def analyse_opportunities():
         'num_items_future',
         'num_items_future_week',
         'num_urls',
-        'item_kinds_counts',
-        'item_data_types_counts',
+        'kinds_counts',
+        'types_counts',
         'activities_counts',
+        'organisers_counts',
         'coords_counts',
     ])
 
@@ -184,9 +185,10 @@ def analyse_opportunities():
                     'num_items_future': num_items_future,
                     'num_items_future_week': num_items_future_week,
                     'num_urls': len(opportunities_in['urls']),
-                    'item_kinds_counts': get_item_kinds(opportunities_in),
-                    'item_data_types_counts': get_item_data_types(opportunities_in),
-                    'activities_counts': get_activities_counts(opportunities_in),
+                    'kinds_counts': get_item_kinds(opportunities_in),
+                    'types_counts': get_item_data_types(opportunities_in),
+                    'activities_counts': get_values_counts(opportunities_in, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
+                    'organisers_counts': get_values_counts(opportunities_in, 'organizer', 'name'),
                     'coords_counts': get_coords_counts(opportunities_in), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
                 }
 
@@ -243,7 +245,16 @@ def analyse_opportunities():
     # Columns: ['activity', 'count', 'percentage']
     df_total_activities_counts, \
     total_num_activities, \
-    total_num_opportunities_with_activities = get_df_total_keys_counts(df_analysis_data, 'activities_counts', feeds_to_include='all')
+    total_num_opportunities_with_activities = get_df_total_values_counts(df_analysis_data, 'activities_counts', feeds_to_include='all')
+
+    # --------------------------------------------------------------------------------------------------
+
+    # For the 'Organisers' tab
+
+    # Columns: ['organiser', 'count', 'percentage']
+    df_total_organisers_counts, \
+    total_num_organisers, \
+    total_num_opportunities_with_organisers = get_df_total_values_counts(df_analysis_data, 'organisers_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -252,7 +263,7 @@ def analyse_opportunities():
     # Columns: ['coords', 'count', 'percentage']
     df_total_coords_counts, \
     total_num_coords, \
-    total_num_opportunities_with_coords = get_df_total_keys_counts(df_analysis_data, 'coords_counts', feeds_to_include='all')
+    total_num_opportunities_with_coords = get_df_total_values_counts(df_analysis_data, 'coords_counts', feeds_to_include='all')
     # Columns: ['coords', 'count', 'percentage', 'latitude', 'longitude']
     df_total_coords_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_coords_counts['coords'].apply(lambda coords: coords.split(',')).tolist())
     # Columns: ['latitude', 'longitude', 'count', 'percentage']
@@ -272,6 +283,20 @@ def analyse_opportunities():
     gdf_total_lads_counts, \
     total_num_lads, \
     total_num_opportunities_with_lads = get_gdf_total_locations_counts(df_total_coords_counts, gdf_lads, 'LAD24NM')
+
+    # --------------------------------------------------------------------------------------------------
+
+    # For the 'Labels' tab
+
+    # Columns: ['kind', 'count', 'percentage']
+    df_total_kinds_counts, \
+    total_num_kinds, \
+    total_num_opportunities_with_kinds = get_df_total_values_counts(df_analysis_data, 'kinds_counts', feeds_to_include='all')
+
+    # Columns: ['type', 'count', 'percentage']
+    df_total_types_counts, \
+    total_num_types, \
+    total_num_opportunities_with_types = get_df_total_values_counts(df_analysis_data, 'types_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -408,6 +433,10 @@ def analyse_opportunities():
         'total_num_activities': total_num_activities,
         'total_num_opportunities_with_activities': total_num_opportunities_with_activities,
 
+        'df_total_organisers_counts': df_total_organisers_counts,
+        'total_num_organisers': total_num_organisers,
+        'total_num_opportunities_with_organisers': total_num_opportunities_with_organisers,
+
         # 'df_total_coords_counts': df_total_coords_counts, # 2024-08-23 Not currently used in the dashboard
         # 'total_num_coords': total_num_coords, # 2024-08-23 Not currently used in the dashboard
         # 'total_num_opportunities_with_coords': total_num_opportunities_with_coords, # 2024-08-23 Not currently used in the dashboard
@@ -419,6 +448,14 @@ def analyse_opportunities():
         'gdf_total_lads_counts': gdf_total_lads_counts,
         'total_num_lads': total_num_lads,
         'total_num_opportunities_with_lads': total_num_opportunities_with_lads,
+
+        'df_total_kinds_counts': df_total_kinds_counts,
+        'total_num_kinds': total_num_kinds,
+        'total_num_opportunities_with_kinds': total_num_opportunities_with_kinds,
+
+        'df_total_types_counts': df_total_types_counts,
+        'total_num_types': total_num_types,
+        'total_num_opportunities_with_types': total_num_opportunities_with_types,
 
         # 'df_total_sad_counts': df_total_sad_counts, # 2024-08-23 Not currently used in the dashboard
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
@@ -455,48 +492,55 @@ def analyse_opportunities():
 
 # --------------------------------------------------------------------------------------------------
 
-def get_activities_counts(opportunities):
-    activities_counts = {}
+def get_values_counts(opportunities, key_to_find, child_key_to_find=None):
+    values_counts = {}
 
     for item in opportunities['items'].values():
-        item_activities = get_item_activities(item)
-        for item_activity in item_activities:
-            if (item_activity not in activities_counts.keys()):
-                activities_counts[item_activity] = 1
+        values = get_value(item, key_to_find, child_key_to_find)
+        if (values is None):
+            continue
+        if (not isinstance(values, list)):
+            values = [values]
+        for value in values:
+            if (not isinstance(value, str)):
+                continue
+            value = value.strip()
+            if (value not in values_counts.keys()):
+                values_counts[value] = 1
             else:
-                activities_counts[item_activity] += 1
+                values_counts[value] += 1
 
-    return activities_counts
+    return values_counts
 
 # --------------------------------------------------------------------------------------------------
 
-# Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat
-# similar in use:
-def get_item_activities(data):
-    item_activities = []
+def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=True):
+    # This function accepts key_to_find as either a single string or a list of string variants e.g. ['type', '@type'],
+    # so if we receive a string then convert to a list for standard internal handling:
+    if (isinstance(key_to_find, str)):
+        key_to_find = [key_to_find]
 
-    for key, val in data.items():
-        if (key in ['activity', 'facilityType']):
-            if (isinstance(val, list)):
-                item_activities = [
-                    i['prefLabel']
-                    for i in val
-                    if (    (isinstance(i, dict))
-                        and ('prefLabel' in i.keys())
-                        and (isinstance(i['prefLabel'], str))
-                    )
-                ]
-            elif (  (isinstance(val, dict))
-                and ('prefLabel' in val.keys())
-                and (isinstance(val['prefLabel'], str))
-            ):
-                item_activities = [val['prefLabel']]
-        elif (isinstance(val, dict)):
-            item_activities = get_item_activities(val)
-        if (item_activities):
-            break
+    if (isinstance(data, dict)):
+        for key, val in data.items():
+            if (key in key_to_find):
+                if (child_key_to_find is None):
+                    return val
+                else:
+                    # If we are seeking a parent-child key pair and have found the parent key, then child_key_to_find becomes
+                    # key_to_find for the next layer search. We also only want to search the immediate next layer and not
+                    # beyond, hence the keyword setting here:
+                    return get_value(val, child_key_to_find, continue_to_next_layer=False)
+            elif (continue_to_next_layer):
+                value = get_value(val, key_to_find, child_key_to_find, continue_to_next_layer)
+                if (value is not None):
+                    return value
 
-    return item_activities
+    if (isinstance(data, list)):
+        values = [get_value(val, key_to_find, child_key_to_find, continue_to_next_layer) for val in data]
+        if (any(values)):
+            return values
+
+    return None
 
 # --------------------------------------------------------------------------------------------------
 
@@ -667,37 +711,39 @@ def parse_date(date_string):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_df_total_keys_counts(df_analysis_data, keys_counts, feeds_to_include='all'):
+def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include='all'):
     if (feeds_to_include == 'all'):
-        df_total_keys_counts = df_analysis_data
+        df_total_values_counts = df_analysis_data
     elif (feeds_to_include == 'regular'):
-        df_total_keys_counts = df_analysis_data.loc[df_analysis_data['is_regular']]
+        df_total_values_counts = df_analysis_data.loc[df_analysis_data['is_regular']]
     elif (feeds_to_include == 'preview'):
-        df_total_keys_counts = df_analysis_data.loc[~df_analysis_data['is_regular']]
+        df_total_values_counts = df_analysis_data.loc[~df_analysis_data['is_regular']]
 
-    df_total_keys_counts = \
-        df_total_keys_counts[keys_counts] \
+    df_total_values_counts = \
+        df_total_values_counts[values_counts] \
         .apply(pd.Series) \
         .sum() \
         .apply(int) \
         .sort_values(ascending=False) \
         .reset_index()
 
-    if (keys_counts == 'item_kinds_counts'):
-        df_total_keys_counts.columns = ['item_kind', 'count']
-    elif (keys_counts == 'item_data_types_counts'):
-        df_total_keys_counts.columns = ['item_data_type', 'count']
-    elif (keys_counts == 'activities_counts'):
-        df_total_keys_counts.columns = ['activity', 'count']
-    elif (keys_counts == 'coords_counts'):
-        df_total_keys_counts.columns = ['coords', 'count']
+    if (values_counts == 'kinds_counts'):
+        df_total_values_counts.columns = ['kind', 'count']
+    elif (values_counts == 'types_counts'):
+        df_total_values_counts.columns = ['type', 'count']
+    elif (values_counts == 'activities_counts'):
+        df_total_values_counts.columns = ['activity', 'count']
+    elif (values_counts == 'organisers_counts'):
+        df_total_values_counts.columns = ['organiser', 'count']
+    elif (values_counts == 'coords_counts'):
+        df_total_values_counts.columns = ['coords', 'count']
 
-    total_num_keys = df_total_keys_counts.shape[0]
-    total_num_opportunities_with_keys = df_total_keys_counts['count'].sum()
+    total_num_keys = df_total_values_counts.shape[0]
+    total_num_opportunities_with_keys = df_total_values_counts['count'].sum()
 
-    df_total_keys_counts['percentage'] = (df_total_keys_counts['count'] / total_num_opportunities_with_keys) * 100
+    df_total_values_counts['percentage'] = (df_total_values_counts['count'] / total_num_opportunities_with_keys) * 100
 
-    return df_total_keys_counts, total_num_keys, total_num_opportunities_with_keys
+    return df_total_values_counts, total_num_keys, total_num_opportunities_with_keys
 
 # --------------------------------------------------------------------------------------------------
 

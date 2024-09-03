@@ -21,15 +21,14 @@ Others:
 #6c757d - Grey (DQE 'Clear' button)
 */
 
-/* div.e1f1d6gn3 > div > div > div > div > div { */
-/* #tabs-bui3-tabpanel-0 [data-testid="stMetric"] { */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+html * {
+    font-family: Montserrat, sans-serif;
+}
 
 [data-testid='stHeader'] {
     display: none;
-}
-
-[data-testid='stVerticalBlock'] {
-    gap: 5px;
 }
 
 [data-testid='stMetric'] {
@@ -48,27 +47,61 @@ Others:
     box-shadow: 10px;
 }
 
+[data-testid='stVerticalBlock'] {
+    gap: 5px;
+}
+
+/* 'This Week' card container */
 .st-emotion-cache-j5r0tf.e1f1d6gn3 {
+/* These flex box settings don't seem to work as intended, which was to put space between the card
+text and card map, thereby pushing the former to the top and the latter to the bottom */
+    /* display: flex;
+    flex-direction: column;
+    justify-content: space-between; */
     color: #fff;
-    background-color: #223582;
-    margin-top: 15px;
+    background-color: #253882;
     padding: 15px 10px;
     border: 2px solid;
     border-radius: 10px;
-    box-shadow: 10px 10px 3px #009ee3;
-    text-align: center;
+    margin-top: 15px;
+    box-shadow: 5px 5px #74cbf3;
     min-height: 330px;
 }
 
-.opportunity-card img {
-    max-width: 95%;
-    max-height: 150px;
-    background-color:#009ee3;
-    border-radius: 10px;
-    margin: 5px 5px 5px 5px;
+/* The next immediate set of 'This Week' card containers are as follows: */
+/* .st-emotion-cache-0.e1f1d6gn0 {
+}
+.st-emotion-cache-1wmy9hl.e1f1d6gn1 {
+}
+.st-emotion-cache-1ue2szu.e1f1d6gn2 {
+} */
+/* Container for card text, and separate container for card map */
+/* .st-emotion-cache-raqm0.e1f1d6gn4 {
+} */
+
+.opportunity-card-top {
+    display: flex;
+    flex-direction: row;
+    min-height: 200px;
 }
 
-/*Ensuring text not hidden on metrics*/
+.opportunity-card-top div {
+    width: 50%;
+}
+
+.opportunity-card-top p {
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+.opportunity-card-top img {
+    float: right;
+    max-width: 95%;
+    max-height: 150px;
+    border-radius: 10px;
+}
+
+/* Ensuring text not hidden on metrics */
 label.st-emotion-cache-17c4ue.e1i5pmia2 {
     overflow: visible;
     overflow-wrap: break-word;
