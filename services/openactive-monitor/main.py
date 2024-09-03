@@ -106,19 +106,33 @@ def parse_date(date_string):
 # --------------------------------------------------------------------------------------------------
 
 def set_sampleitems():
-    # Select some random feeds, and for each of them get a single random item from this week's sample items:
-
     st.session_state.sampleitems = []
 
-    random_filenames_sampleitems = dict(random.sample(
-        list(st.session_state.analysis['filenames_sampleitems'].items()),
+    # analysis['filenames_sampleitems'] is a set of nested dictionaries:
+    # {
+    #     'filename1': {
+    #         'filename1_item1_idx': {filename1_item1},
+    #         'filename1_item2_idx': {filename1_item2},
+    #         etc.
+    #     },
+    #     'filename2': {
+    #         'filename2_item1_idx': {filename2_item1},
+    #         'filename2_item2_idx': {filename2_item2},
+    #         etc.
+    #     },
+    #     etc.
+    # }
+
+    # Each element in this list is itself a list of sample items from a specific feed:
+    random_feed_sampleitems = random.sample(
+        [list(val.values()) for val in st.session_state.analysis['filenames_sampleitems'].values()],
         min(st.session_state.num_feeds_with_sampleitems,
             st.session_state.max_num_random_feeds_with_sampleitems
         )
-    ))
+    )
 
-    for sampleitems in random_filenames_sampleitems.values():
-        item = random.choice(list(sampleitems.values()))
+    for feed_sampleitems in random_feed_sampleitems:
+        item = random.choice(feed_sampleitems)
         item_filtered = {
             'id': get_value(item, 'id'),
             'kind': get_value(item, 'kind'),
@@ -151,24 +165,6 @@ def set_sampleitems():
             'image': get_value(item, 'logo', 'url'),
         }
         st.session_state.sampleitems.append((item, item_filtered))
-
-# --------------------------------------------------------------------------------------------------
-
-def get_map(location_data:pd.DataFrame):
-    fig = px.scatter_mapbox(
-        location_data,
-        color_discrete_sequence=['#e11482'],
-        lat='latitude',
-        lon='longitude',
-        zoom=6,
-    )
-    fig.update_layout(
-        height=150,
-        mapbox_style='open-street-map',
-        margin={'t':0, 'r':0, 'b':0, 'l':0},
-    )
-    fig.update_traces(marker=dict(size=10))
-    return fig
 
 # --------------------------------------------------------------------------------------------------
 
@@ -312,55 +308,63 @@ if (    ('error' in st.session_state)
 
         st.subheader('Example OpenActive opportunities')
         st.button(
-                'Show some more examples',
-                type='primary',
-                on_click=set_sampleitems,
-            )
+            'Show some more examples',
+            type='primary',
+            on_click=set_sampleitems,
+        )
 
-        for idx_col, col in enumerate(st.columns(5)):
+        for idx_col, col in enumerate(st.columns(st.session_state.max_num_random_feeds_with_sampleitems)):
+            if (idx_col == len(st.session_state.sampleitems)):
+                break
             with col:
-                opportunity = st.session_state.sampleitems[idx_col]
-                # TODO: Why convert to a dataframe? This will always have only one row ...
-                df_opportunity = pd.DataFrame([
-                    {
-                        'name': opportunity[1]['name'],
-                        'offer_name': opportunity[1]['offer_name'],
-                        'description': opportunity[1]['description'],
-                        'startdate': opportunity[1]['startdate'],
-                        'type': f"({opportunity[1]['type']})",
-                        'activity': opportunity[1]['activities'],
-                    }
-                ])
-                opp_image = opportunity[1]['image']
-                if isinstance(opportunity[1]['activities'], list):
-                    opp_activity = opportunity[1]['activities'][0]
-                else:
-                    opp_activity = opportunity[1]['activities']
-                if isinstance(opportunity[1]['facilities'], list):
-                    opp_facility = opportunity[1]['facilities'][0]
-                else:
-                    opp_facility = opportunity[1]['facilities']
+                item_filtered = st.session_state.sampleitems[idx_col][1]
 
-                opp_activity = opp_activity or opp_facility or None
+                item_activity = item_filtered['activities'][0] if isinstance(item_filtered['activities'], list) else item_filtered['activities']
+                item_facility = item_filtered['facilities'][0] if isinstance(item_filtered['facilities'], list) else item_filtered['facilities']
+                item_offer_name = item_filtered['offer_name'][0] if isinstance(item_filtered['offer_name'], list) else item_filtered['offer_name']
+                item_startdate = item_filtered['startdate'][0] if isinstance(item_filtered['startdate'], list) else item_filtered['startdate']
+                item_type = item_filtered['type'][0] if isinstance(item_filtered['type'], list) else item_filtered['type']
+                item_image = item_filtered['image'][0] if isinstance(item_filtered['image'], list) else item_filtered['image']
+                try:
+                    item_latitude = float(item_filtered['latitude'][0] if isinstance(item_filtered['latitude'], list) else item_filtered['latitude'])
+                except:
+                    item_latitude = None
+                try:
+                    item_longitude = float(item_filtered['longitude'][0] if isinstance(item_filtered['longitude'], list) else item_filtered['longitude'])
+                except:
+                    item_longitude = None
 
-                if isinstance(opportunity[1]['offer_name'], list):
-                    opp_offer= opportunity[1]['offer_name'][0]
-                else:
-                    opp_offer= opportunity[1]['offer_name']
-                opp_startdate = opportunity[1]['startdate']
-                opp_type = f"({opportunity[1]['type']})"
-
-                st.html(f'''<div class="opportunity-card">
-                  <table><tr style="vertical-align: top;"><td style="width:50%;">
-                    {''.join([f'<p style="text-align: left; margin-bottom:0.1rem;">{key}</p>' for key in [opp_activity, opp_offer, opp_startdate,opp_type] if not isinstance(key, type(None))])}
-                  </td><td style="width:50%;">
-                  <img src={opp_image} alt=""></img>
-                </td><tr></table></div>
+                st.html(f'''
+                    <div class="opportunity-card-top">
+                        <div>
+                            {f'<p style="text-decoration: underline;">{item_activity or item_facility}</p>' if ((item_activity or item_facility) is not None) else ''}
+                            {f'<p>{item_offer_name}</p>' if (item_offer_name is not None) else ''}
+                            {f'<p>{item_startdate}</p>' if (item_startdate is not None) else ''}
+                            {f'<p>({item_type})</p>' if (item_type is not None) else ''}
+                        </div>
+                        <div>
+                            <img src={item_image} alt=""></img>
+                        </div>
+                    </div>
                 ''')
 
-                if opportunity[1]['latitude'] != None:
-                    px_map = get_map(opportunity)
-                    st.plotly_chart(px_map, use_container_width=True)
+                if (    (item_latitude is not None)
+                    and (item_longitude is not None)
+                ):
+                    fig = px.scatter_mapbox(
+                        pd.DataFrame({'latitude': [item_latitude], 'longitude': [item_longitude]}),
+                        color_discrete_sequence=['#e11482'],
+                        lat='latitude',
+                        lon='longitude',
+                        zoom=6,
+                    )
+                    fig.update_layout(
+                        height=150,
+                        mapbox_style='open-street-map',
+                        margin={'t':0, 'r':0, 'b':0, 'l':0},
+                    )
+                    fig.update_traces(marker=dict(size=10))
+                    st.plotly_chart(fig, use_container_width=True)
 
     # --------------------------------------------------------------------------------------------------
 
