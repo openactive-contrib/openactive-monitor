@@ -1,6 +1,7 @@
 import geopandas as gpd
 import gzip
 import lzma
+import openactive as oa
 import pandas as pd
 import pickle
 import random
@@ -9,7 +10,6 @@ from datetime import datetime, timedelta
 from dateutil import tz # For timezone handling
 from geopy.geocoders import Nominatim
 from numpy import nan
-from openactive import get_item_kinds, get_item_data_types
 from os import getenv, listdir
 from os.path import isfile
 from time import sleep
@@ -95,11 +95,7 @@ class Infostamp:
 
 # --------------------------------------------------------------------------------------------------
 
-filenames_with_infostamp = None
-filenames_without_infostamp = None
 def get_filenames():
-    global filenames_with_infostamp
-    global filenames_without_infostamp
     filenames_with_infostamp = sorted([
         i[:-LEN_SUFFIX_FILENAME_OPPORTUNITIES]
         for i in listdir(RELATIVE_FILEPATH_OPPORTUNITIES)
@@ -109,16 +105,56 @@ def get_filenames():
             and (i[-LEN_SUFFIX_FILENAME_OPPORTUNITIES:] == SUFFIX_FILENAME_OPPORTUNITIES)
         )
     ])
+
     filenames_without_infostamp = sorted(set([
         '--'.join(i.split('--')[:-Infostamp.num_parts])
         for i in filenames_with_infostamp
     ]))
 
+    return filenames_with_infostamp, filenames_without_infostamp
+
 # --------------------------------------------------------------------------------------------------
 
-def analyse_opportunities():
+def get_pairs_filenames_without_infostamp(filenames_without_infostamp):
+    pairs_filenames_without_infostamp = []
+    found_filenames_without_infostamp = []
+
+    for filename_without_infostamp in filenames_without_infostamp:
+        if (filename_without_infostamp not in found_filenames_without_infostamp):
+            partner_filename_without_infostamp = oa.get_partner_feed_url(filename_without_infostamp, filenames_without_infostamp)
+            pair_filenames_without_infostamp = [filename_without_infostamp, partner_filename_without_infostamp]
+            pairs_filenames_without_infostamp.append(pair_filenames_without_infostamp)
+            if (partner_filename_without_infostamp is not None):
+                found_filenames_without_infostamp.append(partner_filename_without_infostamp)
+
+    return pairs_filenames_without_infostamp
+
+# --------------------------------------------------------------------------------------------------
+
+def get_pairs_filenames_with_infostamp(pairs_filenames_without_infostamp, filenames_with_infostamp):
+    pairs_filenames_with_infostamp = []
+
+    for pair_filenames_without_infostamp in pairs_filenames_without_infostamp:
+        pair_filenames_with_infostamp = []
+        for filename_without_infostamp in pair_filenames_without_infostamp:
+            filename_with_infostamp = None
+            if (filename_without_infostamp is not None):
+                filename_with_infostamp = sorted([
+                    filename_with_infostamp
+                    for filename_with_infostamp in filenames_with_infostamp
+                    if ('--'.join(filename_with_infostamp.split('--')[:-Infostamp.num_parts]) == filename_without_infostamp)
+                ])[-1]
+            pair_filenames_with_infostamp.append(filename_with_infostamp)
+        pairs_filenames_with_infostamp.append(pair_filenames_with_infostamp)
+
+    return pairs_filenames_with_infostamp
+
+# --------------------------------------------------------------------------------------------------
+
+def analyse_opportunities(pairs_filenames_with_infostamp):
     df_analysis_data = pd.DataFrame(columns=[
         'file_name',
+        'partner_file_name',
         'feed_name',
         'feed_type',
         'feed_url',
@@ -128,6 +164,7 @@ def analyse_opportunities():
         'publisher_name',
         'status',
         'is_regular',
+        'is_merged_with_partner',
         'num_items',
         'num_items_future',
         'num_items_future_week',
@@ -143,62 +180,107 @@ def analyse_opportunities():
 
     # --------------------------------------------------------------------------------------------------
 
-    for idx_filename_without_infostamp_current, filename_without_infostamp_current in enumerate(filenames_without_infostamp):
+    for idx_pair_filenames_with_infostamp, pair_filenames_with_infostamp in enumerate(pairs_filenames_with_infostamp):
         try:
-            filenames_with_infostamp_current = sorted([
-                filename_with_infostamp
-                for filename_with_infostamp in filenames_with_infostamp
-                if ('--'.join(filename_with_infostamp.split('--')[:-Infostamp.num_parts]) == filename_without_infostamp_current)
-            ])
 
-            print(idx_filename_without_infostamp_current, filenames_with_infostamp_current[-1])
+            print(idx_pair_filenames_with_infostamp, pair_filenames_with_infostamp)
 
-            opportunities_in = None
-            relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filenames_with_infostamp_current[-1] + SUFFIX_FILENAME_OPPORTUNITIES
-            if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
-                with open(relative_filepath_opportunities_in, 'rb') as file_in:
-                    opportunities_in = pickle.load(file_in)
-            elif (COMPRESSION_FILE_OPPORTUNITIES == 'gzip'):
-                with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
-                    opportunities_in = pickle.load(file_in)
-            elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
-                with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
-                    opportunities_in = pickle.load(file_in)
+            # --------------------------------------------------------------------------------------------------
 
-            if (opportunities_in is not None):
-                items_future_week, \
-                num_items_future_week, \
-                num_items_future = get_items_future_week(opportunities_in)
+            pair_opportunities_in = []
+            for filename_with_infostamp in pair_filenames_with_infostamp:
+                opportunities_in = None
+                if (filename_with_infostamp is not None):
+                    relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filename_with_infostamp + SUFFIX_FILENAME_OPPORTUNITIES
+                    if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
+                        with open(relative_filepath_opportunities_in, 'rb') as file_in:
+                            opportunities_in = pickle.load(file_in)
+                    elif (COMPRESSION_FILE_OPPORTUNITIES == 'gzip'):
+                        with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
+                            opportunities_in = pickle.load(file_in)
+                    elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
+                        with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
+                            opportunities_in = pickle.load(file_in)
+                pair_opportunities_in.append(opportunities_in)
 
-                df_analysis_data.loc[len(df_analysis_data)] = {
-                    'file_name': filenames_with_infostamp_current[-1],
-                    'feed_name': opportunities_in.get('feed', {}).get('name'),
-                    'feed_type': opportunities_in.get('feed', {}).get('type'),
-                    'feed_url': opportunities_in.get('feed', {}).get('url'),
-                    'dataset_url': opportunities_in.get('feed', {}).get('datasetUrl'),
-                    'discussion_url': opportunities_in.get('feed', {}).get('discussionUrl'),
-                    'license_url': opportunities_in.get('feed', {}).get('licenseUrl'),
-                    'publisher_name': opportunities_in.get('feed', {}).get('publisherName'),
-                    'status': opportunities_in['status'],
-                    'is_regular': '000-preview' not in filenames_with_infostamp_current[-1],
-                    'num_items': len(opportunities_in['items'].keys()),
-                    'num_items_future': num_items_future,
-                    'num_items_future_week': num_items_future_week,
-                    'num_urls': len(opportunities_in['urls']),
-                    'kinds_counts': get_item_kinds(opportunities_in),
-                    'types_counts': get_item_data_types(opportunities_in),
-                    'activities_counts': get_values_counts(opportunities_in, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
-                    'organisers_counts': get_values_counts(opportunities_in, 'organizer', 'name'),
-                    'coords_counts': get_coords_counts(opportunities_in), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
-                }
+            # --------------------------------------------------------------------------------------------------
 
-                if (num_items_future_week > 0):
-                    filenames_sampleitems[filenames_with_infostamp_current[-1]] = dict(
-                        random.sample(
-                            list(items_future_week.items()),
-                            min(2, num_items_future_week)
+            pair_event_types = []
+            for opportunities_in in pair_opportunities_in:
+                event_type = None
+                if (opportunities_in is not None):
+                    item_data_types = oa.get_item_data_types(opportunities_in)
+                    if (len(item_data_types.keys()) == 1):
+                        event_type = oa.get_event_type(list(item_data_types.keys())[0])
+                pair_event_types.append(event_type)
+
+            # --------------------------------------------------------------------------------------------------
+
+            is_merged_with_partner = ('superevent' in pair_event_types) and ('subevent' in pair_event_types)
+
+            if (is_merged_with_partner):
+                superevent_opportunities_in = pair_opportunities_in[pair_event_types.index('superevent')]
+                subevent_opportunities_in = pair_opportunities_in[pair_event_types.index('subevent')]
+
+                # print(len(superevent_opportunities_in['items'].keys()))
+                # print(len(subevent_opportunities_in['items'].keys()))
+
+                for idx, superevent_item in enumerate(superevent_opportunities_in['items'].values()):
+                    if (idx % 10000 == 0):
+                        print(idx)
+                    subevent_items = oa.get_subevents(superevent_item, subevent_opportunities_in)
+                    for subevent_item in subevent_items:
+                        if ('data' in subevent_item.keys()):
+                            subevent_item['data']['superevent_item'] = superevent_item
+
+                # for idx, subevent_item in enumerate(subevent_opportunities_in['items'].values()):
+                #     if (idx % 10000 == 0):
+                #         print(idx)
+                #     if ('data' in subevent_item.keys()):
+                #         superevent_items = oa.get_superevents(subevent_item, superevent_opportunities_in)
+                #         subevent_item['data']['superevent_items'] = superevent_items
+
+                pair_opportunities_in[pair_event_types.index('superevent')] = None
+
+            # --------------------------------------------------------------------------------------------------
+
+            for idx in range(2):
+                if (pair_opportunities_in[idx] is not None):
+                    items_future_week, \
+                    num_items_future_week, \
+                    num_items_future = get_items_future_week(pair_opportunities_in[idx])
+
+                    df_analysis_data.loc[len(df_analysis_data)] = {
+                        'file_name': pair_filenames_with_infostamp[idx],
+                        'partner_file_name': pair_filenames_with_infostamp[1-idx],
+                        'feed_name': pair_opportunities_in[idx].get('feed', {}).get('name'),
+                        'feed_type': pair_opportunities_in[idx].get('feed', {}).get('type'),
+                        'feed_url': pair_opportunities_in[idx].get('feed', {}).get('url'),
+                        'dataset_url': pair_opportunities_in[idx].get('feed', {}).get('datasetUrl'),
+                        'discussion_url': pair_opportunities_in[idx].get('feed', {}).get('discussionUrl'),
+                        'license_url': pair_opportunities_in[idx].get('feed', {}).get('licenseUrl'),
+                        'publisher_name': pair_opportunities_in[idx].get('feed', {}).get('publisherName'),
+                        'status': pair_opportunities_in[idx]['status'],
+                        'is_regular': '000-preview' not in pair_filenames_with_infostamp[idx],
+                        'is_merged_with_partner': is_merged_with_partner,
+                        'num_items': len(pair_opportunities_in[idx]['items'].keys()),
+                        'num_items_future': num_items_future,
+                        'num_items_future_week': num_items_future_week,
+                        'num_urls': len(pair_opportunities_in[idx]['urls']),
+                        'kinds_counts': oa.get_item_kinds(pair_opportunities_in[idx]),
+                        'types_counts': oa.get_item_data_types(pair_opportunities_in[idx]),
+                        'activities_counts': get_values_counts(pair_opportunities_in[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
+                        'organisers_counts': get_values_counts(pair_opportunities_in[idx], 'organizer', 'name'),
+                        'coords_counts': get_coords_counts(pair_opportunities_in[idx]), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
+                    }
+
+                    if (num_items_future_week > 0):
+                        filenames_sampleitems[pair_filenames_with_infostamp[idx]] = dict(
+                            random.sample(
+                                list(items_future_week.items()),
+                                min(2, num_items_future_week)
+                            )
                         )
-                    )
 
         except Exception as error:
             print('ERROR:', error)
@@ -804,8 +886,10 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
 
 if (__name__ == '__main__'):
     try:
-        get_filenames()
-        analyse_opportunities()
+        filenames_with_infostamp, filenames_without_infostamp = get_filenames()
+        pairs_filenames_without_infostamp = get_pairs_filenames_without_infostamp(filenames_without_infostamp)
+        pairs_filenames_with_infostamp = get_pairs_filenames_with_infostamp(pairs_filenames_without_infostamp, filenames_with_infostamp)
+        analyse_opportunities(pairs_filenames_with_infostamp)
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
