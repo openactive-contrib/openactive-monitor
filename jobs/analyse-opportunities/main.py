@@ -225,23 +225,22 @@ def analyse_opportunities(pairs_filenames_with_infostamp):
                 superevent_opportunities_in = pair_opportunities_in[pair_event_types.index('superevent')]
                 subevent_opportunities_in = pair_opportunities_in[pair_event_types.index('subevent')]
 
-                # print(len(superevent_opportunities_in['items'].keys()))
-                # print(len(subevent_opportunities_in['items'].keys()))
+                subevent_ids_skip = []
+                for idx_superevent, superevent in enumerate(superevent_opportunities_in['items'].values()):
+                    if (idx_superevent % 10000 == 0):
+                        print(f"{idx_superevent}/{len(superevent_opportunities_in['items'].keys())} superevents processed")
+                    subevents = oa.get_subevents(superevent, subevent_opportunities_in, subevent_ids_skip)
+                    subevent_ids_skip += [subevent['id'] for subevent in subevents]
+                    for subevent in subevents:
+                        if ('data' in subevent.keys()):
+                            subevent['data']['superevent_item'] = superevent
 
-                for idx, superevent_item in enumerate(superevent_opportunities_in['items'].values()):
-                    if (idx % 10000 == 0):
-                        print(idx)
-                    subevent_items = oa.get_subevents(superevent_item, subevent_opportunities_in)
-                    for subevent_item in subevent_items:
-                        if ('data' in subevent_item.keys()):
-                            subevent_item['data']['superevent_item'] = superevent_item
-
-                # for idx, subevent_item in enumerate(subevent_opportunities_in['items'].values()):
-                #     if (idx % 10000 == 0):
-                #         print(idx)
-                #     if ('data' in subevent_item.keys()):
-                #         superevent_items = oa.get_superevents(subevent_item, superevent_opportunities_in)
-                #         subevent_item['data']['superevent_items'] = superevent_items
+                # for idx_subevent, subevent in enumerate(subevent_opportunities_in['items'].values()):
+                #     if (idx_subevent % 10000 == 0):
+                #         print(f"{idx_subevent}/{len(subevent_opportunities_in['items'].keys())} subevents processed")
+                #     if ('data' in subevent.keys()):
+                #         superevents = oa.get_superevents(subevent, superevent_opportunities_in)
+                #         subevent['data']['superevent_items'] = superevents
 
                 pair_opportunities_in[pair_event_types.index('superevent')] = None
 
