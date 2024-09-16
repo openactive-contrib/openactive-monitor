@@ -49,6 +49,8 @@ FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
 FILENAME_LADS = getenv('FILENAME_LADS', 'lads.geojson')
 FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
 FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
+MERGE_FEEDS = getenv('MERGE_FEEDS', 'False').title()
+MERGE_FEEDS = True if (MERGE_FEEDS == 'True') else False
 
 print('Environment variables:')
 print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
@@ -60,6 +62,7 @@ print('FILENAME_REGIONS:', FILENAME_REGIONS)
 print('FILENAME_LADS:', FILENAME_LADS)
 print('FILENAME_SE_SPORT_AND_DISCIPLINE:', FILENAME_SE_SPORT_AND_DISCIPLINE)
 print('FILENAME_OA_SE_MAPPING:', FILENAME_OA_SE_MAPPING)
+print('MERGE_FEEDS:', MERGE_FEEDS)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -219,16 +222,23 @@ def analyse_opportunities(pairs_filenames_with_infostamp):
 
             # --------------------------------------------------------------------------------------------------
 
-            is_merged_with_partner = ('superevent' in pair_event_types) and ('subevent' in pair_event_types)
+            is_merged_with_partner = False
+            if (    (MERGE_FEEDS)
+                and ('superevent' in pair_event_types)
+                and ('subevent' in pair_event_types)
+                # and ('000-preview' not in pair_filenames_with_infostamp[0])
+            ):
+                is_merged_with_partner = True
 
-            if (is_merged_with_partner):
+                print('    Merging feeds ...')
+
                 superevent_opportunities_in = pair_opportunities_in[pair_event_types.index('superevent')]
                 subevent_opportunities_in = pair_opportunities_in[pair_event_types.index('subevent')]
 
                 subevent_ids_skip = []
                 for idx_superevent, superevent in enumerate(superevent_opportunities_in['items'].values()):
                     if (idx_superevent % 10000 == 0):
-                        print(f"{idx_superevent}/{len(superevent_opportunities_in['items'].keys())} superevents processed")
+                        print(f"        {idx_superevent}/{len(superevent_opportunities_in['items'].keys())} superevents processed")
                     subevents = oa.get_subevents(superevent, subevent_opportunities_in, subevent_ids_skip)
                     subevent_ids_skip += [subevent['id'] for subevent in subevents]
                     for subevent in subevents:
@@ -237,7 +247,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp):
 
                 # for idx_subevent, subevent in enumerate(subevent_opportunities_in['items'].values()):
                 #     if (idx_subevent % 10000 == 0):
-                #         print(f"{idx_subevent}/{len(subevent_opportunities_in['items'].keys())} subevents processed")
+                #         print(f"        {idx_subevent}/{len(subevent_opportunities_in['items'].keys())} subevents processed")
                 #     if ('data' in subevent.keys()):
                 #         superevents = oa.get_superevents(subevent, superevent_opportunities_in)
                 #         subevent['data']['superevent_items'] = superevents
