@@ -1,7 +1,7 @@
 import geopandas as gpd
 import gzip
 import lzma
-import openactive as oa
+# import openactive as oa
 import pandas as pd
 import pickle
 import random
@@ -13,6 +13,9 @@ from numpy import nan
 from os import getenv, listdir
 from os.path import isfile
 from time import sleep
+
+sys.path.append('../volume-1/common')
+import openactive_custom as oa
 
 # --------------------------------------------------------------------------------------------------
 
