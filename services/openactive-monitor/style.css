@@ -46,6 +46,22 @@ html * {
     margin: 10px 20% 10px 20%;
     box-shadow: 10px;
 }
+[data-testid='baseButton-secondary'] {
+    display: flex;
+    flex-direction: column-reverse;
+    overflow: visible;
+    overflow-wrap: break-word;
+    white-space: normal;
+    align-items: center;
+    color: #009ee3;
+    background-color: #ddf2fc;
+    padding: 20px 10px 20px 10px;
+    border: 2px solid;
+    border-radius: 10px;
+    margin: 10px 20% 10px 20%;
+    box-shadow: 10px;
+    width: 75%;
+}
 
 [data-testid='stVerticalBlock'] {
     gap: 5px;

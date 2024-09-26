@@ -185,6 +185,11 @@ if ('initialised' not in st.session_state):
     print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
     print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
 
+    with open(RELATIVE_FILEPATH_ANALYSIS + '/analysis-data.pickle', 'rb') as file_in:
+            df = pickle.load(file_in)
+    print(df.keys())
+    publishers = df['publisher_name'].unique()
+
     # --------------------------------------------------------------------------------------------------
 
     try:
@@ -226,52 +231,72 @@ if (    ('error' in st.session_state)
     tabs = st.tabs(['Overview', 'This week', 'Activities', 'Organisers', 'Locations', 'Labels', 'KPIs'])
 
     with tabs[0]:
-        cols = st.columns([1, 1, 2])
-        with cols[0]:
-            st.metric(
-                'Publishers',
-                f"{st.session_state.analysis['num_publishers']:,}",
-                help='OpenActive is a decentralised open data initiative. Each data publisher shares one or more data sets, each with one or more data feeds, providing near real time availability of their activities and facilities.',
-            )
-            st.metric(
-                'Data sets',
-                f"{st.session_state.analysis['num_datasets']:,}",
-            )
-            st.metric(
-                'Data feeds',
-                f"{st.session_state.analysis['num_feeds']:,}",
-            )
-            st.metric(
-                'Activities and facilities',
-                f"{st.session_state.analysis['total_num_activities']:,}",
-                help='While the official OpenActive activity list contains over 700 standardised activity names, publishers can and do use their own wording for activity and facility names.',
-            )
-            st.metric(
-                'Live opportunities',
-                millify(st.session_state.analysis['total_num_opportunities'], precision=1),
-                help='OpenActive describes standards to make sharing information about "opportunities for sport and physical activity" easier and more effective. We use the word "opportunity" to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total "opportunity" count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!',
-            )
-        with cols[1]:
-            fig, ax = plt.subplots(1, 1, figsize=(5, 10))
-            plt.style.use('ggplot')
-            st.session_state.analysis['gdf_total_regions_counts'].plot(
-                column='percentage',
-                # cmap='YlOrRd',
-                cmap='inferno_r',
-                ax=ax,
-            )
-            ax.set(facecolor='white')
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_title('% of OpenActive Opportunities by Region')
-            scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
-            colorbar = plt.colorbar(scalarmappable, orientation='horizontal', pad=-0.04)
-            colorbar.set_label('%')
-            st.pyplot(fig)
-            plt.close(fig)
+        
+        # Sample data for charts
+        df = pd.DataFrame({
+            'Category': ['A', 'B', 'C'],
+            'Value': [10, 20, 15]
+        })
 
-        st.write(f"These figures include data from {st.session_state.analysis['num_feeds_preview']} preview feeds with {millify(st.session_state.analysis['total_num_opportunities_preview'], precision=1)} preview opportunities.")
-        st.write(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}.')
+        # Function to display content based on button click
+        def display_content(button_name):
+            if button_name == 'Button 1':
+                st.markdown("**OpenActive** is a decentralised open data initiative. Each data provider shares one or more data feeds, providing near real time availability of their activities and facilities.")
+            elif button_name == 'Button 2':
+                st.markdown("")
+            elif button_name == 'Button 3':
+                st.markdown("While the official OpenActive activity list contains over 700 standardised activity names, publishers can and do use their own wording for activity and facility names.")
+            elif button_name == 'Button 4':
+                cols = st.columns([1, 2, 1])
+                with cols[0]:
+                    st.markdown("OpenActive describes standards to make sharing information about 'opportunities for sport and physical activity' easier and more effective. We use the word 'opportunity' to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
+                with cols[1]:
+                    fig, ax = plt.subplots(1, 1, figsize=(3, 6))
+                    plt.style.use('ggplot')
+                    st.session_state.analysis['gdf_total_regions_counts'].plot(
+                        column='percentage',
+                        # cmap='YlOrRd',
+                        cmap='inferno_r',
+                        ax=ax,
+                    )
+                    ax.set(facecolor='white')
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+                    ax.set_title('% of OpenActive Opportunities by Region')
+                    scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
+                    colorbar = plt.colorbar(scalarmappable,  orientation='horizontal', pad=-0.04)
+                    colorbar.set_label('%')
+                    st.pyplot(fig)
+                    plt.close(fig)
+                st.write(" ")
+                st.write(f"These figures include data from {st.session_state.analysis['num_feeds_preview']} preview feeds with {millify(st.session_state.analysis['total_num_opportunities_preview'], precision=1)} preview opportunities.")
+                st.write(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}.')
+            
+        cols = st.columns([1, 2, 1])
+        with cols[0]:
+            button1 = st.button(f"""{st.session_state.analysis['num_publishers']:,}
+            **Data Providers**
+            """)
+            button2 = st.button(f"""{st.session_state.analysis['num_feeds']:,}
+            **Data feeds**
+            """)
+            button3 = st.button(f"""{st.session_state.analysis['total_num_activities']:,}
+            **Activities and facilities**
+            """)
+            opps = millify(st.session_state.analysis['total_num_opportunities'], precision=1)
+            button4 = st.button(f"""{opps} 
+            **Live opportunities**
+            """)
+        with cols[1]:
+            # Display content based on button click
+            if button1:
+                display_content('Button 1')
+            elif button2:
+                display_content('Button 2')
+            elif button3:
+                display_content('Button 3')
+            elif button4:
+                display_content('Button 4')
 
         # dated_counts = {
         #     'Jan 17': 0,
