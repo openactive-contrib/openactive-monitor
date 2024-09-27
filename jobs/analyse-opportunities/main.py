@@ -167,6 +167,7 @@ def get_pairs_filenames_with_infostamp(pairs_filenames_without_infostamp, filena
 # --------------------------------------------------------------------------------------------------
 
 def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
+    merge_feeds = kwargs.get('merge_feeds', False)
     verbose = kwargs.get('verbose', False)
 
     df_analysis_data = pd.DataFrame(columns=[
@@ -241,7 +242,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
         # --------------------------------------------------------------------------------------------------
 
         is_merged_with_partner = False
-        if (    (MERGE_FEEDS)
+        if (    (merge_feeds)
             and ('superevent' in pair_event_types)
             and ('subevent' in pair_event_types)
         ):
@@ -928,7 +929,7 @@ if (__name__ == '__main__'):
         filenames_with_infostamp, filenames_without_infostamp = get_filenames()
         pairs_filenames_without_infostamp = get_pairs_filenames_without_infostamp(filenames_without_infostamp)
         pairs_filenames_with_infostamp = get_pairs_filenames_with_infostamp(pairs_filenames_without_infostamp, filenames_with_infostamp)
-        analyse_opportunities(pairs_filenames_with_infostamp, verbose=VERBOSE)
+        analyse_opportunities(pairs_filenames_with_infostamp, merge_feeds=MERGE_FEEDS, verbose=VERBOSE)
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
