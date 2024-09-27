@@ -46,7 +46,7 @@ html * {
     margin: 10px 20% 10px 20%;
     box-shadow: 10px;
 }
-[data-testid='baseButton-secondary'] {
+[data-testid='stBaseButton-secondary'] {
     display: flex;
     flex-direction: column-reverse;
     overflow: visible;

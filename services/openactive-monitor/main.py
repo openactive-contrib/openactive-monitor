@@ -274,18 +274,18 @@ if (    ('error' in st.session_state)
             
         cols = st.columns([1, 2, 1])
         with cols[0]:
-            button1 = st.button(f"""{st.session_state.analysis['num_publishers']:,}
-            **Data Providers**
+            button1 = st.button(f"""**{st.session_state.analysis['num_publishers']:,}**
+            \nData Providers
             """)
-            button2 = st.button(f"""{st.session_state.analysis['num_feeds']:,}
-            **Data feeds**
+            button2 = st.button(f"""**{st.session_state.analysis['num_feeds']:,}**
+            \nData feeds
             """)
-            button3 = st.button(f"""{st.session_state.analysis['total_num_activities']:,}
-            **Activities and facilities**
+            button3 = st.button(f"""**{st.session_state.analysis['total_num_activities']:,}**
+            \nActivities and facilities
             """)
             opps = millify(st.session_state.analysis['total_num_opportunities'], precision=1)
-            button4 = st.button(f"""{opps} 
-            **Live opportunities**
+            button4 = st.button(f"""**{opps}** 
+            \nLive opportunities
             """)
         with cols[1]:
             # Display content based on button click
