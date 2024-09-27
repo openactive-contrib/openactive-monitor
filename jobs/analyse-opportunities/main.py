@@ -300,8 +300,13 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS_DATA, 'wb') as file_out:
+        pickle.dump(df_analysis_data, file_out)
+
     # with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS_DATA, 'rb') as file_in:
     #     df_analysis_data = pickle.load(file_in)
+
+    # --------------------------------------------------------------------------------------------------
 
     # For the 'Overview' tab
 
@@ -577,9 +582,6 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
     }
 
     # --------------------------------------------------------------------------------------------------
-
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS_DATA, 'wb') as file_out:
-        pickle.dump(df_analysis_data, file_out)
 
     with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'wb') as file_out:
         pickle.dump(analysis, file_out)
