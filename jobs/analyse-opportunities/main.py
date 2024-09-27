@@ -194,16 +194,16 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
     # --------------------------------------------------------------------------------------------------
 
     for idx_pair_filenames_with_infostamp, pair_filenames_with_infostamp in enumerate(pairs_filenames_with_infostamp):
-        try:
-            if (verbose):
-                print(idx_pair_filenames_with_infostamp, pair_filenames_with_infostamp)
+        if (verbose):
+            print(idx_pair_filenames_with_infostamp, pair_filenames_with_infostamp)
 
-            # --------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------
 
-            pair_opportunities_in = []
-            for filename_with_infostamp in pair_filenames_with_infostamp:
-                opportunities_in = None
-                if (filename_with_infostamp is not None):
+        pair_opportunities_in = []
+        for filename_with_infostamp in pair_filenames_with_infostamp:
+            opportunities_in = None
+            if (filename_with_infostamp is not None):
+                try:
                     relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filename_with_infostamp + SUFFIX_FILENAME_OPPORTUNITIES
                     if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
                         with open(relative_filepath_opportunities_in, 'rb') as file_in:
@@ -214,40 +214,47 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                     elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
                         with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
                             opportunities_in = pickle.load(file_in)
-                pair_opportunities_in.append(opportunities_in)
+                except Exception as error:
+                    print('ERROR:', error)
+            pair_opportunities_in.append(opportunities_in)
 
-            # --------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------
 
-            pair_event_types = []
-            for opportunities_in in pair_opportunities_in:
-                event_type = None
-                if (opportunities_in is not None):
+        pair_event_types = []
+        for opportunities_in in pair_opportunities_in:
+            event_type = None
+            if (opportunities_in is not None):
+                try:
                     item_data_types = oa.get_item_data_types(opportunities_in)
                     if (len(item_data_types.keys()) == 1):
                         event_type = oa.get_event_type(list(item_data_types.keys())[0])
-                pair_event_types.append(event_type)
+                except Exception as error:
+                    print('ERROR:', error)
+            pair_event_types.append(event_type)
 
-            # --------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------
 
-            is_merged_with_partner = False
-
-            if (    (MERGE_FEEDS)
-                and ('superevent' in pair_event_types)
-                and ('subevent' in pair_event_types)
-            ):
-                is_merged_with_partner = True
-
-                superevent_opportunities_in = pair_opportunities_in[pair_event_types.index('superevent')]
-                subevent_opportunities_in = pair_opportunities_in[pair_event_types.index('subevent')]
-
-                subevent_opportunities_in = oa.get_merged_opportunities(subevent_opportunities_in, superevent_opportunities_in, **kwargs)
-
+        is_merged_with_partner = False
+        if (    (MERGE_FEEDS)
+            and ('superevent' in pair_event_types)
+            and ('subevent' in pair_event_types)
+        ):
+            try:
+                pair_opportunities_in[pair_event_types.index('subevent')] = oa.get_merged_opportunities(
+                    pair_opportunities_in[pair_event_types.index('subevent')],
+                    pair_opportunities_in[pair_event_types.index('superevent')],
+                    **kwargs
+                )
                 pair_opportunities_in[pair_event_types.index('superevent')] = None
+                is_merged_with_partner = True
+            except Exception as error:
+                print('ERROR:', error)
 
-            # --------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------
 
-            for idx in range(2):
-                if (pair_opportunities_in[idx] is not None):
+        for idx in range(2):
+            if (pair_opportunities_in[idx] is not None):
+                try:
                     items_future_week, \
                     num_items_future_week, \
                     num_items_future = get_items_future_week(pair_opportunities_in[idx])
@@ -284,8 +291,8 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                             )
                         )
 
-        except Exception as error:
-            print('ERROR:', error)
+                except Exception as error:
+                    print('ERROR:', error)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -302,8 +309,12 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
     num_datasets_preview = df_analysis_data['dataset_url'].loc[~df_analysis_data['is_regular']].replace('', nan).nunique()
     num_datasets = df_analysis_data['dataset_url'].replace('', nan).nunique()
 
-    num_feeds_regular = df_analysis_data.loc[df_analysis_data['is_regular']].shape[0]
-    num_feeds_preview = df_analysis_data.loc[~df_analysis_data['is_regular']].shape[0]
+    num_feeds_regular = \
+            (df_analysis_data.loc[df_analysis_data['is_regular'] & df_analysis_data['is_merged_with_partner']].shape[0] * 2) \
+        +   (df_analysis_data.loc[df_analysis_data['is_regular'] & ~df_analysis_data['is_merged_with_partner']].shape[0])
+    num_feeds_preview = \
+            (df_analysis_data.loc[~df_analysis_data['is_regular'] & df_analysis_data['is_merged_with_partner']].shape[0] * 2) \
+        +   (df_analysis_data.loc[~df_analysis_data['is_regular'] & ~df_analysis_data['is_merged_with_partner']].shape[0])
     num_feeds = num_feeds_regular + num_feeds_preview
 
     total_num_opportunities_regular = df_analysis_data['num_items'].loc[df_analysis_data['is_regular']].sum()
