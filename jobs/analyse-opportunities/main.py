@@ -33,9 +33,12 @@ geolocator = Nominatim(user_agent='OpenActive Monitor', timeout=None)
 #   $ gcloud beta run jobs update analyse-opportunities \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
+RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
 RELATIVE_FILEPATH_OPPORTUNITIES = getenv('RELATIVE_FILEPATH_OPPORTUNITIES', '../volume-1/data-opportunities')
 RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
 
+FILENAME_FEEDS = getenv('FILENAME_FEEDS', 'feeds.pickle') # Located in RELATIVE_FILEPATH_FEEDS
+FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle') # Located in RELATIVE_FILEPATH_FEEDS
 FILENAME_FEEDS_SEEN = '000-feeds-seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAME_FEEDS_CRASHED = '000-feeds-crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAMES_SKIP = [FILENAME_FEEDS_SEEN, FILENAME_FEEDS_CRASHED] # Filenames to skip when checking for opportunity files in RELATIVE_FILEPATH_OPPORTUNITIES
@@ -51,14 +54,15 @@ FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'S
 FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
 MERGE_FEEDS = getenv('MERGE_FEEDS', 'False').title()
 MERGE_FEEDS = True if (MERGE_FEEDS == 'True') else False
-# MERGE_FEEDS = True
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
-# VERBOSE = True
 
 print('Environment variables:')
+print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
 print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
 print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
+print('FILENAME_FEEDS:', FILENAME_FEEDS)
+print('FILENAME_FEEDS_PREVIEW:', FILENAME_FEEDS_PREVIEW)
 print('COMPRESSION_FILE_OPPORTUNITIES:', COMPRESSION_FILE_OPPORTUNITIES)
 print('FILENAME_ANALYSIS_DATA:', FILENAME_ANALYSIS_DATA)
 print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
@@ -308,6 +312,14 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in:
+        feeds = pickle.load(file_in)
+
+    with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS_PREVIEW, 'rb') as file_in:
+        feeds_preview = pickle.load(file_in)
+
+    # --------------------------------------------------------------------------------------------------
+
     # For the 'Overview' tab
 
     num_publishers_regular = df_analysis_data['publisher_name'].loc[df_analysis_data['is_regular']].replace('', nan).nunique()
@@ -318,13 +330,17 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
     num_datasets_preview = df_analysis_data['dataset_url'].loc[~df_analysis_data['is_regular']].replace('', nan).nunique()
     num_datasets = df_analysis_data['dataset_url'].replace('', nan).nunique()
 
-    num_feeds_regular = \
+    num_feeds_regular = feeds['num_feeds']
+    num_feeds_preview = feeds_preview['num_feeds']
+    num_feeds = num_feeds_regular + num_feeds_preview
+
+    num_feeds_with_analysed_data_regular = \
             (df_analysis_data.loc[df_analysis_data['is_regular'] & df_analysis_data['is_merged_with_partner']].shape[0] * 2) \
         +   (df_analysis_data.loc[df_analysis_data['is_regular'] & ~df_analysis_data['is_merged_with_partner']].shape[0])
-    num_feeds_preview = \
+    num_feeds_with_analysed_data_preview = \
             (df_analysis_data.loc[~df_analysis_data['is_regular'] & df_analysis_data['is_merged_with_partner']].shape[0] * 2) \
         +   (df_analysis_data.loc[~df_analysis_data['is_regular'] & ~df_analysis_data['is_merged_with_partner']].shape[0])
-    num_feeds = num_feeds_regular + num_feeds_preview
+    num_feeds_with_analysed_data = num_feeds_with_analysed_data_regular + num_feeds_with_analysed_data_preview
 
     total_num_opportunities_regular = df_analysis_data['num_items'].loc[df_analysis_data['is_regular']].sum()
     total_num_opportunities_preview = df_analysis_data['num_items'].loc[~df_analysis_data['is_regular']].sum()
@@ -520,6 +536,10 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
         'num_feeds_regular': num_feeds_regular, # 2024-08-23 Not currently used in the dashboard
         'num_feeds_preview': num_feeds_preview,
         'num_feeds': num_feeds,
+
+        'num_feeds_with_analysed_data_regular': num_feeds_with_analysed_data_regular, # 2024-09-27 Not currently used in the dashboard
+        'num_feeds_with_analysed_data_preview': num_feeds_with_analysed_data_preview, # 2024-09-27 Not currently used in the dashboard
+        'num_feeds_with_analysed_data': num_feeds_with_analysed_data, # 2024-09-27 Not currently used in the dashboard
 
         'total_num_opportunities_regular': total_num_opportunities_regular, # 2024-08-23 Not currently used in the dashboard
         'total_num_opportunities_preview': total_num_opportunities_preview,
