@@ -167,7 +167,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
 
     df_analysis_data = pd.DataFrame(columns=[
         'file_name',
-        'partner_file_name',
+        'file_name_partner',
         'feed_name',
         'feed_type',
         'feed_url',
@@ -176,8 +176,10 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
         'license_url',
         'publisher_name',
         'status',
-        'is_regular',
+        'event_type',
+        'event_type_partner',
         'is_merged_with_partner',
+        'is_regular',
         'num_items',
         'num_items_future',
         'num_items_future_week',
@@ -261,7 +263,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
 
                     df_analysis_data.loc[len(df_analysis_data)] = {
                         'file_name': pair_filenames_with_infostamp[idx],
-                        'partner_file_name': pair_filenames_with_infostamp[1-idx],
+                        'file_name_partner': pair_filenames_with_infostamp[1-idx],
                         'feed_name': pair_opportunities_in[idx].get('feed', {}).get('name'),
                         'feed_type': pair_opportunities_in[idx].get('feed', {}).get('type'),
                         'feed_url': pair_opportunities_in[idx].get('feed', {}).get('url'),
@@ -270,8 +272,10 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                         'license_url': pair_opportunities_in[idx].get('feed', {}).get('licenseUrl'),
                         'publisher_name': pair_opportunities_in[idx].get('feed', {}).get('publisherName'),
                         'status': pair_opportunities_in[idx]['status'],
+                        'event_type': pair_event_types[idx],
+                        'event_type_partner': pair_event_types[idx-1],
+                        'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was inhibited via keyword setting.
                         'is_regular': '000-preview' not in pair_filenames_with_infostamp[idx],
-                        'is_merged_with_partner': is_merged_with_partner,
                         'num_items': len(pair_opportunities_in[idx]['items'].keys()),
                         'num_items_future': num_items_future,
                         'num_items_future_week': num_items_future_week,
