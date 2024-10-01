@@ -58,6 +58,11 @@ if ('initialised' not in st.session_state):
     print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
     print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
 
+    with open(RELATIVE_FILEPATH_ANALYSIS + '/analysis-data.pickle', 'rb') as file_in:
+            df = pickle.load(file_in)
+    print(df.keys())
+    publishers = df['publisher_name'].unique()
+
     # --------------------------------------------------------------------------------------------------
 
     try:
@@ -103,3 +108,4 @@ if (    ('error' in st.session_state)
         position='hidden',
     )
     page.run()
+
