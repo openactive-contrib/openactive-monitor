@@ -99,7 +99,7 @@ if (    ('error' in st.session_state)
             st.Page('navigation/overview.py', title='Overview'),
             st.Page('navigation/details.py', title='Details'),
         ],
-        position='sidebar',
-        # position='hidden',
+        #position='sidebar',
+        position='hidden',
     )
     page.run()
