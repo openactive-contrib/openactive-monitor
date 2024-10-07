@@ -222,6 +222,10 @@ def get_feeds(**kwargs):
                                 feed_out['publisherName'] = jsonld['publisher']['name']
                             except:
                                 feed_out['publisherName'] = ''
+                            try:
+                                feed_out['logoUrl'] = jsonld['publisher']['logo']['url']
+                            except:
+                                feed_out['logoUrl'] = ''
 
                             if (dataset_url not in feeds.keys()):
                                 feeds[dataset_url] = []

@@ -171,6 +171,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
     merge_feeds = kwargs.get('merge_feeds', False)
     verbose = kwargs.get('verbose', False)
 
+    #List the items we want to collect for each feed
     df_analysis_data = pd.DataFrame(columns=[
         'file_name',
         'file_name_partner',
