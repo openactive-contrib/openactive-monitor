@@ -46,11 +46,8 @@ FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
 FILENAME_LADS = getenv('FILENAME_LADS', 'lads.geojson')
 FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
 FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
-MERGE_FEEDS = getenv('MERGE_FEEDS', 'False').title()
-MERGE_FEEDS = True if (MERGE_FEEDS == 'True') else False
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
-MERGE_FEEDS = True
 VERBOSE = True
 
 print('Environment variables:')
@@ -66,7 +63,6 @@ print('FILENAME_REGIONS:', FILENAME_REGIONS)
 print('FILENAME_LADS:', FILENAME_LADS)
 print('FILENAME_SE_SPORT_AND_DISCIPLINE:', FILENAME_SE_SPORT_AND_DISCIPLINE)
 print('FILENAME_OA_SE_MAPPING:', FILENAME_OA_SE_MAPPING)
-print('MERGE_FEEDS:', MERGE_FEEDS)
 print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------

@@ -221,7 +221,8 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
             pair_opportunities_in.append(opportunities_in)
             
         # --------------------------------------------------------------------------------------------------
-
+        # Using event type from the items rather than the feed name causing issues if no items
+        # Using event type from feed type if more than one type returned from items or type missing (e.g. no items)
         pair_event_types = []
         for opportunities_in in pair_opportunities_in:
             event_type = None
@@ -230,6 +231,8 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                     item_data_types = oa.get_item_data_types(opportunities_in)
                     if (len(item_data_types.keys()) == 1):
                         event_type = oa.get_event_type(list(item_data_types.keys())[0])
+                    else:
+                        event_type = oa.get_event_type(opportunities_in.get('feed', {}).get('type'))
                 except Exception as error:
                     print('ERROR:', error)
             pair_event_types.append(event_type)

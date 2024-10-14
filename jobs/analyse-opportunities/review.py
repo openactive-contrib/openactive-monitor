@@ -29,11 +29,15 @@ if (__name__ == '__main__'):
         df.to_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + 'exported_filenames_in.csv', index=False) 
 
         print(f"Number of feeds after pairing: {len(pairs_filenames_without_infostamp)}")
-        #print(*pairs_filenames_without_infostamp[-5:], sep="\n") 
+        
+        #print(*pairs_filenames_without_infostamp[3:4], sep="\n") 
+        #print(*pairs_filenames_without_infostamp[-8:-7], sep="\n") 
         #The next stage merges feeds where appropriate, then creates summary information from the feed
-        #analyse_opportunities(pairs_filenames_with_infostamp, verbose=VERBOSE)
+        #analyse_opportunities(pairs_filenames_with_infostamp[3:4], verbose=VERBOSE)
+        #analyse_opportunities(pairs_filenames_with_infostamp[-8:-7], verbose=VERBOSE)
+        analyse_opportunities(pairs_filenames_with_infostamp, verbose=VERBOSE)
         #Finally, an overall summary file is created for rapid visualisation in the dashboard
-        #create_summary()
+        create_summary()
         
     except Exception as error:
         print('ERROR:', error)
