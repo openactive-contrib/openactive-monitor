@@ -1,6 +1,5 @@
 import geopandas as gpd
 import gzip
-import lzma
 # import openactive as oa
 import pandas as pd
 import pickle
@@ -8,11 +7,11 @@ import random
 import sys
 from datetime import datetime, timedelta
 from dateutil import tz # For timezone handling
-from geopy.geocoders import Nominatim
 from numpy import nan
 from os import getenv, listdir
 from os.path import isfile
 from time import sleep
+import json
 
 sys.path.append('../volume-1/common')
 import openactive_custom as oa
@@ -35,9 +34,7 @@ FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle'
 FILENAME_FEEDS_SEEN = '000-feeds-seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAME_FEEDS_CRASHED = '000-feeds-crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAMES_SKIP = [FILENAME_FEEDS_SEEN, FILENAME_FEEDS_CRASHED] # Filenames to skip when checking for opportunity files in RELATIVE_FILEPATH_OPPORTUNITIES
-FORMAT_FILE_OPPORTUNITIES = 'pickle'
-COMPRESSION_FILE_OPPORTUNITIES = getenv('COMPRESSION_FILE_OPPORTUNITIES', 'gzip').lower() # 'none' / 'gzip' / 'xz'
-SUFFIX_FILENAME_OPPORTUNITIES = '.' + FORMAT_FILE_OPPORTUNITIES + (('.' + COMPRESSION_FILE_OPPORTUNITIES) if (COMPRESSION_FILE_OPPORTUNITIES != 'none') else '')
+SUFFIX_FILENAME_OPPORTUNITIES = 'pickle.gzip'
 LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
 FILENAME_ANALYSIS_DATA = getenv('FILENAME_ANALYSIS_DATA', 'analysis-data.pickle')
 FILENAME_SAMPLE_DATA = getenv('FILENAME_SAMPLE_DATA', 'sample_data.pickle')
@@ -46,10 +43,9 @@ FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
 FILENAME_LADS = getenv('FILENAME_LADS', 'lads.geojson')
 FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
 FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
-MERGE_FEEDS = getenv('MERGE_FEEDS', 'False').title()
-MERGE_FEEDS = True if (MERGE_FEEDS == 'True') else False
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
+VERBOSE = True
 
 print('Environment variables:')
 print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
@@ -57,22 +53,23 @@ print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
 print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
 print('FILENAME_FEEDS:', FILENAME_FEEDS)
 print('FILENAME_FEEDS_PREVIEW:', FILENAME_FEEDS_PREVIEW)
-print('COMPRESSION_FILE_OPPORTUNITIES:', COMPRESSION_FILE_OPPORTUNITIES)
 print('FILENAME_ANALYSIS_DATA:', FILENAME_ANALYSIS_DATA)
 print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
 print('FILENAME_REGIONS:', FILENAME_REGIONS)
 print('FILENAME_LADS:', FILENAME_LADS)
 print('FILENAME_SE_SPORT_AND_DISCIPLINE:', FILENAME_SE_SPORT_AND_DISCIPLINE)
 print('FILENAME_OA_SE_MAPPING:', FILENAME_OA_SE_MAPPING)
-print('MERGE_FEEDS:', MERGE_FEEDS)
 print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
-# TODO: Consider using a non-infinite timeout here. See:
-# https://gis.stackexchange.com/questions/173569/avoid-time-out-error-nominatim-geopy-openstreetmap
-# https://geopy.readthedocs.io/en/latest/index.html#nominatim
-geolocator = Nominatim(user_agent='OpenActive Monitor', timeout=None)
+#Moving away from this nominatum approach, which creates coords from postcodes
+#Moving towards creating a postcode for each record, from coords if necessary for nspl matching
+#4 positions:
+#1) Item has postcode and coords - use postcode
+#2) Item has postcode no coords - use postcode
+#3) Item has coords no postcode - find nearest centroid and use that postcode
+#4) Item has no postcode no coords - if not online event, use an organiser postcode, otherwise flag as missing
 
 # --------------------------------------------------------------------------------------------------
 
@@ -168,7 +165,6 @@ def get_pairs_filenames_with_infostamp(pairs_filenames_without_infostamp, filena
 # --------------------------------------------------------------------------------------------------
 
 def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
-    merge_feeds = kwargs.get('merge_feeds', False)
     verbose = kwargs.get('verbose', False)
 
     #List the items we want to collect for each feed
@@ -196,6 +192,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
         'activities_counts',
         'organisers_counts',
         'coords_counts',
+        'address_counts',
     ])
 
     filenames_sampleitems = {}
@@ -203,6 +200,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
     # --------------------------------------------------------------------------------------------------
 
     for idx_pair_filenames_with_infostamp, pair_filenames_with_infostamp in enumerate(pairs_filenames_with_infostamp):
+
         if (verbose):
             print(idx_pair_filenames_with_infostamp, pair_filenames_with_infostamp)
 
@@ -214,19 +212,14 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
             if (filename_with_infostamp is not None):
                 try:
                     relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filename_with_infostamp + SUFFIX_FILENAME_OPPORTUNITIES
-                    if (COMPRESSION_FILE_OPPORTUNITIES == 'none'):
-                        with open(relative_filepath_opportunities_in, 'rb') as file_in:
-                            opportunities_in = pickle.load(file_in)
-                    elif (COMPRESSION_FILE_OPPORTUNITIES == 'gzip'):
-                        with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
-                            opportunities_in = pickle.load(file_in)
-                    elif (COMPRESSION_FILE_OPPORTUNITIES == 'xz'):
-                        with lzma.open(relative_filepath_opportunities_in, 'rb') as file_in:
-                            opportunities_in = pickle.load(file_in)
+                    with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
+                        opportunities_in = pickle.load(file_in)
+                    if (verbose):
+                        print(f"Loaded {filename_with_infostamp}")
                 except Exception as error:
                     print('ERROR:', error)
             pair_opportunities_in.append(opportunities_in)
-
+            
         # --------------------------------------------------------------------------------------------------
 
         pair_event_types = []
@@ -240,12 +233,13 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                 except Exception as error:
                     print('ERROR:', error)
             pair_event_types.append(event_type)
+        if (verbose):
+            print(f"Event types: {pair_event_types}")
 
         # --------------------------------------------------------------------------------------------------
 
         is_merged_with_partner = False
-        if (    (merge_feeds)
-            and ('superevent' in pair_event_types)
+        if (('superevent' in pair_event_types)
             and ('subevent' in pair_event_types)
         ):
             try:
@@ -292,6 +286,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                         'activities_counts': get_values_counts(pair_opportunities_in[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
                         'organisers_counts': get_values_counts(pair_opportunities_in[idx], 'organizer', 'name'),
                         'coords_counts': get_coords_counts(pair_opportunities_in[idx]), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
+                        'address_counts': get_values_counts(pair_opportunities_in[idx], 'location'),
                     }
 
                     if (num_items_future_week > 0):
@@ -326,7 +321,11 @@ def get_values_counts(opportunities, key_to_find, child_key_to_find=None):
             values = [values]
         for value in values:
             if (not isinstance(value, str)):
-                continue
+                # If it's a dictionary, convert it to a string (e.g. to return whole json dict of location to capture addresses in various formats)
+                if isinstance(value, dict):
+                    value = json.dumps(value)
+                else:
+                    continue
             value = value.strip()
             if (value not in values_counts.keys()):
                 values_counts[value] = 1
@@ -380,8 +379,6 @@ def get_coords_counts(opportunities): #, filename=None)
 
     for item in opportunities['items'].values():
         item_coords = get_item_coords_from_geo(item)
-        if (not item_coords):
-            item_coords = get_item_coords_from_postalcode(item)
         if (item_coords):
             item_coords = ','.join([str(item_coord) for item_coord in item_coords])
             if (item_coords not in coords_counts.keys()):
@@ -416,49 +413,6 @@ def get_item_coords_from_geo(data):
             ]
         elif (isinstance(val, dict)):
             item_coords = get_item_coords_from_geo(val)
-        if (item_coords):
-            break
-
-    return item_coords
-
-# --------------------------------------------------------------------------------------------------
-
-postalcodes_coords = {}
-time_last_geocode = datetime.now()
-def get_item_coords_from_postalcode(data):
-    item_coords = []
-
-    global time_last_geocode
-    global postalcodes_coords
-
-    for key, val in data.items():
-        if (    (key == 'postalCode')
-            and (isinstance(val, str))
-        ):
-            val_mod = val.upper().replace(' ', '')
-            if (val_mod not in postalcodes_coords.keys()):
-                # https://operations.osmfoundation.org/policies/nominatim/
-                # Nominatim usage policy demands "an absolute maximum of 1 request per second", so if less than one
-                # second has passed since the last request then wait before proceeding with the next request:
-                if ((datetime.now() - time_last_geocode).seconds < 1):
-                    sleep(1)
-                time_last_geocode = datetime.now()
-                loc = geolocator.geocode(val_mod + ',GB')
-                if (    (loc is not None)
-                    and (loc.latitude is not None)
-                    and (loc.longitude is not None)
-                ):
-                    postalcodes_coords[val_mod] = [
-                        round(loc.latitude, NUM_DECIMAL_PLACES_COORDS),
-                        round(loc.longitude, NUM_DECIMAL_PLACES_COORDS)
-                    ]
-                else:
-                    print('Can\'t determine coordinates for postalcode:', val)
-                    postalcodes_coords[val_mod] = None
-            if (postalcodes_coords[val_mod] is not None):
-                item_coords = postalcodes_coords[val_mod]
-        elif (isinstance(val, dict)):
-            item_coords = get_item_coords_from_postalcode(val)
         if (item_coords):
             break
 

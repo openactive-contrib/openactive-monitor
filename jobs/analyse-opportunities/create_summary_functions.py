@@ -50,6 +50,8 @@ MERGE_FEEDS = getenv('MERGE_FEEDS', 'False').title()
 MERGE_FEEDS = True if (MERGE_FEEDS == 'True') else False
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
+MERGE_FEEDS = True
+VERBOSE = True
 
 print('Environment variables:')
 print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
@@ -183,6 +185,12 @@ def create_summary():
     df_total_types_counts, \
     total_num_types, \
     total_num_opportunities_with_types = get_df_total_values_counts(df_analysis_data, 'types_counts', feeds_to_include='all')
+    # --------------------------------------------------------------------------------------------------
+
+    # Columns: ['address', 'count', 'percentage']
+    df_total_address_counts, \
+    total_num_address, \
+    total_num_opportunities_with_address = get_df_total_values_counts(df_analysis_data, 'address_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -346,7 +354,11 @@ def create_summary():
         'df_total_types_counts': df_total_types_counts,
         'total_num_types': total_num_types,
         'total_num_opportunities_with_types': total_num_opportunities_with_types,
-
+        
+        'df_total_address_counts': df_total_address_counts,
+        'total_num_address': total_num_address,
+        'total_num_opportunities_with_address': total_num_opportunities_with_address,
+        
         # 'df_total_sad_counts': df_total_sad_counts, # 2024-08-23 Not currently used in the dashboard
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
         'df_total_sad_counts_unmatched': df_total_sad_counts_unmatched,
@@ -405,7 +417,8 @@ def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include
         df_total_values_counts.columns = ['organiser', 'count']
     elif (values_counts == 'coords_counts'):
         df_total_values_counts.columns = ['coords', 'count']
-
+    elif (values_counts == 'address_counts'):
+        df_total_values_counts.columns = ['address', 'count']
     total_num_keys = df_total_values_counts.shape[0]
     total_num_opportunities_with_keys = df_total_values_counts['count'].sum()
 
