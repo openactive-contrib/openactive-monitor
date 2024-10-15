@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import streamlit as st
 from datetime import datetime
 from millify import millify
+import plotly.graph_objects as go
 
 # --------------------------------------------------------------------------------------------------
 
@@ -31,9 +32,53 @@ with tabs[0]:
             if button1:
                 content.empty()
                 st.markdown("**OpenActive** is a decentralised open data initiative. Each data provider shares one or more data feeds, providing near real time availability of their activities and facilities.")
+                st.markdown("The **status page** lists the data providers and basic information about the status of each feed.")
             elif button2:
                 content.empty()
-                st.markdown(" ")
+                cols = st.columns([1, 2, 1])
+                with cols[0]:
+                    st.markdown("There are different kinds of **OpenActive** data feeds. ")
+                    st.markdown("Some are designed to be read together, for example:")
+                    st.markdown(" - A Session Series feed includes details that apply to a number of events: location, activity, organiser, etc")
+                    st.markdown(" - A Scheduled Session feed includes details that apply to a specific event: date, time, number of spaces remaining, etc")
+                    
+                with cols[1]:
+                    # Get the data for the donut plot
+                    df = st.session_state.analysis['df_total_types_counts']
+
+                    # Group categories less than 1% for the donut plot
+                    df_donut = df.copy()  # Create a copy to avoid modifying the original DataFrame
+                    df_donut['type'] = df_donut.apply(lambda row: row['type'] if row['percentage'] >= 1 else 'Other', axis=1)
+                    df_donut = df_donut.groupby('type').sum().reset_index()
+
+                    labels = df_donut['type'].tolist()
+                    values = df_donut['percentage'].tolist()
+
+                    # Create the donut plot using Plotly
+                    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.5)])
+                    fig.update_layout(
+                        title="OpenActive Opportunity Types",
+                        width=600,
+                        height=400,
+                        margin=dict(l=0, r=0, t=50, b=0),
+                        showlegend=True,
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # Display the table with original 'type' values
+                st.dataframe(df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        'type': 'OA type',
+                        'count': 'Num. opportunities',
+                        'percentage': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',),
+                    },
+                    )
+                st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_types']:,}")
+
             elif button3:
                 content.empty()
                 st.markdown("The official OpenActive activity list contains over 700 standardised activity names, though publishers can and do use their own wording for activity and facility labels.")
