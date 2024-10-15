@@ -193,6 +193,8 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
         'organisers_counts',
         'coords_counts',
         'address_counts',
+        'orphaned_superevents',
+        'orphaned_subevents',
     ])
 
     filenames_sampleitems = {}
@@ -246,6 +248,8 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
             and ('subevent' in pair_event_types)
         ):
             try:
+                orphaned_superevents, \
+                orphaned_subevents, \
                 pair_opportunities_in[pair_event_types.index('subevent')] = oa.get_merged_opportunities(
                     pair_opportunities_in[pair_event_types.index('subevent')],
                     pair_opportunities_in[pair_event_types.index('superevent')],
@@ -290,6 +294,8 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                         'organisers_counts': get_values_counts(pair_opportunities_in[idx], 'organizer', 'name'),
                         'coords_counts': get_coords_counts(pair_opportunities_in[idx]), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
                         'address_counts': get_values_counts(pair_opportunities_in[idx], 'location'),
+                        'orphaned_superevents': orphaned_superevents,
+                        'orphaned_subevents': orphaned_subevents,
                     }
 
                     if (num_items_future_week > 0):

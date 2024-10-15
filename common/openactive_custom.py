@@ -669,7 +669,7 @@ def get_merged_opportunities(subevent_opportunities, superevent_opportunities, *
         print(f'\t{orphaned_superevents} orphaned superevents.')
         print(f'\t{orphaned_subevents} orphaned subevents.')
 
-    return subevent_opportunities
+    return orphaned_superevents, orphaned_subevents, subevent_opportunities
 
 # --------------------------------------------------------------------------------------------------
 

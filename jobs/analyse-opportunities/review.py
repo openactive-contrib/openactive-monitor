@@ -30,10 +30,16 @@ if (__name__ == '__main__'):
 
         print(f"Number of feeds after pairing: {len(pairs_filenames_without_infostamp)}")
         
-        #print(*pairs_filenames_without_infostamp[3:4], sep="\n") 
+        #print(*pairs_filenames_without_infostamp[32:33], sep="\n") 
+        
+        #Currently the only feed 'in' that does not appear in analysis data file is 'better-org-uk-odi-sessions-json'
+        #It has 465997 items but errors: Compressed file ended before the end-of-stream marker was reached
+        #So, there are no opportunities in to report on.
+        
         #print(*pairs_filenames_without_infostamp[-8:-7], sep="\n") 
         #The next stage merges feeds where appropriate, then creates summary information from the feed
         #analyse_opportunities(pairs_filenames_with_infostamp[3:4], verbose=VERBOSE)
+        #analyse_opportunities(pairs_filenames_with_infostamp[32:33], verbose=VERBOSE)
         #analyse_opportunities(pairs_filenames_with_infostamp[-8:-7], verbose=VERBOSE)
         analyse_opportunities(pairs_filenames_with_infostamp, verbose=VERBOSE)
         #Finally, an overall summary file is created for rapid visualisation in the dashboard
