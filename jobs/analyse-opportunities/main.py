@@ -1,3 +1,12 @@
+#READ ME from HA :)
+#I'm using review.py to launch this job at the mo
+#It calls read pickle and create summary functions
+#I use check.py and check_summary.py to explore the results
+#import nspl and import casc are 'run once a year' kind of jobs to update ref data in data-analysis bucket
+#Working on get postcodes.py to get missing postcodes - will give it another few hours
+#Then match to nspl.py to get a base table of opportnuties with location / deprivation
+#Then need to fold back the matching into analysis job to produce cross-tab of location and activity
+
 from read_pickle_functions import *
 from create_summary_functions import *
 from os import getenv

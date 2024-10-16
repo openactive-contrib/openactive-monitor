@@ -1,34 +1,36 @@
 import pandas as pd
+import geopandas as gpd
 import pickle
+import sys
 from os import getenv
-import json
-import re
-from geopy.geocoders import Nominatim
 from shapely.geometry import Point, box
-from shapely.ops import transform
-from functools import partial
-import pyproj
-import geopandas as gpd  # Import geopandas
+import time
+import json
 import warnings
 
+
+#One option to speed up would be to check for dup'd coords before lookup
+
+pd.set_option('display.max_colwidth', 150) 
+
 RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
-filename = 'analysis.pickle'
+ANALYSIS_FILENAME = 'analysis.pickle'
 NSPL_PICKLE_FILENAME = 'nspl.pickle'
 
-def is_valid_uk_postcode(postcode):
-    postcode = postcode.strip()
-    """Checks if a given string is a valid UK postcode."""
-    regex = r"^[A-Z]{1,2}[0-9]{1,2}[A-Z0-9]? ?[0-9][A-Z]{2}$"
-    match = re.match(regex, postcode.upper())
-    return bool(match)
-
 # Load the pickle file
-with open(RELATIVE_FILEPATH_ANALYSIS + '/' + filename, 'rb') as file_in:
+with open(RELATIVE_FILEPATH_ANALYSIS + '/' + ANALYSIS_FILENAME, 'rb') as file_in:
     df_analysis_data = pickle.load(file_in)
 
-# Load the NSPL data using geopandas
+# Load the NSPL data
 with open(RELATIVE_FILEPATH_ANALYSIS + '/' + NSPL_PICKLE_FILENAME, 'rb') as file_in:
-    df_nspl = pickle.load(file_in)  # Use gpd.read_file
+    df_nspl = pickle.load(file_in) 
+print(len(df_nspl))
+# For matching, exclude postcodes with invalid coords
+df_nspl = df_nspl[(df_nspl['long'] >= -8.163139) & 
+                  (df_nspl['long'] <= 1.762773) & 
+                  (df_nspl['lat'] >= 49.895171) & 
+                  (df_nspl['lat'] <= 61.0000)]
+print(len(df_nspl))
 
 # Create a geometry column from lat and long
 df_nspl['geometry'] = gpd.points_from_xy(df_nspl['long'], df_nspl['lat'])
@@ -36,104 +38,104 @@ df_nspl['geometry'] = gpd.points_from_xy(df_nspl['long'], df_nspl['lat'])
 # Convert to GeoDataFrame
 df_nspl = gpd.GeoDataFrame(df_nspl, geometry='geometry', crs='epsg:4326')
 
-# Create a bounding box polygon
-bbox_polygon = gpd.GeoDataFrame(
-    {'geometry': [box(-8.163139, 49.895171, 1.762773, 61.0000)]},
-    crs='epsg:4326'
-)
-
-# Identify points outside the bounding box
-points_outside_bbox = df_nspl[~df_nspl.intersects(bbox_polygon.geometry[0])]
-
-# Print the points outside the bounding box
-print(points_outside_bbox)
-
-# Access the 'df_total_address_counts' DataFrame
+# Prepare a sample DataFrame for testing
+#sample_size = 1000  # Adjust as needed
+#address_counts_df = df_analysis_data['df_total_address_counts'].sample(sample_size)
 address_counts_df = df_analysis_data['df_total_address_counts']
+address_counts_df['extracted_postcode'] = address_counts_df['address'].str.extract(r'([A-Z]{1,2}[0-9]{1,2}[A-Z0-9]? ?[0-9][A-Z]{2})')
 
-print(f"Number of rows in address_counts_df: {len(address_counts_df)}")
+print(address_counts_df)
 
-postcode_data = []
+# Print one full row
+print(address_counts_df.iloc[0]) 
 
-#Checking counts
-coords_count = 0 
-no_pcode = 0
-pcodes = 0
+# --- Method 1: Without Spatial Index ---
+start_time = time.time()
 
-for i in range(len(address_counts_df)):
-    if i % 1000 == 0:
-        print(i)
-    #Take each address
-    address_data = json.loads(address_counts_df.iloc[i]['address'])
-    
-    #Split into parts and look for a postcode
-    postcode_found = False
-    parts = []
-    for key, value in address_data.items():
-        if isinstance(value, str):
-            parts.extend(value.split(','))
-        elif isinstance(value, dict):
-            for sub_key, sub_value in value.items():
-                if isinstance(sub_value, str):
-                    parts.extend(sub_value.split(','))
-    for part in parts:
-        if is_valid_uk_postcode(part):
-            postcode_data.append({
-                'postcode': part.strip(),
-                'count': address_counts_df.iloc[i]['count'],
-                'percentage': address_counts_df.iloc[i]['percentage']
-            })
-            pcodes+=1
-            postcode_found = True
-            break  
-    if not postcode_found:
+def find_nearest_postcode(row):
+    if pd.isna(row.extracted_postcode):  # Access using attribute notation
+        # Access geocoordinates, handling nested 'geo' dictionary
         coords = None
-        nearest_postcode = None
-        # Access geocoordinates directly
-        if 'geo' in address_data:
-            geocoordinates = address_data['geo']
-            if 'longitude' in geocoordinates and 'latitude' in geocoordinates:
-                coords = (geocoordinates['longitude'], geocoordinates['latitude'])
+        if hasattr(row, 'address'):  # Check if the attribute exists
+            address_data = json.loads(row.address)  # Access using attribute notation
+            if 'geo' in address_data:
+                geocoordinates = address_data['geo']
+                if 'longitude' in geocoordinates and 'latitude' in geocoordinates:
+                    coords = (geocoordinates['longitude'], geocoordinates['latitude'])
         if coords is not None:
-            # Find nearest postcode using geospatial matching
             point = Point(coords)
+            # Only proceed if coords in UK bounding box
             if (point.x >= -8.163139) and (point.x <= 1.762773) and (point.y >= 49.895171) and (point.y <= 61.0000): 
-                # Suppress the warning only for this specific operation
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore", UserWarning)
-                    nearest_postcode = df_nspl.loc[
-                        df_nspl.geometry.distance(point).idxmin()
-                    ]["pcds"]
-                #filtered_df = df_nspl[df_nspl['pcds'] == nearest_postcode]
-                #print(filtered_df)
-        if nearest_postcode is not None:
-            postcode_data.append({
-                'postcode': nearest_postcode,
-                'count': address_counts_df.iloc[i]['count'],
-                'percentage': address_counts_df.iloc[i]['percentage']
-            })
-            coords_count +=1
-            postcode_found = True
+                    distances = df_nspl.geometry.distance(point)
+                    # Handle edge cases:
+                    if not distances.empty:
+                        nearest_index = distances.idxmin()
+                        # Ensure nearest_index is valid:
+                        if nearest_index in df_nspl.index:
+                            return df_nspl.loc[nearest_index]['pcds'] 
+                        else:
+                            #print("No nearest postcode")
+                            return row.extracted_postcode  # Access using attribute notation
         else:
-            no_pcode+=1
-            # If no postcode or coordinates found, use organizer postcode if available - but not brought through here
-            # Flag as missing if no postcode or coordinates found
+            #print("No coords")
+            return row.extracted_postcode  # Access using attribute notation
+    else:
+        return row.extracted_postcode  # Access using attribute notation
+
+
+# Add a counter and progress display
+total_rows = len(address_counts_df)
+for i, row in enumerate(address_counts_df.itertuples(), 1):  # Start counter from 1
+    address_counts_df.loc[row.Index, 'nearest_postcode'] = find_nearest_postcode(row)
+    if i % 1000 == 0:
+        print(f"Processed {i}/{total_rows} rows ({(i/total_rows)*100:.2f}%)")
+
+
+#address_counts_df['nearest_postcode'] = address_counts_df.apply(find_nearest_postcode, axis=1)
+
+end_time = time.time()
+time_without_index = end_time - start_time
+print(f"Time taken without spatial index: {time_without_index:.2f} seconds")
+
+# Calculate and print the number of postcodes obtained
+postcodes_obtained = address_counts_df['extracted_postcode'].notna().sum()
+print(f"Number of postcodes extracted: {postcodes_obtained}")
+postcodes_obtained = address_counts_df['nearest_postcode'].notna().sum()
+print(f"Number of postcodes obtained: {postcodes_obtained}")
+
+postcode_data = []
+missing_count = 0  # Initialize count for missing postcodes
+
+for i in range(len(address_counts_df)):
+    postcode = address_counts_df.iloc[i]['nearest_postcode']
+    
+    # Find if postcode already exists in postcode_data
+    existing_postcode = next((item for item in postcode_data if item['postcode'] == postcode), None)
+    
+    if existing_postcode:
+        # If postcode exists, increment count
+        existing_postcode['count'] += address_counts_df.iloc[i]['count']
+    else:
+        # If postcode doesn't exist, add it to the list
+        if pd.notna(postcode):
             postcode_data.append({
-                'postcode': 'Missing',
+                'postcode': postcode.strip(),
                 'count': address_counts_df.iloc[i]['count'],
-                'percentage': address_counts_df.iloc[i]['percentage']
             })
+        else:
+            # Increment the missing count
+            missing_count += address_counts_df.iloc[i]['count']
 
+# After processing all rows, add the 'Missing' entry
+postcode_data.append({
+    'postcode': 'Missing',
+    'count': missing_count,
+})
+
+# Create a DataFrame from the postcode data
 postcode_df = pd.DataFrame(postcode_data)
-
-print(f"Number of rows in postcode_df: {len(postcode_df)}")
-print(f"Number of rows with no postcode: {len(address_counts_df)-len(postcode_df)}")
-
-print(f"Number of rows with no postcode: {no_pcode}")
-print(f"Number of rows with postcodes from coords: {coords_count}")
-print(f"Number of rows with own poctcode {pcodes}")
-
-print(no_pcode+coords_count+pcodes)
 
 # Save the postcode DataFrame to a pickle file
 with open(RELATIVE_FILEPATH_ANALYSIS + '/' + 'postcode_counts.pickle', 'wb') as file_out:
