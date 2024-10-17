@@ -9,7 +9,33 @@ import json
 import warnings
 
 
-#One option to speed up would be to check for dup'd coords before lookup
+#One option to speed up would be to check for dup'd coords before lookup...
+
+# ... (rest of your imports and code)
+
+# --- Before Method 1: Identify and handle duplicate coordinates ---
+
+# 1. Create a new column 'coordinates' for easier grouping
+#address_counts_df['coordinates'] = address_counts_df['address'].apply(lambda x: (json.loads(x)['geo']['longitude'], json.loads(x)['geo']['latitude']) if 'geo' in json.loads(x) else None)
+
+# 2. Identify duplicate coordinates
+#duplicate_coords = address_counts_df[address_counts_df['coordinates'].duplicated(keep=False)]['coordinates'].unique()
+
+# 3. Create a dictionary to store nearest postcodes for duplicate coordinates
+#duplicate_postcode_mapping = {}
+
+# 4. Modify the find_nearest_postcode function to use the mapping
+#def find_nearest_postcode(row):
+#    if pd.isna(row.extracted_postcode):
+#        if row.coordinates in duplicate_postcode_mapping:
+#            return duplicate_postcode_mapping[row.coordinates]  # Retrieve from mapping
+#        # ... (rest of your find_nearest_postcode logic)
+#        if row.coordinates in duplicate_coords:
+#            duplicate_postcode_mapping[row.coordinates] = row.nearest_postcode  # Store in mapping
+#    else:
+#        return row.extracted_postcode
+
+# ... (rest of your code, including Method 1 and Method 2)
 
 pd.set_option('display.max_colwidth', 150) 
 
