@@ -12,19 +12,102 @@ pd.set_option('display.max_colwidth', 150)
 os.system('cls' if os.name == 'nt' else 'clear')
 
 RELATIVE_FILEPATH_ANALYSIS = os.getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
-PCODES_FILENAME = 'postcode_counts.pickle'
-NSPL_PICKLE_FILENAME = 'nspl.pickle'
+LAUA_FILENAME = 'laua_counts.pickle'
+POP_FILENAME = 'pop2019.csv'
 
 # Load the pickle file
-with open(RELATIVE_FILEPATH_ANALYSIS + '/' + PCODES_FILENAME, 'rb') as file_in:
-    pcodes = pickle.load(file_in)
+with open(RELATIVE_FILEPATH_ANALYSIS + '/' + LAUA_FILENAME, 'rb') as file_in:
+    las = pickle.load(file_in)
     # Rename 'postcode' to 'pcds' in pcodes DataFrame
-pcodes.rename(columns={'postcode': 'pcds'}, inplace=True)
-print(pcodes)
-print(f"Postcodes in OA data:{len(pcodes)}")
+print(las)
+print(f"LAUA in OA data:{len(las)}")
 
 #Check for dups
-print(f"Number of duplicate postcodes: {pcodes['pcds'].duplicated().sum()}")
+print(f"Number of duplicate laua: {las['laua'].duplicated().sum()}")
+
+# Show rows where 'count' is missing or 0
+missing_or_zero_count = las[(las['count'].isnull()) | (las['count'] == 0)]
+print(missing_or_zero_count)
+
+pop = pd.read_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + POP_FILENAME)
+print(pop)
+print(f"LAUA in Population data:{len(pop)}")
+pop.rename(columns={'Code': 'laua'}, inplace=True)
+
+# Merge the DataFrames on the 'laua' column
+merged_df = pd.merge(las, pop, on='laua', how='left')
+
+# Print the merged DataFrame
+print(merged_df)
+
+# Filter for rows where 'Name' is null or blank
+filtered_df = merged_df[merged_df['Name'].isnull() | (merged_df['Name'] == '')]
+
+# Print the filtered DataFrame
+print(filtered_df)
+
+# Drop unmatched rows
+merged_df = merged_df[~merged_df['all_ages'].isnull()]
+
+merged_df['all_ages'] = merged_df['all_ages'].str.replace(',', '').astype(int)
+
+# Calculate 'opp' by dividing 'count' by 'All Ages'
+merged_df['opp'] = merged_df['count'] / merged_df['all_ages']
+
+# Print the updated DataFrame
+output = merged_df[['Name','count','all_ages','opp']]
+print(output)
+
+# Rank 'merged_df' by 'opp' in descending order and select the top 25
+top_df = merged_df.sort_values(by='opp', ascending=False)
+
+# Print the top 25 DataFrame
+print(top_df)
+
+
+LDP_FILENAME = 'LDPs.csv'
+ldp = pd.read_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + LDP_FILENAME)
+
+print(f"LAUA in LDP data:{len(ldp)}")
+ldp.rename(columns={'LAUA': 'laua'}, inplace=True)
+ldp['LDP'] = True
+print(ldp)
+
+from scipy import stats
+
+# Merge ldp with merged_df
+merged_df = merged_df.merge(ldp[['laua', 'LDP']], on='laua', how='left')
+
+merged_df['LDP'] = merged_df['LDP'].fillna(False)
+
+# Separate data into two groups based on 'LDP'
+ldp_true = merged_df[merged_df['LDP'] == True]['opp']
+ldp_false = merged_df[merged_df['LDP'] == False]['opp']
+
+# Perform a t-test to check for significant difference
+t_statistic, p_value = stats.ttest_ind(ldp_true, ldp_false, equal_var=False)  # Use Welch's t-test if variances are unequal
+
+# Print the results
+print(f"T-statistic: {t_statistic:.2f}")
+print(f"P-value: {p_value:.3f}")
+
+# Interpret the results
+alpha = 0.05  # Set your significance level
+if p_value < alpha:
+    print("There is a statistically significant difference in 'opp' between LDP True and LDP False groups.")
+else:
+    print("There is no statistically significant difference in 'opp' between LDP True and LDP False groups.")
+
+# Calculate average 'opp' for LDP True and LDP False groups
+average_opp = merged_df.groupby('LDP')['opp'].mean()
+
+print(average_opp)
+
+sys.exit()
+
+
+
+
 
 #If dups, sum the counts
 if pcodes['pcds'].duplicated().sum() > 0:
@@ -170,6 +253,12 @@ print(min(english_nspl['imd']))
 # Merge DataFrames
 merged_df = pd.merge(pcodes, english_nspl, on='pcds', how='left')
 
+print(f"Number of LAUAs in 2023 nspl: {english_nspl['laua'].nunique()}")
+
+sys.exit()
+
+
+
 #Group and sum to handle multiple postcodes per imd area (lsoa)
 imd_counts = group_and_sum_counts(merged_df.copy(), 'imd')
 
@@ -232,6 +321,4 @@ print(imd_decile_coverage)
 
 # Save to CSV
 imd_decile_coverage.to_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + 'imd_decile_coverage_england.csv', index=False) 
-
-
 
