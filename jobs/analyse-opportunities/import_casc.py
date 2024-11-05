@@ -12,7 +12,7 @@ CASC_PICKLE_FILENAME = 'casc.pickle'
 casc_df = pd.read_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + CASC_filename)
 
 print("Available columns:", casc_df.columns.tolist())
-print("Number of rows before filtering:", len(casc_df))
+print("Number of rows:", len(casc_df))
 print(casc_df)
 
 #Save the dataframe to a pickle file
