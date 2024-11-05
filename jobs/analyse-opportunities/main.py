@@ -10,8 +10,6 @@ VERBOSE = True if (VERBOSE == 'True') else False
 
 if (__name__ == '__main__'):
 
-    VERBOSE = True
-
     try:
         filenames_with_infostamp, filenames_without_infostamp = get_filenames()
         pairs_filenames_without_infostamp = get_pairs_filenames_without_infostamp(filenames_without_infostamp)
