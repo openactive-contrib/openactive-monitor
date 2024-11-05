@@ -222,6 +222,10 @@ def get_feeds(**kwargs):
                                 feed_out['publisherName'] = jsonld['publisher']['name']
                             except:
                                 feed_out['publisherName'] = ''
+                            try:
+                                feed_out['logoUrl'] = jsonld['publisher']['logo']['url']
+                            except:
+                                feed_out['logoUrl'] = ''
 
                             if (dataset_url not in feeds.keys()):
                                 feeds[dataset_url] = []
@@ -548,30 +552,37 @@ def get_event_type(label):
 
 # --------------------------------------------------------------------------------------------------
 
+#Modified by HA:
+# - always merge
+# - return None if unable to match a subevent with its superevent if both event types present in pair_event_types
+# - report orphaned counts in VERBOSE (TO DO - store these for reporting in dashboard)
+
 def get_merged_opportunities(subevent_opportunities, superevent_opportunities, **kwargs):
     verbose = kwargs.get('verbose', False)
 
     num_superevents = len(superevent_opportunities['items'].keys())
     num_subevents = len(subevent_opportunities['items'].keys())
+    orphaned_superevents = 0
+    orphaned_subevents = 0
 
     if (verbose):
         print(stack()[0].function)
 
-    if (    (num_superevents == 0)
-        or  (num_subevents == 0)
-    ):
+    if (num_superevents == 0 or  num_subevents == 0):
         if (verbose):
             if (num_superevents == 0):
                 print('\tNo superevents')
             if (num_subevents == 0):
                 print('\tNo subevents')
-            print('\tNo data to evaluate for merging')
-        return subevent_opportunities
+        print('\tMissing sub or superevent data - no merging possible')
+        #return None
 
     superevent_modified_id_v_superevent_id = {}
     superevent_data_modified_id_v_superevent_id = {}
     subevent_id_v_superevent_modified_id_in_subevent = {}
     subevent_id_v_superevent_id = {}
+
+    #We have some subevent data and some superevent data...
 
     # superevent_id is identical to how it appears in a feed and its opportunities dictionary, and can be a string or an integer.
     # superevent_modified_id and superevent_data_modified_id are both strings.
@@ -606,7 +617,7 @@ def get_merged_opportunities(subevent_opportunities, superevent_opportunities, *
     if (num_subevents_with_superevent_modified_id == 0):
         if (verbose):
             print('\t\tNo subevents with superevent modified ID')
-        return subevent_opportunities
+        #return None
 
     # Search for matching superevent IDs between subevents and superevents, and use to make matching pairs
     # of subevent_id and superevent_id. The modified IDs are always strings and so can be directly compared
@@ -614,11 +625,16 @@ def get_merged_opportunities(subevent_opportunities, superevent_opportunities, *
     # to how they appear in a feed and its opportunities dictionary.
     if (verbose):
         print('\tDetermining superevent IDs for subevents:')
+    orphaned_superevent_ids = []
     for idx, (subevent_id, superevent_modified_id_in_subevent) in enumerate(subevent_id_v_superevent_modified_id_in_subevent.items()):
         if (superevent_modified_id_in_subevent in superevent_modified_id_v_superevent_id.keys()):
             subevent_id_v_superevent_id[subevent_id] = superevent_modified_id_v_superevent_id[superevent_modified_id_in_subevent]
         elif (superevent_modified_id_in_subevent in superevent_data_modified_id_v_superevent_id.keys()):
             subevent_id_v_superevent_id[subevent_id] = superevent_data_modified_id_v_superevent_id[superevent_modified_id_in_subevent]
+        else:
+            if superevent_modified_id_in_subevent not in orphaned_superevent_ids:
+                orphaned_superevent_ids.append(superevent_modified_id_in_subevent)
+    
         if (    (verbose)
             and ((num_subevents_with_superevent_modified_id <= 10) or ((idx + 1) % 10 == 0) or (idx == num_subevents_with_superevent_modified_id - 1))
         ):
@@ -628,13 +644,14 @@ def get_merged_opportunities(subevent_opportunities, superevent_opportunities, *
 
     if (num_subevents_with_superevent_id == 0):
         if (verbose):
-            print('\t\tNo subevents with superevent ID')
-        return subevent_opportunities
+            print('\t\tNo subevents with superevent ID - no merging possible')
+        #return None
 
     # Now we have known matching pairs of existing subevent_id and superevent_id from their respective
     # opportunities dictionaries, we can merge superevent items into associated subevent items. The output
     # subevent_opportunities dictionary is then a modified version of the input subevent_opportunities
     # dictionary.
+    
     if (verbose):
         print('\tMerging superevents into subevents:')
     for idx, (subevent_id, superevent_id) in enumerate(subevent_id_v_superevent_id.items()):
@@ -644,7 +661,15 @@ def get_merged_opportunities(subevent_opportunities, superevent_opportunities, *
         ):
             print(f"\t\t{datetime.now()} {idx+1}/{num_subevents_with_superevent_id} subevents with superevent ID processed", end=('\r' if (idx < num_subevents_with_superevent_id - 1) else '\n'))
 
-    return subevent_opportunities
+
+    orphaned_superevents = len(orphaned_superevent_ids)
+    orphaned_subevents = num_subevents - num_subevents_with_superevent_id
+    
+    if (verbose):
+        print(f'\t{orphaned_superevents} orphaned superevents.')
+        print(f'\t{orphaned_subevents} orphaned subevents.')
+
+    return orphaned_superevents, orphaned_subevents, subevent_opportunities
 
 # --------------------------------------------------------------------------------------------------
 

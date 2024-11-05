@@ -1,6 +1,7 @@
 import pickle
 import seaborn as sns
 import streamlit as st
+import pandas as pd
 from os import getenv
 
 # --------------------------------------------------------------------------------------------------
@@ -51,18 +52,17 @@ if ('initialised' not in st.session_state):
     #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
     #   --add-volume-mount volume=volume-1,mount-path=/volume-1
     RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
-
     FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
 
     print('Environment variables:')
     print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
     print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/analysis-data.pickle', 'rb') as file_in:
-            df = pickle.load(file_in)
-    print(df.keys())
-    publishers = df['publisher_name'].unique()
-
+    df_publishers = pd.read_csv(RELATIVE_FILEPATH_ANALYSIS + '/publishers.csv', header=None, names=['provider', 'classification'])
+    # Summarize the 'classification' column
+    classification_summary = df_publishers['classification'].value_counts().reset_index()
+    classification_summary.columns = ['Classification', 'Count']
+    
     # --------------------------------------------------------------------------------------------------
 
     try:
@@ -76,6 +76,11 @@ if ('initialised' not in st.session_state):
         st.error('Error retrieving data')
     else:
         st.session_state.error = False
+        
+    try:
+        st.session_state.publishers = classification_summary
+    except:
+        st.session_state.publishers = None       
 
         # --------------------------------------------------------------------------------------------------
 

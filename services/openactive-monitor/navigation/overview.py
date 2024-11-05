@@ -2,6 +2,163 @@ import matplotlib.pyplot as plt
 import streamlit as st
 from datetime import datetime
 from millify import millify
+import plotly.graph_objects as go
+import numpy as np
+import matplotlib.cm as cm
+
+class BubbleChart:
+    def __init__(self, area, bubble_spacing=0):
+        """
+        Setup for bubble collapse.
+
+        Parameters
+        ----------
+        area : array-like
+            Area of the bubbles.
+        bubble_spacing : float, default: 0
+            Minimal spacing between bubbles after collapsing.
+
+        Notes
+        -----
+        If "area" is sorted, the results might look weird.
+        """
+        area = np.asarray(area)
+        r = np.sqrt(area / np.pi)
+
+        self.bubble_spacing = bubble_spacing
+        self.bubbles = np.ones((len(area), 4))
+        self.bubbles[:, 2] = r
+        self.bubbles[:, 3] = area
+        self.maxstep = 2 * self.bubbles[:, 2].max() + self.bubble_spacing
+        self.step_dist = self.maxstep / 2
+
+        # calculate initial grid layout for bubbles
+        length = np.ceil(np.sqrt(len(self.bubbles)))
+        grid = np.arange(length) * self.maxstep
+        gx, gy = np.meshgrid(grid, grid)
+        self.bubbles[:, 0] = gx.flatten()[:len(self.bubbles)]
+        self.bubbles[:, 1] = gy.flatten()[:len(self.bubbles)]
+
+        self.com = self.center_of_mass()
+
+    def center_of_mass(self):
+        return np.average(
+            self.bubbles[:, :2], axis=0, weights=self.bubbles[:, 3]
+        )
+
+    def center_distance(self, bubble, bubbles):
+        return np.hypot(bubble[0] - bubbles[:, 0],
+                        bubble[1] - bubbles[:, 1])
+
+    def outline_distance(self, bubble, bubbles):
+        center_distance = self.center_distance(bubble, bubbles)
+        return center_distance - bubble[2] - \
+            bubbles[:, 2] - self.bubble_spacing
+
+    def check_collisions(self, bubble, bubbles):
+        distance = self.outline_distance(bubble, bubbles)
+        return len(distance[distance < 0])
+
+    def collides_with(self, bubble, bubbles):
+        distance = self.outline_distance(bubble, bubbles)
+        return np.argmin(distance, keepdims=True)
+
+    def collapse(self, n_iterations=50):
+        """
+        Move bubbles to the center of mass.
+
+        Parameters
+        ----------
+        n_iterations : int, default: 50
+            Number of moves to perform.
+        """
+        for _i in range(n_iterations):
+            moves = 0
+            for i in range(len(self.bubbles)):
+                rest_bub = np.delete(self.bubbles, i, 0)
+                # try to move directly towards the center of mass
+                # direction vector from bubble to the center of mass
+                dir_vec = self.com - self.bubbles[i, :2]
+
+                # shorten direction vector to have length of 1
+                dir_vec = dir_vec / np.sqrt(dir_vec.dot(dir_vec))
+
+                # calculate new bubble position
+                new_point = self.bubbles[i, :2] + dir_vec * self.step_dist
+                new_bubble = np.append(new_point, self.bubbles[i, 2:4])
+
+                # check whether new bubble collides with other bubbles
+                if not self.check_collisions(new_bubble, rest_bub):
+                    self.bubbles[i, :] = new_bubble
+                    self.com = self.center_of_mass()
+                    moves += 1
+                else:
+                    # try to move around a bubble that you collide with
+                    # find colliding bubble
+                    for colliding in self.collides_with(new_bubble, rest_bub):
+                        # calculate direction vector
+                        dir_vec = rest_bub[colliding, :2] - self.bubbles[i, :2]
+                        dir_vec = dir_vec / np.sqrt(dir_vec.dot(dir_vec))
+                        # calculate orthogonal vector
+                        orth = np.array([dir_vec[1], -dir_vec[0]])
+                        # test which direction to go
+                        new_point1 = (self.bubbles[i, :2] + orth *
+                                      self.step_dist)
+                        new_point2 = (self.bubbles[i, :2] - orth *
+                                      self.step_dist)
+                        dist1 = self.center_distance(
+                            self.com, np.array([new_point1]))
+                        dist2 = self.center_distance(
+                            self.com, np.array([new_point2]))
+                        new_point = new_point1 if dist1 < dist2 else new_point2
+                        new_bubble = np.append(new_point, self.bubbles[i, 2:4])
+                        if not self.check_collisions(new_bubble, rest_bub):
+                            self.bubbles[i, :] = new_bubble
+                            self.com = self.center_of_mass()
+
+            if moves / len(self.bubbles) < 0.1:
+                self.step_dist = self.step_dist / 2
+
+    def plot(self, ax, labels, colors):
+        """
+        Draw the bubble plot.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+        labels : list
+            Labels of the bubbles.
+        colors : list
+            Colors of the bubbles.
+        """
+        for i in range(len(self.bubbles)):
+            circ = plt.Circle(
+                self.bubbles[i, :2], self.bubbles[i, 2]*0.95, color=colors[i]
+            )
+            ax.add_patch(circ)
+
+            # Split label if longer than 30 characters, word-wise
+            split_label = ""
+            current_line = ""
+            words = labels[i].split()
+            for word in words:
+                if len(current_line + word) <= 12:
+                    current_line += word + " "
+                else:
+                    split_label += current_line.strip() + "\n"
+                    current_line = word + " "
+            split_label += current_line.strip()  # Add the last line
+
+
+            ax.text(
+                *self.bubbles[i, :2], 
+                f"{split_label}\n({int(self.bubbles[i, 3])})",  # Add count to label
+                horizontalalignment='center',
+                verticalalignment='center',
+                color='white',
+                fontsize=8,
+                wrap=True
+            )
 
 # --------------------------------------------------------------------------------------------------
 
@@ -31,9 +188,71 @@ with tabs[0]:
             if button1:
                 content.empty()
                 st.markdown("**OpenActive** is a decentralised open data initiative. Each data provider shares one or more data feeds, providing near real time availability of their activities and facilities.")
+                cols = st.columns([1, 4, 1])
+                with cols[1]:
+                    # Create a colormap instance
+                    cmap = cm.get_cmap('viridis')
+                    # Map the colormap to your data (classification categories)
+                    norm = plt.Normalize(vmin=0, vmax=len(st.session_state.publishers['Classification']))
+                    colors = [cmap(norm(i)) for i in range(len(st.session_state.publishers['Classification']))]
+                    bubble_chart = BubbleChart(area=st.session_state.publishers['Count'], bubble_spacing=0.01)
+                    bubble_chart.collapse()
+                    fig, ax = plt.subplots(subplot_kw=dict(aspect="equal"))  # Adjust figsize as needed
+                    bubble_chart.plot(ax, st.session_state.publishers['Classification'], colors)
+                    ax.axis("off")
+                    ax.relim()
+                    ax.autoscale_view()
+                    # Display the chart in Streamlit
+                    st.pyplot(fig, use_container_width=True)
+                    plt.close(fig)  # Close the figure to avoid potential issues
+                
+                st.markdown("The **status page** lists the data providers and basic information about the status of each feed.")
             elif button2:
                 content.empty()
-                st.markdown(" ")
+                cols = st.columns([1, 2, 1])
+                with cols[0]:
+                    st.markdown("There are different kinds of **OpenActive** data feeds. ")
+                    st.markdown("Some are designed to be read together, for example:")
+                    st.markdown(" - A Session Series feed includes details that apply to a number of events: location, activity, organiser, etc")
+                    st.markdown(" - A Scheduled Session feed includes details that apply to a specific event: date, time, number of spaces remaining, etc")
+                    
+                with cols[1]:
+                    # Get the data for the donut plot
+                    df = st.session_state.analysis['df_total_types_counts']
+
+                    # Group categories less than 1% for the donut plot
+                    df_donut = df.copy()  # Create a copy to avoid modifying the original DataFrame
+                    df_donut['type'] = df_donut.apply(lambda row: row['type'] if row['percentage'] >= 1 else 'Other', axis=1)
+                    df_donut = df_donut.groupby('type').sum().reset_index()
+
+                    labels = df_donut['type'].tolist()
+                    values = df_donut['percentage'].tolist()
+
+                    # Create the donut plot using Plotly
+                    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.5)])
+                    fig.update_layout(
+                        title="OpenActive Opportunity Types",
+                        width=600,
+                        height=400,
+                        margin=dict(l=0, r=0, t=50, b=0),
+                        showlegend=True,
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # Display the table with original 'type' values
+                st.dataframe(df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        'type': 'OA type',
+                        'count': 'Num. opportunities',
+                        'percentage': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',),
+                    },
+                    )
+                st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_types']:,}")
+
             elif button3:
                 content.empty()
                 st.markdown("The official OpenActive activity list contains over 700 standardised activity names, though publishers can and do use their own wording for activity and facility labels.")
