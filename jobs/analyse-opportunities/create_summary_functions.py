@@ -48,7 +48,6 @@ FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'S
 FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
-VERBOSE = True
 
 print('Environment variables:')
 print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
