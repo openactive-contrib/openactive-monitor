@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import numpy as np
 import matplotlib.cm as cm
 import time 
+
 # --------------------------------------------------------------------------------------------------
 
 tabs = st.tabs(['Snapshot', 'KPIs'])
@@ -28,110 +29,118 @@ with tabs[0]:
         \nLive opportunities
         """)
     with cols[1]:
-        content = st.container()
-        with content:
-            # Display content based on button click
-            if button1:
-                content.empty()
-                st.markdown("**OpenActive** is a decentralised open data initiative. Each data provider shares one or more data feeds, providing near real time availability of their activities and facilities.")
-                # Use st.empty to create a placeholder for the image
-                image_placeholder = st.empty()
-                while button1:  # Loop until button is clicked again
-                    for url in logo_urls:
-                        with image_placeholder.container():  # Use a container for clean updates
-                            st.image(url, width=100)
-                            time.sleep(0.3)
-                st.markdown("The **status page** lists the data providers and basic information about the status of each feed.")
-            elif button2:
-                content.empty()
-                cols = st.columns([1, 2, 1])
-                with cols[0]:
-                    st.markdown("There are different kinds of **OpenActive** data feeds. ")
-                    st.markdown("Some are designed to be read together, for example:")
-                    st.markdown(" - A Session Series feed includes details that apply to a number of events: location, activity, organiser, etc")
-                    st.markdown(" - A Scheduled Session feed includes details that apply to a specific event: date, time, number of spaces remaining, etc")
-                    
-                with cols[1]:
-                    # Get the data for the donut plot
-                    df = st.session_state.analysis['df_total_types_counts']
+        content = st.empty() # Use st.empty for the entire content area
+        if button1:
+            st.markdown("**OpenActive** is a decentralised open data initiative. Each data provider shares one or more data feeds, providing near real time availability of their activities and facilities.")   
+            st.markdown(" ")
+            st.markdown("The **status page** lists the data providers and basic information about the status of each feed.")
+            st.markdown(" ")
+            st.markdown("Some data providers are National Governing Bodies, some are big leisure providers, while others create systems to allow smaller activity providers to open their data.")
+            st.markdown(" ")
 
-                    # Group categories less than 1% for the donut plot
-                    df_donut = df.copy()  # Create a copy to avoid modifying the original DataFrame
-                    df_donut['type'] = df_donut.apply(lambda row: row['type'] if row['percentage'] >= 1 else 'Other', axis=1)
-                    df_donut = df_donut.groupby('type').sum().reset_index()
+            image_placeholder = st.empty()  # Placeholder for all images
+            num_images_to_show = 6 
+            for i in range(len(st.session_state.logo_urls)):
+                with image_placeholder.container():  # Use the container
+                    start_index = i % len(st.session_state.logo_urls)
+                    image_urls = st.session_state.logo_urls[start_index:min(len(st.session_state.logo_urls), start_index + num_images_to_show)]
+                    cols = st.columns(len(image_urls))
+                    for j, url in enumerate(image_urls):
+                        with cols[j]:
+                            st.image(url, width=200)
+                time.sleep(0.7)
+                image_placeholder.empty() # Clear the entire placeholder
+                
+        elif button2:
+            content.empty()
+            cols = st.columns([1, 2, 1])
+            with cols[0]:
+                st.markdown("There are different kinds of **OpenActive** data feeds. ")
+                st.markdown("Some are designed to be read together, for example:")
+                st.markdown(" - A Session Series feed includes details that apply to a number of events: location, activity, organiser, etc")
+                st.markdown(" - A Scheduled Session feed includes details that apply to a specific event: date, time, number of spaces remaining, etc")
+                
+            with cols[1]:
+                # Get the data for the donut plot
+                df = st.session_state.analysis['df_total_types_counts']
 
-                    labels = df_donut['type'].tolist()
-                    values = df_donut['percentage'].tolist()
+                # Group categories less than 1% for the donut plot
+                df_donut = df.copy()  # Create a copy to avoid modifying the original DataFrame
+                df_donut['type'] = df_donut.apply(lambda row: row['type'] if row['percentage'] >= 1 else 'Other', axis=1)
+                df_donut = df_donut.groupby('type').sum().reset_index()
 
-                    # Create the donut plot using Plotly
-                    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.5)])
-                    fig.update_layout(
-                        title="OpenActive Opportunity Types",
-                        width=600,
-                        height=400,
-                        margin=dict(l=0, r=0, t=50, b=0),
-                        showlegend=True,
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
+                labels = df_donut['type'].tolist()
+                values = df_donut['percentage'].tolist()
 
-                # Display the table with original 'type' values
-                st.dataframe(df,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        'type': 'OA type',
-                        'count': 'Num. opportunities',
-                        'percentage': st.column_config.NumberColumn(
-                        '% opportunities',
-                        format='%0.1f',),
-                    },
-                    )
-                st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_types']:,}")
-
-            elif button3:
-                content.empty()
-                st.markdown("The official OpenActive activity list contains over 700 standardised activity names, though publishers can and do use their own wording for activity and facility labels.")
-                st.dataframe(
-                    st.session_state.analysis['df_total_activities_counts'],
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        'activity': 'OA activity',
-                        'count': 'Num. opportunities',
-                        'percentage': st.column_config.NumberColumn(
-                            '% opportunities',
-                            format='%0.1f',
-                        ),
-                    },
+                # Create the donut plot using Plotly
+                fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.5)])
+                fig.update_layout(
+                    title="OpenActive Opportunity Types",
+                    width=600,
+                    height=400,
+                    margin=dict(l=0, r=0, t=50, b=0),
+                    showlegend=True,
                 )
-                st.write(f"Num. activities: {st.session_state.analysis['total_num_activities']:,}")
-                st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_activities']:,}")
-            elif button4:
-                content.empty()
-                cols = st.columns([1, 2, 1])
-                with cols[0]:
-                    st.markdown("OpenActive describes standards to make sharing information about 'opportunities for sport and physical activity' easier and more effective. We use the word 'opportunity' to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
-                    st.markdown(" ")
-                    st.markdown(f"These figures include data from {st.session_state.analysis['num_feeds_preview']} preview feeds with {millify(st.session_state.analysis['total_num_opportunities_preview'], precision=1)} preview opportunities.")
-                    st.markdown(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}.')                       
-                with cols[1]:
-                    fig, ax = plt.subplots(1, 1, figsize=(3, 6))
-                    plt.style.use('ggplot')
-                    st.session_state.analysis['gdf_total_regions_counts'].plot(
-                        column='percentage',
-                        # cmap='YlOrRd',
-                        cmap='inferno_r',
-                        ax=ax,
-                    )
-                    ax.set(facecolor='white')
-                    ax.set_xticks([])
-                    ax.set_yticks([])
-                    ax.set_title('% of OpenActive Opportunities by Region')
-                    scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
-                    colorbar = plt.colorbar(scalarmappable,  orientation='horizontal', pad=-0.04)
-                    colorbar.set_label('%')
-                    st.pyplot(fig)
-                    plt.close(fig)
+                st.plotly_chart(fig, use_container_width=True)
+
+            # Display the table with original 'type' values
+            st.dataframe(df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'type': 'OA type',
+                    'count': 'Num. opportunities',
+                    'percentage': st.column_config.NumberColumn(
+                    '% opportunities',
+                    format='%0.1f',),
+                },
+                )
+            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_types']:,}")
+
+        elif button3:
+            content.empty()
+            st.markdown("The official OpenActive activity list contains over 700 standardised activity names, though publishers can and do use their own wording for activity and facility labels.")
+            st.dataframe(
+                st.session_state.analysis['df_total_activities_counts'],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'activity': 'OA activity',
+                    'count': 'Num. opportunities',
+                    'percentage': st.column_config.NumberColumn(
+                        '% opportunities',
+                        format='%0.1f',
+                    ),
+                },
+            )
+            st.write(f"Num. activities: {st.session_state.analysis['total_num_activities']:,}")
+            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_activities']:,}")
+        elif button4:
+            content.empty()
+            cols = st.columns([1, 2, 1])
+            with cols[0]:
+                st.markdown("OpenActive describes standards to make sharing information about 'opportunities for sport and physical activity' easier and more effective. We use the word 'opportunity' to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
+                st.markdown(" ")
+                st.markdown(f"These figures include data from {st.session_state.analysis['num_feeds_preview']} preview feeds with {millify(st.session_state.analysis['total_num_opportunities_preview'], precision=1)} preview opportunities.")
+                st.markdown(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}.')                       
+            with cols[1]:
+                fig, ax = plt.subplots(1, 1, figsize=(3, 6))
+                plt.style.use('ggplot')
+                st.session_state.analysis['gdf_total_regions_counts'].plot(
+                    column='percentage',
+                    # cmap='YlOrRd',
+                    cmap='inferno_r',
+                    ax=ax,
+                )
+                ax.set(facecolor='white')
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.set_title('% of OpenActive Opportunities by Region')
+                scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
+                colorbar = plt.colorbar(scalarmappable,  orientation='horizontal', pad=-0.04)
+                colorbar.set_label('%')
+                st.pyplot(fig)
+                plt.close(fig)
 
 # dated_counts = {
 #     'Jan 17': 0,
