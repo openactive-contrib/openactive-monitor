@@ -58,18 +58,37 @@ html * {
     margin: 10px 20% 10px 20%;
     box-shadow: 10px;
     width: 60%;
-}
-
-div.stButton > button:not(.st-bw2) {  /* Normal state */
     background-color: #009ee3;  /* Your default color */
     color: white; 
 }
+
+[kind='primary'] {
+    display: flex;
+    flex-direction: column-reverse;
+    overflow: visible;
+    overflow-wrap: break-word;
+    white-space: normal;
+    align-items: center;
+    padding: 20px 10px 20px 10px;
+    border: 2px solid;
+    margin: 10px 20% 10px 20%;
+    box-shadow: 10px;
+    width: 60%;
+    background-color: #931e80; 
+    color: white;
+    border-color: #931e80; 
+}
+
+div.stButton > button:hover {
+    color: white !important;
+}
+
 div.stButton > button:active,  /* Selected (active) state */
 div.stButton > button.st-bw2,
 div.stButton > button:focus {
-    background-color: #931e80;  /* Your selected color */
+    background-color: #931e80; 
     color: white;
-    border-color: #e11482; /* Optional: Change border color */
+    border-color: #931e80; 
 }
 
 .st-emotion-cache-2w33lj:focus:not(:active) {
