@@ -10,30 +10,46 @@ import pandas as pd
 
 # --------------------------------------------------------------------------------------------------
 
+
+# Initialize button states in session state if they don't exist
+if 'button_state' not in st.session_state:
+    st.session_state.button_state = None
+
 tabs = st.tabs(['Snapshot', 'KPIs'])
 
 with tabs[0]:
-
     cols = st.columns([1, 2, 1])
     with cols[0]:
-        button1 = st.button(f"""**{st.session_state.analysis['num_publishers']:,}**
+        if st.session_state.button_state == None:
+            st.button(f"""**{st.session_state.analysis['num_publishers']:,}**
         \nData Providers
-        """)
-        button2 = st.button(f"""**{st.session_state.analysis['num_feeds']:,}**
+        """, key="providers", type="primary")
+        else:
+            if st.button(f"""**{st.session_state.analysis['num_publishers']:,}**
+        \nData Providers
+        """, key="providers"):
+                st.session_state.button_state = "providers"
+        if st.button(f"""**{st.session_state.analysis['num_feeds']:,}**
         \nData feeds
-        """)
-        button3 = st.button(f"""**{st.session_state.analysis['total_num_activities']:,}**
+        """, key="feeds"):
+            st.session_state.button_state = "feeds"
+        if st.button(f"""**{st.session_state.analysis['total_num_activities']:,}**
         \nActivities and facilities
-        """)
+        """, key="activities"):
+            st.session_state.button_state = "activities"
         opps = millify(st.session_state.analysis['total_num_opportunities'], precision=1)
-        button4 = st.button(f"""**{opps}** 
+        if st.button(f"""**{opps}** 
         \nLive opportunities
-        """)
+        """, key="opportunities"):
+            st.session_state.button_state = "opportunities"
+
     with cols[1]:
         content = st.empty()
-        if button1 or (not (button1 or button2 or button3 or button4)):
+
+        if st.session_state.button_state == "providers" or st.session_state.button_state is None:
+            st.session_state.button_state = "providers"  # Default to providers if none selected
             content.empty()
-            st.markdown("**OpenActive** is a decentralised open data initiative. Each data provider shares one or more data feeds, providing near real time availability of their activities and facilities.")   
+            st.markdown("**OpenActive** is a decentralised open data initiative...")  # ... rest of your content
             st.markdown(" ")
             st.markdown("""The <a href="https://status.openactive.io/" target="_blank"><b>status page</b></a> lists the data providers and basic information about the status of each feed.""", unsafe_allow_html=True)
             st.markdown(" ")
@@ -55,7 +71,7 @@ with tabs[0]:
                 time.sleep(0.7)
                 image_placeholder.empty() # Clear the entire placeholder
                 
-        elif button2:
+        elif st.session_state.button_state == "feeds":
             content.empty()
             cols = st.columns([1, 2, 1])
             with cols[0]:
@@ -101,7 +117,7 @@ with tabs[0]:
                 )
             st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_types']:,}")
 
-        elif button3:
+        elif st.session_state.button_state == "activities":
             content.empty()
             st.markdown("The official OpenActive activity list contains over 700 standardised activity names, though publishers can and do use their own wording for activity and facility labels.")
             st.dataframe(
@@ -119,7 +135,7 @@ with tabs[0]:
             )
             st.write(f"Num. activities: {st.session_state.analysis['total_num_activities']:,}")
             st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_activities']:,}")
-        elif button4:
+        elif st.session_state.button_state == "opportunities":
             content.empty()
             cols = st.columns([1, 2, 1])
             with cols[0]:
