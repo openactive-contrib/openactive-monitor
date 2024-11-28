@@ -95,6 +95,10 @@ div.stButton > button:focus {
     color: white;
 }
 
+[data-testid='stDataFrame'] {
+    margin: 0% 20%;
+}
+
 [data-testid='stVerticalBlock'] {
     gap: 5px;
 }

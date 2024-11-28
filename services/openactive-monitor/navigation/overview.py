@@ -10,7 +10,6 @@ import pandas as pd
 
 # --------------------------------------------------------------------------------------------------
 
-
 # Initialize button states in session state if they don't exist
 if 'button_state' not in st.session_state:
     st.session_state.button_state = None
@@ -73,49 +72,24 @@ with tabs[0]:
                 
         elif st.session_state.button_state == "feeds":
             content.empty()
-            cols = st.columns([1, 2, 1])
+            
+            cols = st.columns([2, 1])
             with cols[0]:
-                st.markdown("There are different kinds of **OpenActive** data feeds. ")
-                st.markdown("Some are designed to be read together, for example:")
+                st.markdown("There are different types of **OpenActive** data feeds. ")
+                st.markdown("Some are designed to be read together:")
                 st.markdown(" - A Session Series feed includes details that apply to a number of events: location, activity, organiser, etc")
                 st.markdown(" - A Scheduled Session feed includes details that apply to a specific event: date, time, number of spaces remaining, etc")
-                
+                st.markdown("Similarly:")
+                st.markdown(" - A FacilityUse feed includes details that apply to a number of bookable time slots: location, type of facility, organiser, etc")
+                st.markdown(" - A Slot feed includes details that apply to a specific time slot: date, time, etc")
+            
             with cols[1]:
-                # Get the data for the donut plot
-                df = st.session_state.analysis['df_total_types_counts']
-
-                # Group categories less than 1% for the donut plot
-                df_donut = df.copy()  # Create a copy to avoid modifying the original DataFrame
-                df_donut['type'] = df_donut.apply(lambda row: row['type'] if row['percentage'] >= 1 else 'Other', axis=1)
-                df_donut = df_donut.groupby('type').sum().reset_index()
-
-                labels = df_donut['type'].tolist()
-                values = df_donut['percentage'].tolist()
-
-                # Create the donut plot using Plotly
-                fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.5)])
-                fig.update_layout(
-                    title="OpenActive Opportunity Types",
-                    width=600,
-                    height=400,
-                    margin=dict(l=0, r=0, t=50, b=0),
-                    showlegend=True,
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
-            # Display the table with original 'type' values
-            st.dataframe(df,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    'type': 'OA type',
-                    'count': 'Num. opportunities',
-                    'percentage': st.column_config.NumberColumn(
-                    '% opportunities',
-                    format='%0.1f',),
-                },
-                )
-            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_types']:,}")
+                # Convert the dictionary to a DataFrame for Streamlit display
+                df_feed_types = pd.DataFrame(list(st.session_state.feed_type_counts.items()), columns=['Feed Type', 'Count'])
+                # Sort the DataFrame by 'Count' in descending order  <--- HERE'S THE KEY CHANGE
+                df_feed_types = df_feed_types.sort_values(by='Count', ascending=False)
+                # Display the table
+                st.dataframe(df_feed_types, use_container_width=False, hide_index=True)
 
         elif st.session_state.button_state == "activities":
             content.empty()
@@ -320,9 +294,9 @@ with tabs[1]:
                 st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
                 st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
 
-print(st.session_state.analysis.keys())
-print(st.session_state.analysis['total_num_lads'])
-print(st.session_state.analysis['gdf_total_lads_counts'])
+#print(st.session_state.analysis.keys())
+#print(st.session_state.analysis['total_num_lads'])
+#print(st.session_state.analysis['gdf_total_lads_counts'])
         
 #  Alternatively, to explicitly handle NaNs:
 #count_less_than_50 = gdf[ (gdf['count'] < 50) | (gdf['count'].isna()) ].shape[0]
