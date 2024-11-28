@@ -1,21 +1,9 @@
 import geopandas as gpd
-import gzip
-import lzma
 # import openactive as oa
 import pandas as pd
 import pickle
-import random
-import sys
-from datetime import datetime, timedelta
-from dateutil import tz # For timezone handling
-from geopy.geocoders import Nominatim
 from numpy import nan
-from os import getenv, listdir
-from os.path import isfile
-from time import sleep
-
-sys.path.append('../volume-1/common')
-import openactive_custom as oa
+from os import getenv
 
 # --------------------------------------------------------------------------------------------------
 
@@ -27,18 +15,10 @@ import openactive_custom as oa
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
 RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
-RELATIVE_FILEPATH_OPPORTUNITIES = getenv('RELATIVE_FILEPATH_OPPORTUNITIES', '../volume-1/data-opportunities')
 RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
 
 FILENAME_FEEDS = getenv('FILENAME_FEEDS', 'feeds.pickle') # Located in RELATIVE_FILEPATH_FEEDS
 FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle') # Located in RELATIVE_FILEPATH_FEEDS
-FILENAME_FEEDS_SEEN = '000-feeds-seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
-FILENAME_FEEDS_CRASHED = '000-feeds-crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
-FILENAMES_SKIP = [FILENAME_FEEDS_SEEN, FILENAME_FEEDS_CRASHED] # Filenames to skip when checking for opportunity files in RELATIVE_FILEPATH_OPPORTUNITIES
-FORMAT_FILE_OPPORTUNITIES = 'pickle'
-COMPRESSION_FILE_OPPORTUNITIES = getenv('COMPRESSION_FILE_OPPORTUNITIES', 'gzip').lower() # 'none' / 'gzip' / 'xz'
-SUFFIX_FILENAME_OPPORTUNITIES = '.' + FORMAT_FILE_OPPORTUNITIES + (('.' + COMPRESSION_FILE_OPPORTUNITIES) if (COMPRESSION_FILE_OPPORTUNITIES != 'none') else '')
-LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
 FILENAME_ANALYSIS_DATA = getenv('FILENAME_ANALYSIS_DATA', 'analysis-data.pickle')
 FILENAME_SAMPLE_DATA = getenv('FILENAME_SAMPLE_DATA', 'sample_data.pickle')
 FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
@@ -51,12 +31,11 @@ VERBOSE = True if (VERBOSE == 'True') else False
 
 print('Environment variables:')
 print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
-print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
 print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
 print('FILENAME_FEEDS:', FILENAME_FEEDS)
 print('FILENAME_FEEDS_PREVIEW:', FILENAME_FEEDS_PREVIEW)
-print('COMPRESSION_FILE_OPPORTUNITIES:', COMPRESSION_FILE_OPPORTUNITIES)
 print('FILENAME_ANALYSIS_DATA:', FILENAME_ANALYSIS_DATA)
+print('FILENAME_SAMPLE_DATA:', FILENAME_SAMPLE_DATA)
 print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
 print('FILENAME_REGIONS:', FILENAME_REGIONS)
 print('FILENAME_LADS:', FILENAME_LADS)
@@ -66,11 +45,11 @@ print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
-def create_summary(): 
+def create_summary():
 
     with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS_DATA, 'rb') as file_in:
          df_analysis_data = pickle.load(file_in)
-         
+
     with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_SAMPLE_DATA, 'rb') as file_in:
          filenames_sampleitems = pickle.load(file_in)
 
@@ -120,7 +99,6 @@ def create_summary():
     total_num_opportunities_future_week_preview = df_analysis_data['num_items_future_week'].loc[~df_analysis_data['is_regular']].sum()
     total_num_opportunities_future_week = total_num_opportunities_future_week_regular + total_num_opportunities_future_week_preview
 
-
     # --------------------------------------------------------------------------------------------------
 
     # For the 'Activities' tab
@@ -142,6 +120,11 @@ def create_summary():
     # --------------------------------------------------------------------------------------------------
 
     # For the 'Locations' tab
+
+    # Columns: ['address', 'count', 'percentage']
+    df_total_address_counts, \
+    total_num_address, \
+    total_num_opportunities_with_address = get_df_total_values_counts(df_analysis_data, 'address_counts', feeds_to_include='all')
 
     # Columns: ['coords', 'count', 'percentage']
     df_total_coords_counts, \
@@ -180,12 +163,6 @@ def create_summary():
     df_total_types_counts, \
     total_num_types, \
     total_num_opportunities_with_types = get_df_total_values_counts(df_analysis_data, 'types_counts', feeds_to_include='all')
-    # --------------------------------------------------------------------------------------------------
-
-    # Columns: ['address', 'count', 'percentage']
-    df_total_address_counts, \
-    total_num_address, \
-    total_num_opportunities_with_address = get_df_total_values_counts(df_analysis_data, 'address_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -330,6 +307,10 @@ def create_summary():
         'total_num_organisers': total_num_organisers,
         'total_num_opportunities_with_organisers': total_num_opportunities_with_organisers,
 
+        'df_total_address_counts': df_total_address_counts,
+        'total_num_address': total_num_address,
+        'total_num_opportunities_with_address': total_num_opportunities_with_address,
+
         # 'df_total_coords_counts': df_total_coords_counts, # 2024-08-23 Not currently used in the dashboard
         # 'total_num_coords': total_num_coords, # 2024-08-23 Not currently used in the dashboard
         # 'total_num_opportunities_with_coords': total_num_opportunities_with_coords, # 2024-08-23 Not currently used in the dashboard
@@ -349,11 +330,7 @@ def create_summary():
         'df_total_types_counts': df_total_types_counts,
         'total_num_types': total_num_types,
         'total_num_opportunities_with_types': total_num_opportunities_with_types,
-        
-        'df_total_address_counts': df_total_address_counts,
-        'total_num_address': total_num_address,
-        'total_num_opportunities_with_address': total_num_opportunities_with_address,
-        
+
         # 'df_total_sad_counts': df_total_sad_counts, # 2024-08-23 Not currently used in the dashboard
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
         'df_total_sad_counts_unmatched': df_total_sad_counts_unmatched,
@@ -410,10 +387,11 @@ def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include
         df_total_values_counts.columns = ['activity', 'count']
     elif (values_counts == 'organisers_counts'):
         df_total_values_counts.columns = ['organiser', 'count']
-    elif (values_counts == 'coords_counts'):
-        df_total_values_counts.columns = ['coords', 'count']
     elif (values_counts == 'address_counts'):
         df_total_values_counts.columns = ['address', 'count']
+    elif (values_counts == 'coords_counts'):
+        df_total_values_counts.columns = ['coords', 'count']
+
     total_num_keys = df_total_values_counts.shape[0]
     total_num_opportunities_with_keys = df_total_values_counts['count'].sum()
 
@@ -475,5 +453,3 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
     # print(gdf_total_locations_counts)
 
     return gdf_total_locations_counts, total_num_locations, total_num_opportunities_with_locations
-
-# --------------------------------------------------------------------------------------------------

@@ -219,13 +219,13 @@ def get_feeds(**kwargs):
                             except:
                                 feed_out['licenseUrl'] = ''
                             try:
-                                feed_out['publisherName'] = jsonld['publisher']['name']
-                            except:
-                                feed_out['publisherName'] = ''
-                            try:
                                 feed_out['logoUrl'] = jsonld['publisher']['logo']['url']
                             except:
                                 feed_out['logoUrl'] = ''
+                            try:
+                                feed_out['publisherName'] = jsonld['publisher']['name']
+                            except:
+                                feed_out['publisherName'] = ''
 
                             if (dataset_url not in feeds.keys()):
                                 feeds[dataset_url] = []
@@ -634,7 +634,7 @@ def get_merged_opportunities(subevent_opportunities, superevent_opportunities, *
         else:
             if superevent_modified_id_in_subevent not in orphaned_superevent_ids:
                 orphaned_superevent_ids.append(superevent_modified_id_in_subevent)
-    
+
         if (    (verbose)
             and ((num_subevents_with_superevent_modified_id <= 10) or ((idx + 1) % 10 == 0) or (idx == num_subevents_with_superevent_modified_id - 1))
         ):
@@ -651,7 +651,7 @@ def get_merged_opportunities(subevent_opportunities, superevent_opportunities, *
     # opportunities dictionaries, we can merge superevent items into associated subevent items. The output
     # subevent_opportunities dictionary is then a modified version of the input subevent_opportunities
     # dictionary.
-    
+
     if (verbose):
         print('\tMerging superevents into subevents:')
     for idx, (subevent_id, superevent_id) in enumerate(subevent_id_v_superevent_id.items()):
@@ -664,7 +664,7 @@ def get_merged_opportunities(subevent_opportunities, superevent_opportunities, *
 
     orphaned_superevents = len(orphaned_superevent_ids)
     orphaned_subevents = num_subevents - num_subevents_with_superevent_id
-    
+
     if (verbose):
         print(f'\t{orphaned_superevents} orphaned superevents.')
         print(f'\t{orphaned_subevents} orphaned subevents.')

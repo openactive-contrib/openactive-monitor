@@ -1,5 +1,6 @@
 import geopandas as gpd
 import gzip
+import json
 # import openactive as oa
 import pandas as pd
 import pickle
@@ -7,11 +8,8 @@ import random
 import sys
 from datetime import datetime, timedelta
 from dateutil import tz # For timezone handling
-from numpy import nan
 from os import getenv, listdir
 from os.path import isfile
-from time import sleep
-import json
 
 sys.path.append('../volume-1/common')
 import openactive_custom as oa
@@ -34,15 +32,11 @@ FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle'
 FILENAME_FEEDS_SEEN = '000-feeds-seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAME_FEEDS_CRASHED = '000-feeds-crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAMES_SKIP = [FILENAME_FEEDS_SEEN, FILENAME_FEEDS_CRASHED] # Filenames to skip when checking for opportunity files in RELATIVE_FILEPATH_OPPORTUNITIES
-SUFFIX_FILENAME_OPPORTUNITIES = 'pickle.gzip'
+SUFFIX_FILENAME_OPPORTUNITIES = '.pickle.gzip'
 LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
 FILENAME_ANALYSIS_DATA = getenv('FILENAME_ANALYSIS_DATA', 'analysis-data.pickle')
 FILENAME_SAMPLE_DATA = getenv('FILENAME_SAMPLE_DATA', 'sample_data.pickle')
 FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
-FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
-FILENAME_LADS = getenv('FILENAME_LADS', 'lads.geojson')
-FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
-FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
 
@@ -53,11 +47,8 @@ print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
 print('FILENAME_FEEDS:', FILENAME_FEEDS)
 print('FILENAME_FEEDS_PREVIEW:', FILENAME_FEEDS_PREVIEW)
 print('FILENAME_ANALYSIS_DATA:', FILENAME_ANALYSIS_DATA)
+print('FILENAME_SAMPLE_DATA:', FILENAME_SAMPLE_DATA)
 print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
-print('FILENAME_REGIONS:', FILENAME_REGIONS)
-print('FILENAME_LADS:', FILENAME_LADS)
-print('FILENAME_SE_SPORT_AND_DISCIPLINE:', FILENAME_SE_SPORT_AND_DISCIPLINE)
-print('FILENAME_OA_SE_MAPPING:', FILENAME_OA_SE_MAPPING)
 print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
@@ -166,7 +157,8 @@ def get_pairs_filenames_with_infostamp(pairs_filenames_without_infostamp, filena
 def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
     verbose = kwargs.get('verbose', False)
 
-    #List the items we want to collect for each feed
+    # List the items we want to collect for each feed. These column headers need to be specified here in
+    # advance of row insertion into the DataFrame:
     df_analysis_data = pd.DataFrame(columns=[
         'file_name',
         'file_name_partner',
@@ -191,8 +183,8 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
         'types_counts',
         'activities_counts',
         'organisers_counts',
-        'coords_counts',
         'address_counts',
+        'coords_counts',
         'orphaned_superevents',
         'orphaned_subevents',
     ])
@@ -217,14 +209,13 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                     with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
                         opportunities_in = pickle.load(file_in)
                     if (verbose):
-                        print(f"Loaded {filename_with_infostamp}")
+                        print(f'Loaded {filename_with_infostamp}')
                 except Exception as error:
                     print('ERROR:', error)
             pair_opportunities_in.append(opportunities_in)
-            
+
         # --------------------------------------------------------------------------------------------------
-        # Using event type from the items rather than the feed name causing issues if no items
-        # Using event type from feed type if more than one type returned from items or type missing (e.g. no items)
+
         pair_event_types = []
         for opportunities_in in pair_opportunities_in:
             event_type = None
@@ -238,13 +229,14 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                 except Exception as error:
                     print('ERROR:', error)
             pair_event_types.append(event_type)
+
         if (verbose):
-            print(f"Event types: {pair_event_types}")
+            print(f'Event types: {pair_event_types}')
 
         # --------------------------------------------------------------------------------------------------
 
         is_merged_with_partner = False
-        if (('superevent' in pair_event_types)
+        if (    ('superevent' in pair_event_types)
             and ('subevent' in pair_event_types)
         ):
             try:
@@ -293,8 +285,8 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
                         'types_counts': oa.get_item_data_types(pair_opportunities_in[idx]),
                         'activities_counts': get_values_counts(pair_opportunities_in[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
                         'organisers_counts': get_values_counts(pair_opportunities_in[idx], 'organizer', 'name'),
-                        'coords_counts': get_coords_counts(pair_opportunities_in[idx]), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
                         'address_counts': get_values_counts(pair_opportunities_in[idx], 'location'),
+                        'coords_counts': get_coords_counts(pair_opportunities_in[idx]), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
                         'orphaned_superevents': orphaned_superevents,
                         'orphaned_subevents': orphaned_subevents,
                     }
@@ -314,7 +306,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
 
     with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS_DATA, 'wb') as file_out:
         pickle.dump(df_analysis_data, file_out)
-    
+
     with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_SAMPLE_DATA, 'wb') as file_out:
         pickle.dump(filenames_sampleitems, file_out)
 
@@ -330,12 +322,11 @@ def get_values_counts(opportunities, key_to_find, child_key_to_find=None):
         if (not isinstance(values, list)):
             values = [values]
         for value in values:
-            if (not isinstance(value, str)):
-                # If it's a dictionary, convert it to a string (e.g. to return whole json dict of location to capture addresses in various formats)
-                if isinstance(value, dict):
-                    value = json.dumps(value)
-                else:
-                    continue
+            # If it's a dictionary then convert it to a string (e.g. to return a whole dictionary of location info to capture addresses in various formats)
+            if (isinstance(value, dict)):
+                value = json.dumps(value)
+            elif (not isinstance(value, str)):
+                continue
             value = value.strip()
             if (value not in values_counts.keys()):
                 values_counts[value] = 1
@@ -586,5 +577,3 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
     # print(gdf_total_locations_counts)
 
     return gdf_total_locations_counts, total_num_locations, total_num_opportunities_with_locations
-
-# --------------------------------------------------------------------------------------------------

@@ -1,10 +1,10 @@
-from read_pickle_functions import *
-from create_summary_functions import *
+import sys
+from read_pickle_functions import get_filenames, get_pairs_filenames_without_infostamp, get_pairs_filenames_with_infostamp, analyse_opportunities
+from create_summary_functions import create_summary
 from os import getenv
 
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
-
 
 # --------------------------------------------------------------------------------------------------
 
@@ -14,10 +14,8 @@ if (__name__ == '__main__'):
         filenames_with_infostamp, filenames_without_infostamp = get_filenames()
         pairs_filenames_without_infostamp = get_pairs_filenames_without_infostamp(filenames_without_infostamp)
         pairs_filenames_with_infostamp = get_pairs_filenames_with_infostamp(pairs_filenames_without_infostamp, filenames_with_infostamp)
-
-        analyse_opportunities(pairs_filenames_with_infostamp,verbose=VERBOSE)
+        analyse_opportunities(pairs_filenames_with_infostamp, verbose=VERBOSE)
         create_summary()
-        
     except Exception as error:
         print('ERROR:', error)
         sys.exit(1)
