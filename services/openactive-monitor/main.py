@@ -58,11 +58,21 @@ if ('initialised' not in st.session_state):
     print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
     print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
 
-    df_publishers = pd.read_csv(RELATIVE_FILEPATH_ANALYSIS + '/publishers.csv', header=None, names=['provider', 'classification'])
-    # Summarize the 'classification' column
-    classification_summary = df_publishers['classification'].value_counts().reset_index()
-    classification_summary.columns = ['Classification', 'Count']
-    
+    RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
+    FILENAME_FEEDS = getenv('FILENAME_FEEDS', 'feeds.pickle') # Located in RELATIVE_FILEPATH_FEEDS
+    FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle') # Located in RELATIVE_FILEPATH_FEEDS
+
+    # Load the appropriate pickle file
+    with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in: # Or FILENAME_FEEDS_PREVIEW
+        data = pickle.load(file_in)
+    logo_urls = []
+    # Iterate through the feeds and check for logo URLs.
+    for feed in data['feeds']:
+        if 'logoUrl' in feed and feed['logoUrl']: 
+            logo_url = feed['logoUrl']
+            if logo_url is not None and logo_url not in logo_urls:
+                logo_urls.append(logo_url)
+
     # --------------------------------------------------------------------------------------------------
 
     try:
@@ -75,25 +85,25 @@ if ('initialised' not in st.session_state):
         st.session_state.error = True
         st.error('Error retrieving data')
     else:
-        st.session_state.error = False
-        
+        st.session_state.error = False      
+
     try:
-        st.session_state.publishers = classification_summary
+        st.session_state.logo_urls = logo_urls
     except:
-        st.session_state.publishers = None       
+        st.session_state.logo_urls = []
+        
+    # --------------------------------------------------------------------------------------------------
 
-        # --------------------------------------------------------------------------------------------------
+    # For the 'This week' tab
 
-        # For the 'This week' tab
+    st.session_state.num_feeds_with_sampleitems = len(st.session_state.analysis['filenames_sampleitems'])
+    st.session_state.max_num_random_feeds_with_sampleitems = 5
 
-        st.session_state.num_feeds_with_sampleitems = len(st.session_state.analysis['filenames_sampleitems'])
-        st.session_state.max_num_random_feeds_with_sampleitems = 5
+    # --------------------------------------------------------------------------------------------------
 
-        # --------------------------------------------------------------------------------------------------
+    # For the 'Activities' tab
 
-        # For the 'Activities' tab
-
-        st.session_state.num_activities_top = 20
+    st.session_state.num_activities_top = 20
 
     # --------------------------------------------------------------------------------------------------
 

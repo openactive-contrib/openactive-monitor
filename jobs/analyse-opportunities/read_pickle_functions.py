@@ -176,7 +176,7 @@ def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
         'dataset_url',
         'discussion_url',
         'license_url',
-        'logo_Url',
+        'logo_url',
         'publisher_name',
         'status',
         'event_type',
