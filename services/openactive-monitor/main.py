@@ -6,6 +6,15 @@ from os import getenv
 
 # --------------------------------------------------------------------------------------------------
 
+def normalize_feed_type(feed_type):
+    mappings = {
+        "ScheduledSessions": "ScheduledSession",
+        "Slot for FacilityUse": "Slot",  # Add other mappings as needed
+    }
+    return mappings.get(feed_type, feed_type)  # Return original if no mapping
+
+# --------------------------------------------------------------------------------------------------
+
 # st.set_page_config must be the first Streamlit command if it is present at all:
 
 st.set_page_config(
@@ -66,12 +75,18 @@ if ('initialised' not in st.session_state):
     with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in: # Or FILENAME_FEEDS_PREVIEW
         data = pickle.load(file_in)
     logo_urls = []
+    feed_type_counts = {}
+
     # Iterate through the feeds and check for logo URLs.
     for feed in data['feeds']:
         if 'logoUrl' in feed and feed['logoUrl']: 
             logo_url = feed['logoUrl']
             if logo_url is not None and logo_url not in logo_urls:
                 logo_urls.append(logo_url)
+        if 'type' in feed and feed['type']:
+            feed_type = normalize_feed_type(feed['type'])
+            if feed_type:  # Check if feed_type is not None or empty
+                feed_type_counts[feed_type] = feed_type_counts.get(feed_type, 0) + 1
 
     # --------------------------------------------------------------------------------------------------
 
@@ -91,6 +106,11 @@ if ('initialised' not in st.session_state):
         st.session_state.logo_urls = logo_urls
     except:
         st.session_state.logo_urls = []
+        
+    try:
+        st.session_state.feed_type_counts = feed_type_counts
+    except:
+        st.session_state.feed_type_counts = {}
         
     # --------------------------------------------------------------------------------------------------
 
