@@ -73,9 +73,10 @@ with tabs[0]:
         elif st.session_state.button_state == "feeds":
             content.empty()
             
-            cols = st.columns([2, 1])
+            cols = st.columns([1, 1])
             with cols[0]:
                 st.markdown("There are different types of **OpenActive** data feeds. ")
+                st.markdown(" ")
                 st.markdown("Some are designed to be read together:")
                 st.markdown(" - A Session Series feed includes details that apply to a number of events: location, activity, organiser, etc")
                 st.markdown(" - A Scheduled Session feed includes details that apply to a specific event: date, time, number of spaces remaining, etc")
@@ -89,26 +90,31 @@ with tabs[0]:
                 # Sort the DataFrame by 'Count' in descending order  <--- HERE'S THE KEY CHANGE
                 df_feed_types = df_feed_types.sort_values(by='Count', ascending=False)
                 # Display the table
-                st.dataframe(df_feed_types, use_container_width=False, hide_index=True)
+                st.dataframe(df_feed_types, use_container_width=True, hide_index=True)
 
         elif st.session_state.button_state == "activities":
             content.empty()
-            st.markdown("The official OpenActive activity list contains over 700 standardised activity names, though publishers can and do use their own wording for activity and facility labels.")
-            st.dataframe(
-                st.session_state.analysis['df_total_activities_counts'],
+            cols = st.columns([1, 1])
+            with cols[0]:
+                st.markdown("The official OpenActive vocabularies list over 700 [activities](https://activity-list.openactive.io/en/hierarchical_concepts.html) and around 35 [facility types](https://facility-types.openactive.io/en/hierarchical_concepts.html).")
+                st.markdown(" ")
+                st.markdown("Using standardised names helps improve user experience and search, though publishers can and do use their own wording for activity and facility labels.")
+                st.markdown(" ")
+                st.write(f"There are currently {st.session_state.analysis['total_num_activities']:,} different activities and facility types in the OpenActive data.")
+
+            with cols[1]:
+                st.dataframe(
+                st.session_state.analysis['df_total_activities_counts'][['activity','percentage']],
                 use_container_width=True,
                 hide_index=True,
                 column_config={
-                    'activity': 'OA activity',
-                    'count': 'Num. opportunities',
+                    'activity': 'Activity / Facility',
                     'percentage': st.column_config.NumberColumn(
-                        '% opportunities',
+                        '% of opportunities',
                         format='%0.1f',
                     ),
                 },
             )
-            st.write(f"Num. activities: {st.session_state.analysis['total_num_activities']:,}")
-            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_activities']:,}")
         elif st.session_state.button_state == "opportunities":
             content.empty()
             cols = st.columns([1, 2, 1])
