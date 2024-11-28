@@ -57,7 +57,7 @@ html * {
     border: 2px solid;
     margin: 10px 20% 10px 20%;
     box-shadow: 10px;
-    width: 30%;
+    width: 60%;
 }
 
 div.stButton > button:not(.st-bw2) {  /* Normal state */

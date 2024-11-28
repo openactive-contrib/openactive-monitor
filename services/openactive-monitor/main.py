@@ -85,29 +85,25 @@ if ('initialised' not in st.session_state):
         st.session_state.error = True
         st.error('Error retrieving data')
     else:
-        st.session_state.error = False
-        
-    try:
-        st.session_state.publishers = classification_summary
-    except:
-        st.session_state.publishers = None       
+        st.session_state.error = False      
 
     try:
         st.session_state.logo_urls = logo_urls
     except:
         st.session_state.logo_urls = []
-        # --------------------------------------------------------------------------------------------------
+        
+    # --------------------------------------------------------------------------------------------------
 
-        # For the 'This week' tab
+    # For the 'This week' tab
 
-        st.session_state.num_feeds_with_sampleitems = len(st.session_state.analysis['filenames_sampleitems'])
-        st.session_state.max_num_random_feeds_with_sampleitems = 5
+    st.session_state.num_feeds_with_sampleitems = len(st.session_state.analysis['filenames_sampleitems'])
+    st.session_state.max_num_random_feeds_with_sampleitems = 5
 
-        # --------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------
 
-        # For the 'Activities' tab
+    # For the 'Activities' tab
 
-        st.session_state.num_activities_top = 20
+    st.session_state.num_activities_top = 20
 
     # --------------------------------------------------------------------------------------------------
 
