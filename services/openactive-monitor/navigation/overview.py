@@ -1,52 +1,45 @@
 import matplotlib.pyplot as plt
+import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
+import time
 from datetime import datetime
 from millify import millify
-import plotly.graph_objects as go
-import numpy as np
-import matplotlib.cm as cm
-import time 
-import pandas as pd
 
 # --------------------------------------------------------------------------------------------------
 
-# Initialize button states in session state if they don't exist
-if 'button_state' not in st.session_state:
-    st.session_state.button_state = None
+if ('buttons' not in st.session_state):
+    st.session_state.buttons = {
+        'providers': f"**{st.session_state.analysis['num_publishers']:,}**\n\nData Providers",
+        'feeds': f"**{st.session_state.analysis['num_feeds']:,}**\n\nData feeds",
+        'activities': f"**{st.session_state.analysis['total_num_activities']:,}**\n\nActivities and facilities",
+        'opportunities': f"**{millify(st.session_state.analysis['total_num_opportunities'], precision=1)}**\n\nLive opportunities",
+    }
+    st.session_state.button_name_clicked = 'providers'
+
+def click_button(button_name_clicked):
+    st.session_state.button_name_clicked = button_name_clicked
+
+# --------------------------------------------------------------------------------------------------
 
 tabs = st.tabs(['Snapshot', 'KPIs'])
 
 with tabs[0]:
     cols = st.columns([1, 2, 1])
+
     with cols[0]:
-        if st.session_state.button_state == None:
-            st.button(f"""**{st.session_state.analysis['num_publishers']:,}**
-        \nData Providers
-        """, key="providers", type="primary")
-        else:
-            if st.button(f"""**{st.session_state.analysis['num_publishers']:,}**
-        \nData Providers
-        """, key="providers"):
-                st.session_state.button_state = "providers"
-        if st.button(f"""**{st.session_state.analysis['num_feeds']:,}**
-        \nData feeds
-        """, key="feeds"):
-            st.session_state.button_state = "feeds"
-        if st.button(f"""**{st.session_state.analysis['total_num_activities']:,}**
-        \nActivities and facilities
-        """, key="activities"):
-            st.session_state.button_state = "activities"
-        opps = millify(st.session_state.analysis['total_num_opportunities'], precision=1)
-        if st.button(f"""**{opps}** 
-        \nLive opportunities
-        """, key="opportunities"):
-            st.session_state.button_state = "opportunities"
+        for button_name, button_text in st.session_state.buttons.items():
+            st.button(
+                button_text,
+                type='primary' if st.session_state.button_name_clicked == button_name else 'secondary',
+                on_click=click_button,
+                args=[button_name],
+            )
 
     with cols[1]:
         content = st.empty()
 
-        if st.session_state.button_state == "providers" or st.session_state.button_state is None:
-            st.session_state.button_state = "providers"  # Default to providers if none selected
+        if (st.session_state.button_name_clicked == 'providers'):
             content.empty()
             st.markdown("**OpenActive** is a decentralised open data initiative...")  # ... rest of your content
             st.markdown(" ")
@@ -58,7 +51,7 @@ with tabs[0]:
             st.markdown(f"This snapshot of the data contains activities and facilities from **{orgs}** different providers.")
             st.divider()
             image_placeholder = st.empty()  # Placeholder for all images
-            num_images_to_show = 6 
+            num_images_to_show = 6
             for i in range(len(st.session_state.logo_urls)):
                 with image_placeholder.container():  # Use the container
                     start_index = i % len(st.session_state.logo_urls)
@@ -69,10 +62,10 @@ with tabs[0]:
                             st.image(url, width=200)
                 time.sleep(0.7)
                 image_placeholder.empty() # Clear the entire placeholder
-                
-        elif st.session_state.button_state == "feeds":
+
+        elif (st.session_state.button_name_clicked == 'feeds'):
             content.empty()
-            
+
             cols = st.columns([2, 1])
             with cols[0]:
                 st.markdown("There are different types of **OpenActive** data feeds. ")
@@ -82,7 +75,7 @@ with tabs[0]:
                 st.markdown("Similarly:")
                 st.markdown(" - A FacilityUse feed includes details that apply to a number of bookable time slots: location, type of facility, organiser, etc")
                 st.markdown(" - A Slot feed includes details that apply to a specific time slot: date, time, etc")
-            
+
             with cols[1]:
                 # Convert the dictionary to a DataFrame for Streamlit display
                 df_feed_types = pd.DataFrame(list(st.session_state.feed_type_counts.items()), columns=['Feed Type', 'Count'])
@@ -91,7 +84,7 @@ with tabs[0]:
                 # Display the table
                 st.dataframe(df_feed_types, use_container_width=False, hide_index=True)
 
-        elif st.session_state.button_state == "activities":
+        elif (st.session_state.button_name_clicked == 'activities'):
             content.empty()
             st.markdown("The official OpenActive activity list contains over 700 standardised activity names, though publishers can and do use their own wording for activity and facility labels.")
             st.dataframe(
@@ -109,14 +102,14 @@ with tabs[0]:
             )
             st.write(f"Num. activities: {st.session_state.analysis['total_num_activities']:,}")
             st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_activities']:,}")
-        elif st.session_state.button_state == "opportunities":
+        elif (st.session_state.button_name_clicked == 'opportunities'):
             content.empty()
             cols = st.columns([1, 2, 1])
             with cols[0]:
                 st.markdown("OpenActive describes standards to make sharing information about 'opportunities for sport and physical activity' easier and more effective. We use the word 'opportunity' to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
                 st.markdown(" ")
                 st.markdown(f"These figures include data from {st.session_state.analysis['num_feeds_preview']} preview feeds with {millify(st.session_state.analysis['total_num_opportunities_preview'], precision=1)} preview opportunities.")
-                st.markdown(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}.')                       
+                st.markdown(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}.')
             with cols[1]:
                 fig, ax = plt.subplots(1, 1, figsize=(3, 6))
                 plt.style.use('ggplot')
@@ -154,6 +147,8 @@ with tabs[0]:
 # df = df.sort_values(by='Date')
 
 # st.line_chart(df, x='Date', y='Count')
+
+# --------------------------------------------------------------------------------------------------
 
 with tabs[1]:
         st.header('Key Performance Indicators')
@@ -207,7 +202,7 @@ with tabs[1]:
             st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
 
         st.divider()
-        
+
 
         gdf = st.session_state.analysis['gdf_total_lads_counts']
 
@@ -297,11 +292,11 @@ with tabs[1]:
 #print(st.session_state.analysis.keys())
 #print(st.session_state.analysis['total_num_lads'])
 #print(st.session_state.analysis['gdf_total_lads_counts'])
-        
+
 #  Alternatively, to explicitly handle NaNs:
 #count_less_than_50 = gdf[ (gdf['count'] < 50) | (gdf['count'].isna()) ].shape[0]
 
-#print(f"Number of rows with count less than 10: {count_less_than_50}") 
+#print(f"Number of rows with count less than 10: {count_less_than_50}")
 
 # Filter rows where 'count' is less than 10, including NaNs
 #gdf_filtered = gdf[ (gdf['count'] < 50) | (gdf['count'].isna()) ][['LAD24NM', 'count']]
@@ -312,5 +307,4 @@ with tabs[1]:
 #    column_config={
 #        "LAD24NM": "Location",
 #        "count": "Opportunity Count",  # More descriptive column name
-#    })         
-    
+#    })
