@@ -47,17 +47,17 @@ print('VERBOSE:', VERBOSE)
 
 def create_summary():
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS_DATA, 'rb') as file_in:
-         df_analysis_data = pickle.load(file_in)
-
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_SAMPLE_DATA, 'rb') as file_in:
-         filenames_sampleitems = pickle.load(file_in)
-
     with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in:
         feeds = pickle.load(file_in)
 
     with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS_PREVIEW, 'rb') as file_in:
         feeds_preview = pickle.load(file_in)
+
+    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS_DATA, 'rb') as file_in:
+         df_analysis_data = pickle.load(file_in)
+
+    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_SAMPLE_DATA, 'rb') as file_in:
+         filenames_sampleitems = pickle.load(file_in)
 
     # --------------------------------------------------------------------------------------------------
 

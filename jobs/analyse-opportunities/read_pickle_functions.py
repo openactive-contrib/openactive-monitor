@@ -23,12 +23,9 @@ import openactive_custom as oa
 #   $ gcloud beta run jobs update analyse-opportunities \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
-RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
 RELATIVE_FILEPATH_OPPORTUNITIES = getenv('RELATIVE_FILEPATH_OPPORTUNITIES', '../volume-1/data-opportunities')
 RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
 
-FILENAME_FEEDS = getenv('FILENAME_FEEDS', 'feeds.pickle') # Located in RELATIVE_FILEPATH_FEEDS
-FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle') # Located in RELATIVE_FILEPATH_FEEDS
 FILENAME_FEEDS_SEEN = '000-feeds-seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAME_FEEDS_CRASHED = '000-feeds-crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
 FILENAMES_SKIP = [FILENAME_FEEDS_SEEN, FILENAME_FEEDS_CRASHED] # Filenames to skip when checking for opportunity files in RELATIVE_FILEPATH_OPPORTUNITIES
@@ -36,19 +33,14 @@ SUFFIX_FILENAME_OPPORTUNITIES = '.pickle.gzip'
 LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
 FILENAME_ANALYSIS_DATA = getenv('FILENAME_ANALYSIS_DATA', 'analysis-data.pickle')
 FILENAME_SAMPLE_DATA = getenv('FILENAME_SAMPLE_DATA', 'sample_data.pickle')
-FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
 
 print('Environment variables:')
-print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
 print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
 print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
-print('FILENAME_FEEDS:', FILENAME_FEEDS)
-print('FILENAME_FEEDS_PREVIEW:', FILENAME_FEEDS_PREVIEW)
 print('FILENAME_ANALYSIS_DATA:', FILENAME_ANALYSIS_DATA)
 print('FILENAME_SAMPLE_DATA:', FILENAME_SAMPLE_DATA)
-print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
 print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
