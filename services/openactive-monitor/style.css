@@ -96,7 +96,7 @@ div.stButton > button:focus {
 }
 
 [data-testid='stDataFrame'] {
-    margin: 0% 20%;
+
 }
 
 [data-testid='stVerticalBlock'] {
