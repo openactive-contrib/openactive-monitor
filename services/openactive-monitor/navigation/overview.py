@@ -34,7 +34,8 @@ from millify import millify
 if ('buttons' not in st.session_state):
     st.session_state.buttons = {
         'providers': f"**{st.session_state.analysis['num_publishers']:,}**\n\nData Providers",
-        'feeds': f"**{st.session_state.analysis['num_feeds']:,}**\n\nData feeds",
+        #Note next figure based on feeds.pickle to tally with type counts
+        'feeds': f"**{st.session_state.num_feeds:,}**\n\nData feeds",
         'activities': f"**{st.session_state.analysis['total_num_activities']:,}**\n\nActivities and facilities",
         'opportunities': f"**{millify(st.session_state.analysis['total_num_opportunities_future'], precision=1)}**\n\nLive opportunities",
     }
@@ -79,7 +80,7 @@ with tabs[0]:
             st.markdown(f"This snapshot of the data contains activities and facilities from **{orgs:,}** different activity providers.")
             st.divider()
             image_placeholder = st.empty()  # Placeholder for all images
-            num_images_to_show = 6
+            num_images_to_show = 4
             for i in range(len(st.session_state.logo_urls)):
                 with image_placeholder.container():  # Use the container
                     start_index = i % len(st.session_state.logo_urls)
@@ -170,6 +171,7 @@ with tabs[0]:
             st.markdown(" ")
             st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.analysis['total_num_opportunities_future'], precision=1)} opportunities** to get active over the coming weeks.")
 
+#Need more historic datapoints to make this a compelling visual
 # dated_counts = {
 #     'Jan 17': 0,
 #     'Jul 17': 80000,
@@ -195,9 +197,10 @@ with tabs[1]:
         st.markdown('**Key Performance Indicators**')
         st.markdown('**Growth of OpenActive**')
         st.markdown(f"***{st.session_state.analysis['percentage_sad_matched']:.1f}% of Sport England recognised Sports and Disciplines appear in OpenActive data feeds***")
-        with st.expander('A higher value means more of the sports and disciplines recognised by Sport England are discoverable through the OpenActive ecosystem. Click here for more details.'):
+        with st.expander('A higher value means more of the sports and disciplines recognised by Sport England are discoverable through the OpenActive ecosystem.  \nClick here for more details.'):
             cols = st.columns([2, 1])
             with cols[0]:
+                #Would prefer these in one table now, fewer details for matched (so counts tally)
                 st.write(f"Matched SE categories: {st.session_state.analysis['num_sad_matched']} / {st.session_state.analysis['num_sad']} ({st.session_state.analysis['percentage_sad_matched']:.1f}%)")
                 st.dataframe(
                     st.session_state.analysis['df_total_sad_counts_matched'],
@@ -221,8 +224,9 @@ with tabs[1]:
                         ),
                     },
                 )
-                st.write(f"Num. activities: {st.session_state.analysis['total_num_activities_with_sad']:,}")
-                st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_sad']:,}")
+                #Removed for now - these should be future opportunities
+                #st.write(f"Num. activities: {st.session_state.analysis['total_num_activities_with_sad']:,}")
+                #st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_sad']:,}")
             with cols[1]:
                 st.write(f"Unmatched SE categories: {st.session_state.analysis['num_sad_unmatched']} / {st.session_state.analysis['num_sad']} ({st.session_state.analysis['percentage_sad_unmatched']:.1f}%)")
                 st.dataframe(
@@ -237,7 +241,7 @@ with tabs[1]:
 
             st.divider()
 
-            st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
+            st.write('Activities - Activity labels, including those from the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
             st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
             st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
 
@@ -250,7 +254,7 @@ with tabs[1]:
         percentage_1000_or_more = (len(gdf_filtered) / len(gdf)) * 100
 
         st.markdown(f"***{percentage_1000_or_more:.1f}% of UK Local Authorities have more than 1000 opportunities in OpenActive data feeds***")
-        with st.expander('This is a simple measure of UK coverage in the OpenActive ecosystem. Click here for more details.'):
+        with st.expander('This is a simple measure of UK coverage in the **OpenActive** ecosystem.   \nClick here for more details.'):
             cols = st.columns(3)
             with cols[0]:
                 st.dataframe(
@@ -322,10 +326,8 @@ with tabs[1]:
                 # Display chart in Streamlit
                 st.plotly_chart(fig, use_container_width=True)
 
-                st.write('Activities - Activities featured as individual concepts in the [OpenActive Activity List](https://activity-list.openactive.io/en/hierarchical_concepts.html).')
-                st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
-                st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
-
+                st.write(' ')
+                                
 #print(st.session_state.analysis.keys())
 #print(st.session_state.analysis['total_num_lads'])
 #print(st.session_state.analysis['gdf_total_lads_counts'])

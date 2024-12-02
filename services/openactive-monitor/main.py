@@ -83,8 +83,7 @@ if ('initialised' not in st.session_state):
 
         feed_type_map = {
             'ScheduledSessions': 'ScheduledSession',
-            'Slot for FacilityUse': 'Slot',
-            # Add other mappings as needed
+            'Slot for FacilityUse': 'Slot',           
         }
 
         for feed in feeds['feeds']:
@@ -94,9 +93,57 @@ if ('initialised' not in st.session_state):
             if feed.get('type'):
                 feed_type = feed_type_map.get(feed['type'], feed['type'])
                 feed_type_counts[feed_type] = feed_type_counts.get(feed_type, 0) + 1
+            else:
+                feed_type_counts['Event'] = feed_type_counts.get('Event', 0) + 1
+
+
+        #Hardcode for now to avoid duplication and invalid images
+        logo_urls =['https://activehartlepool.gs-signature.cloud/OpenActive/Content/images/gladstone.png',
+            'https://res.cloudinary.com/gladstone/image/upload/ActiveLeeds-live/jomzctf3tyiaxwkplobw',
+            'https://res.cloudinary.com/gladstone/image/upload/BrimhamsActive-live/x8ejlrqiurnrkwk6de0c',
+            'https://res.cloudinary.com/gladstone/image/upload/CastlePoint-live/iqsv4e4vltiktbk5poqp',
+            'https://res.cloudinary.com/gladstone/image/upload/Chelmsfordcitysports-live/w3epkovizgpzzwywfcfh',
+            'https://res.cloudinary.com/gladstone/image/upload/Pembrokeshire-live/ob8ojuwtxmuvcgvcov3t',
+            'https://res.cloudinary.com/gladstone/image/upload/EveryoneActive-live/rgcua81zg3tbakllsku0',
+            'https://res.cloudinary.com/gladstone/image/upload/FyldeCoastYMCA-live/mjuxezbhgqkjtoxxbwls',
+            'https://res.cloudinary.com/gladstone/image/upload/LED-live/ccitexbsykzhprracuvm',
+            'https://res.cloudinary.com/gladstone/image/upload/LeisureSK-live/i2ngfvco92o8ynkovjkc',
+            'https://res.cloudinary.com/gladstone/image/upload/LibertyLeisure-live/g3ravmvtqehkhaqr7lqf',
+            'https://res.cloudinary.com/gladstone/image/upload/Oxford-Univesity-live/xtah7f0ul9r74hxyjzi4',
+            'https://res.cloudinary.com/gladstone/image/upload/PlymouthCouncil-live/wbdbolfdxoyatgpdlu6x',
+            'https://res.cloudinary.com/gladstone/image/upload/RedbridgeSportsCentre-live/ssuknvpivtiynnfu0l0p',
+            'https://res.cloudinary.com/gladstone/image/upload/Calderdale-live/tcwuyxzlas9n0g0pepcw',
+            'https://bwdleisure.com/wp-content/uploads/2019/08/bwd-leisure.jpg',
+            'https://www.serco.com/images/twitter-logo.png',
+            'https://www.activetameside.com/wp-content/uploads/2022/08/AT-Primary-RGB.png',
+            'https://www.inderby.org.uk/themes/in_derby/assets/favicons/inderby/apple-icon-180x180.png',
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQd6RsfZCLMwmh9xw5C-M9ADqM2K5EZaa17Vc0QdEI0KA&amp;s',
+            'http://data.better.org.uk/images/logo.png',
+            'https://cdn.bookwhen.com/assets/home/json_ld/bookwhen_logo-d08e3214ef4aa950bef4228170ed3f053c85cdd39306dfe266527631b316a818.png',
+            'http://data.letsride.co.uk/images/logo.png',
+            'http://data.britishorienteering.org.uk/images/logo.png',
+            'http://data.britishtriathlon.org/images/logo.png',
+            'https://data.englandnetball.co.uk/images/logo.png',
+            'http://data.gomammoth.co.uk/images/logo.png',
+            'http://data.goodgym.org/images/logo.png',
+            'https://lawntennisassociation.github.io/images/logo.png',
+            'https://opensession.s3.eu-west-2.amazonaws.com/assets/img/opensessionslogo.svg',
+            'https://ourparks.org.uk/sites/all/themes/commons/commons_origins/images/logo.png',
+            'https://data.playwaze.com/images/logo.png',
+            'https://data.runtogether.co.uk/images/logo.png',
+            'https://sportstarta.github.io/images/logo.png',
+            'https://openactive.upshot.org.uk/images/logo.png',
+            'https://opendata.exercise-anywhere.com/img/logo.jpg',
+            'https://www.sportsuite.co.uk/css/ss/ss-logo.svg',
+            'https://teamupstatic.com/assets/api/images/logo_with_wordmark.8f86d8d78e10.png',
+            'https://api.premiertennis.co.uk/img/premier-tennis-logo-alt.svg',
+            'https://playfootball-public-assets.s3.eu-west-2.amazonaws.com/playfootball_logo_black.svg',
+            'https://s3.eu-west-2.amazonaws.com/cdn.bookteq.com/logo-small.png',
+        ]
 
         st.session_state.logo_urls = logo_urls
         st.session_state.feed_type_counts = feed_type_counts
+        st.session_state.num_feeds = len(feeds['feeds'])
 
     # --------------------------------------------------------------------------------------------------
 
