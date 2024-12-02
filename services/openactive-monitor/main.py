@@ -1,17 +1,7 @@
 import pickle
 import seaborn as sns
 import streamlit as st
-import pandas as pd
 from os import getenv
-
-# --------------------------------------------------------------------------------------------------
-
-def normalize_feed_type(feed_type):
-    mappings = {
-        "ScheduledSessions": "ScheduledSession",
-        "Slot for FacilityUse": "Slot",  # Add other mappings as needed
-    }
-    return mappings.get(feed_type, feed_type)  # Return original if no mapping
 
 # --------------------------------------------------------------------------------------------------
 
@@ -60,70 +50,71 @@ if ('initialised' not in st.session_state):
     #   --region europe-west2 \
     #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
     #   --add-volume-mount volume=volume-1,mount-path=/volume-1
+    RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
     RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
+    FILENAME_FEEDS = getenv('FILENAME_FEEDS', 'feeds.pickle') # Located in RELATIVE_FILEPATH_FEEDS
+    FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle') # Located in RELATIVE_FILEPATH_FEEDS
     FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
 
     print('Environment variables:')
+    print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
     print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
+    print('FILENAME_FEEDS:', FILENAME_FEEDS)
+    print('FILENAME_FEEDS_PREVIEW:', FILENAME_FEEDS_PREVIEW)
     print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
 
-    RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
-    FILENAME_FEEDS = getenv('FILENAME_FEEDS', 'feeds.pickle') # Located in RELATIVE_FILEPATH_FEEDS
-    FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle') # Located in RELATIVE_FILEPATH_FEEDS
+    # --------------------------------------------------------------------------------------------------
 
-    # Load the appropriate pickle file
-    with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in: # Or FILENAME_FEEDS_PREVIEW
-        data = pickle.load(file_in)
-    logo_urls = []
-    feed_type_counts = {}
+    st.session_state.error = False
 
-    # Iterate through the feeds and check for logo URLs.
-    for feed in data['feeds']:
-        if 'logoUrl' in feed and feed['logoUrl']: 
-            logo_url = feed['logoUrl']
-            if logo_url is not None and logo_url not in logo_urls:
-                logo_urls.append(logo_url)
-        if 'type' in feed and feed['type']:
-            feed_type = normalize_feed_type(feed['type'])
-            if feed_type:  # Check if feed_type is not None or empty
+    # --------------------------------------------------------------------------------------------------
+
+    if (not st.session_state.error):
+        try:
+            with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in: # Or FILENAME_FEEDS_PREVIEW
+                feeds = pickle.load(file_in)
+        except:
+            st.session_state.error = True
+            st.error('Error retrieving feeds')
+
+    if (not st.session_state.error):
+        logo_urls = []
+        feed_type_counts = {}
+
+        feed_type_map = {
+            'ScheduledSessions': 'ScheduledSession',
+            'Slot for FacilityUse': 'Slot',
+            # Add other mappings as needed
+        }
+
+        for feed in feeds['feeds']:
+            if feed.get('logoUrl'):
+                if (feed['logoUrl'] not in logo_urls):
+                    logo_urls.append(feed['logoUrl'])
+            if feed.get('type'):
+                feed_type = feed_type_map.get(feed['type'], feed['type'])
                 feed_type_counts[feed_type] = feed_type_counts.get(feed_type, 0) + 1
 
-    # --------------------------------------------------------------------------------------------------
-
-    try:
-        with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
-            st.session_state.analysis = pickle.load(file_in)
-    except:
-        st.session_state.analysis = None
-
-    if (st.session_state.analysis is None):
-        st.session_state.error = True
-        st.error('Error retrieving data')
-    else:
-        st.session_state.error = False      
-
-    try:
         st.session_state.logo_urls = logo_urls
-    except:
-        st.session_state.logo_urls = []
-        
-    try:
         st.session_state.feed_type_counts = feed_type_counts
-    except:
-        st.session_state.feed_type_counts = {}
-        
-    # --------------------------------------------------------------------------------------------------
-
-    # For the 'This week' tab
-
-    st.session_state.num_feeds_with_sampleitems = len(st.session_state.analysis['filenames_sampleitems'])
-    st.session_state.max_num_random_feeds_with_sampleitems = 5
 
     # --------------------------------------------------------------------------------------------------
 
-    # For the 'Activities' tab
+    if (not st.session_state.error):
+        try:
+            with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
+                st.session_state.analysis = pickle.load(file_in)
+        except:
+            st.session_state.error = True
+            st.error('Error retrieving analysis')
 
-    st.session_state.num_activities_top = 20
+    if (not st.session_state.error):
+        # For the 'This week' tab
+        st.session_state.num_feeds_with_sampleitems = len(st.session_state.analysis['filenames_sampleitems'])
+        st.session_state.max_num_random_feeds_with_sampleitems = 5
+
+        # For the 'Activities' tab
+        st.session_state.num_activities_top = 20
 
     # --------------------------------------------------------------------------------------------------
 
@@ -131,9 +122,7 @@ if ('initialised' not in st.session_state):
 
 # --------------------------------------------------------------------------------------------------
 
-if (    ('error' in st.session_state)
-    and (not st.session_state.error)
-):
+if (not st.session_state.error):
     page = st.navigation(
         [
             st.Page('navigation/overview.py', title='Overview'),
@@ -143,4 +132,3 @@ if (    ('error' in st.session_state)
         position='hidden',
     )
     page.run()
-
