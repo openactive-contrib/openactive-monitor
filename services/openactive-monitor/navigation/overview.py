@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import streamlit as st
-from datetime import datetime
+from datetime import date, timedelta
 from millify import millify
 import plotly.graph_objects as go
 import numpy as np
@@ -14,6 +14,11 @@ import pandas as pd
 if 'button_state' not in st.session_state:
     st.session_state.button_state = None
 
+yesterday = date.today() - timedelta(days=1)
+st.markdown(
+    f'<p style="text-align:right;">OpenActive data as at end of {yesterday}</p>',
+    unsafe_allow_html=True
+)
 tabs = st.tabs(['Snapshot', 'KPIs'])
 
 with tabs[0]:
@@ -48,14 +53,14 @@ with tabs[0]:
         if st.session_state.button_state == "providers" or st.session_state.button_state is None:
             st.session_state.button_state = "providers"  # Default to providers if none selected
             content.empty()
-            st.markdown("**OpenActive** is a decentralised open data initiative...")  # ... rest of your content
+            st.markdown("**OpenActive** is a decentralised open data initiative. Each data provider shares one or more data feeds, providing near real time availability of their activities and facilities.")
             st.markdown(" ")
             st.markdown("""The <a href="https://status.openactive.io/" target="_blank"><b>status page</b></a> lists the data providers and basic information about the status of each feed.""", unsafe_allow_html=True)
             st.markdown(" ")
             st.markdown("Some data providers are National Governing Bodies, some are big leisure providers, while others create systems to allow smaller activity providers to open their data.")
             st.markdown(" ")
             orgs = len(st.session_state.analysis['df_total_organisers_counts'])
-            st.markdown(f"This snapshot of the data contains activities and facilities from **{orgs}** different providers.")
+            st.markdown(f"This snapshot of the data contains activities and facilities from **{orgs:,}** different providers.")
             st.divider()
             image_placeholder = st.empty()  # Placeholder for all images
             num_images_to_show = 6 
@@ -83,6 +88,8 @@ with tabs[0]:
                 st.markdown("Similarly:")
                 st.markdown(" - A FacilityUse feed includes details that apply to a number of bookable time slots: location, type of facility, organiser, etc")
                 st.markdown(" - A Slot feed includes details that apply to a specific time slot: date, time, etc")
+                st.markdown(" ")
+                st.markdown(f"This snapshot include data from {st.session_state.analysis['num_feeds_preview']} preview feeds - these are work in progress and not yet recognised as OpenActive compliant, but may be of interest to data users for exploratory use.")
             
             with cols[1]:
                 # Convert the dictionary to a DataFrame for Streamlit display
@@ -96,11 +103,11 @@ with tabs[0]:
             content.empty()
             cols = st.columns([1, 1])
             with cols[0]:
-                st.markdown("The official OpenActive vocabularies list over 700 [activities](https://activity-list.openactive.io/en/hierarchical_concepts.html) and around 35 [facility types](https://facility-types.openactive.io/en/hierarchical_concepts.html).")
+                st.markdown("The official **OpenActive** vocabularies list over 700 [activities](https://activity-list.openactive.io/en/hierarchical_concepts.html) and around 35 [facility types](https://facility-types.openactive.io/en/hierarchical_concepts.html).")
                 st.markdown(" ")
                 st.markdown("Using standardised names helps improve user experience and search, though publishers can and do use their own wording for activity and facility labels.")
                 st.markdown(" ")
-                st.write(f"There are currently {st.session_state.analysis['total_num_activities']:,} different activities and facility types in the OpenActive data.")
+                st.write(f"There are currently **{st.session_state.analysis['total_num_activities']:,}** different activities and facility types in the OpenActive data.")
 
             with cols[1]:
                 st.dataframe(
@@ -117,30 +124,27 @@ with tabs[0]:
             )
         elif st.session_state.button_state == "opportunities":
             content.empty()
-            cols = st.columns([1, 2, 1])
-            with cols[0]:
-                st.markdown("OpenActive describes standards to make sharing information about 'opportunities for sport and physical activity' easier and more effective. We use the word 'opportunity' to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
-                st.markdown(" ")
-                st.markdown(f"These figures include data from {st.session_state.analysis['num_feeds_preview']} preview feeds with {millify(st.session_state.analysis['total_num_opportunities_preview'], precision=1)} preview opportunities.")
-                st.markdown(f'This snapshot of the OpenActive ecosystem was created on {datetime.now().date()}.')                       
-            with cols[1]:
-                fig, ax = plt.subplots(1, 1, figsize=(3, 6))
-                plt.style.use('ggplot')
-                st.session_state.analysis['gdf_total_regions_counts'].plot(
-                    column='percentage',
-                    # cmap='YlOrRd',
-                    cmap='inferno_r',
-                    ax=ax,
-                )
-                ax.set(facecolor='white')
-                ax.set_xticks([])
-                ax.set_yticks([])
-                ax.set_title('% of OpenActive Opportunities by Region')
-                scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
-                colorbar = plt.colorbar(scalarmappable,  orientation='horizontal', pad=-0.04)
-                colorbar.set_label('%')
-                st.pyplot(fig)
-                plt.close(fig)
+
+            st.markdown("**OpenActive** describes standards to make sharing information about *'opportunities for sport and physical activity'* easier and more effective. We use the word 'opportunity' to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
+                   
+        
+            fig, ax = plt.subplots(1, 1, figsize=(3, 6))
+            plt.style.use('ggplot')
+            st.session_state.analysis['gdf_total_regions_counts'].plot(
+                column='percentage',
+                # cmap='YlOrRd',
+                cmap='inferno_r',
+                ax=ax,
+            )
+            ax.set(facecolor='white')
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_title('% of OpenActive Opportunities by Region')
+            scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
+            colorbar = plt.colorbar(scalarmappable,  orientation='horizontal', pad=-0.04)
+            colorbar.set_label('%')
+            st.pyplot(fig)
+            plt.close(fig)
 
 # dated_counts = {
 #     'Jan 17': 0,
@@ -162,10 +166,9 @@ with tabs[0]:
 # st.line_chart(df, x='Date', y='Count')
 
 with tabs[1]:
-        st.header('Key Performance Indicators')
-
-        st.subheader('Growth of OpenActive')
-        st.subheader(f"{st.session_state.analysis['percentage_sad_matched']:.1f}% of Sport England recognised Sports and Disciplines appear in OpenActive data feeds")
+        st.markdown('**Key Performance Indicators**')
+        st.markdown('**Growth of OpenActive**')
+        st.markdown(f"***{st.session_state.analysis['percentage_sad_matched']:.1f}% of Sport England recognised Sports and Disciplines appear in OpenActive data feeds***")
         with st.expander('A higher value means more of the sports and disciplines recognised by Sport England are discoverable through the OpenActive ecosystem. Click here for more details.'):
             cols = st.columns([2, 1])
             with cols[0]:
@@ -212,19 +215,16 @@ with tabs[1]:
             st.write('Sports - Sports featured in the list of national governing bodies recognised by the UK Sports Councils. Taken in spreadsheet format from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) and last accessed on 2024-01-24.')
             st.write('Disciplines - Disciplines featured within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
 
-        st.divider()
-        
-
         gdf = st.session_state.analysis['gdf_total_lads_counts']
 
         # Filter for counts 50 or greater (important to include NaNs as 'not greater than or equal to 50')
-        gdf_filtered = gdf[(gdf['count'] >= 100) | (gdf['count'].isna())]
+        gdf_filtered = gdf[(gdf['count'] >= 1000) | (gdf['count'].isna())]
 
         # Calculate the percentage
-        percentage_100_or_more = (len(gdf_filtered) / len(gdf)) * 100
+        percentage_1000_or_more = (len(gdf_filtered) / len(gdf)) * 100
 
-        st.subheader(f"{percentage_100_or_more:.1f}% of UK Local Authorities have more than 100 opportunities in OpenActive data feeds")
-        with st.expander('A higher value means more of the sports and disciplines recognised by Sport England are discoverable through the OpenActive ecosystem. Click here for more details.'):
+        st.markdown(f"***{percentage_1000_or_more:.1f}% of UK Local Authorities have more than 1000 opportunities in OpenActive data feeds***")
+        with st.expander('This is a simple measure of UK coverage in the OpenActive ecosystem. Click here for more details.'):
             cols = st.columns(3)
             with cols[0]:
                 st.dataframe(
@@ -258,7 +258,7 @@ with tabs[1]:
                 plt.close(fig)
 
                 st.divider()
-                # Sample data provided (replace with your actual data loading)
+                # LSOAs by deprivation deciles
                 data = """0,	945,	3285
                 1,	1037,	3284
                 2,	1189,	3284
