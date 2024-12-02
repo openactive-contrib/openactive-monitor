@@ -8,12 +8,35 @@ from millify import millify
 
 # --------------------------------------------------------------------------------------------------
 
+#print(st.session_state.analysis.keys())
+#For reference in presenting numbers
+#dict_keys(['num_publishers_regular', 'num_publishers_preview', 'num_publishers', 
+# 'num_datasets_regular', 'num_datasets_preview', 'num_datasets', 
+# 'num_feeds_regular', 'num_feeds_preview', 'num_feeds', 
+# 'num_feeds_with_analysed_data_regular', 'num_feeds_with_analysed_data_preview', 'num_feeds_with_analysed_data', 
+# 'total_num_opportunities_regular', 'total_num_opportunities_preview', 'total_num_opportunities', 
+# 'total_num_opportunities_future_regular', 'total_num_opportunities_future_preview', 'total_num_opportunities_future', 
+# 'total_num_opportunities_future_week_regular', 'total_num_opportunities_future_week_preview', 'total_num_opportunities_future_week', 
+# 'df_total_activities_counts', 'total_num_activities', 'total_num_opportunities_with_activities', 
+# 'df_total_organisers_counts', 'total_num_organisers', 'total_num_opportunities_with_organisers', 
+# 'gdf_total_regions_counts', 'total_num_regions', 'total_num_opportunities_with_regions', 
+# 'gdf_total_lads_counts', 'total_num_lads', 'total_num_opportunities_with_lads', 
+# 'df_total_kinds_counts', 'total_num_kinds', 'total_num_opportunities_with_kinds', 
+# 'df_total_types_counts', 'total_num_types', 'total_num_opportunities_with_types', 
+# 'df_total_address_counts', 'total_num_address', 'total_num_opportunities_with_address', 
+# 'df_total_sad_counts_matched', 'df_total_sad_counts_unmatched', 'total_num_activities_with_sad', 
+# 'total_num_activities_without_sad', 'total_num_opportunities_with_sad', 'total_num_opportunities_without_sad', 
+# 'num_sad', 'num_sad_matched', 'num_sad_unmatched', 
+# 'percentage_sad_matched', 'percentage_sad_unmatched', 'df_se_sport_and_discipline_unmatched', 
+# 'filenames_sampleitems'])
+
+
 if ('buttons' not in st.session_state):
     st.session_state.buttons = {
         'providers': f"**{st.session_state.analysis['num_publishers']:,}**\n\nData Providers",
         'feeds': f"**{st.session_state.analysis['num_feeds']:,}**\n\nData feeds",
         'activities': f"**{st.session_state.analysis['total_num_activities']:,}**\n\nActivities and facilities",
-        'opportunities': f"**{millify(st.session_state.analysis['total_num_opportunities'], precision=1)}**\n\nLive opportunities",
+        'opportunities': f"**{millify(st.session_state.analysis['total_num_opportunities_future'], precision=1)}**\n\nLive opportunities",
     }
     st.session_state.button_name_clicked = 'providers'
 
@@ -46,14 +69,14 @@ with tabs[0]:
 
         if (st.session_state.button_name_clicked == 'providers'):
             content.empty()
-            st.markdown("**OpenActive** is a decentralised open data initiative. Each data provider shares one or more data feeds, providing near real time availability of their activities and facilities.")
+            st.markdown(f"**OpenActive** is a decentralised open data initiative. Each of the **{st.session_state.analysis['num_publishers']:,}** data providers shares one or more data feeds, providing near real time availability of their activities and facilities.")
             st.markdown(" ")
             st.markdown("""The <a href="https://status.openactive.io/" target="_blank"><b>status page</b></a> lists the data providers and basic information about the status of each feed.""", unsafe_allow_html=True)
             st.markdown(" ")
             st.markdown("Some data providers are National Governing Bodies, some are big leisure providers, while others create systems to allow smaller activity providers to open their data.")
             st.markdown(" ")
             orgs = len(st.session_state.analysis['df_total_organisers_counts'])
-            st.markdown(f"This snapshot of the data contains activities and facilities from **{orgs:,}** different providers.")
+            st.markdown(f"This snapshot of the data contains activities and facilities from **{orgs:,}** different activity providers.")
             st.divider()
             image_placeholder = st.empty()  # Placeholder for all images
             num_images_to_show = 6
@@ -71,7 +94,7 @@ with tabs[0]:
         elif (st.session_state.button_name_clicked == 'feeds'):
             content.empty()
             
-            cols = st.columns([1, 1])
+            cols = st.columns([2, 1])
             with cols[0]:
                 st.markdown("There are different types of **OpenActive** data feeds. ")
                 st.markdown(" ")
@@ -94,7 +117,7 @@ with tabs[0]:
 
         elif (st.session_state.button_name_clicked == 'activities'):
             content.empty()
-            cols = st.columns([1, 1])
+            cols = st.columns([2, 1])
             with cols[0]:
                 st.markdown("The official **OpenActive** vocabularies list over 700 [activities](https://activity-list.openactive.io/en/hierarchical_concepts.html) and around 35 [facility types](https://facility-types.openactive.io/en/hierarchical_concepts.html).")
                 st.markdown(" ")
@@ -117,26 +140,35 @@ with tabs[0]:
                 )
         elif st.session_state.button_name_clicked == 'opportunities':
             content.empty()
+            cols = st.columns([2, 1])
+            with cols[0]:
+                st.markdown("**OpenActive** describes standards to make sharing information about *'opportunities for sport and physical activity'* easier and more effective.")
+                st.markdown(" ")
+                st.markdown("We use the word 'opportunity' to describe the individual items or records that are contained in data feeds.")
+                st.markdown(" ")
+                st.markdown("Because the feeds vary in level of detail they represent (e.g. a series of sessions or an individual session), the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
 
-            st.markdown("**OpenActive** describes standards to make sharing information about *'opportunities for sport and physical activity'* easier and more effective. We use the word 'opportunity' to describe the individual items or records that are contained in data feeds. Because the feeds vary in level of detail they represent, the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
+            with cols[1]:
+                fig, ax = plt.subplots(1, 1, figsize=(3, 6))
+                plt.style.use('ggplot')
+                st.session_state.analysis['gdf_total_regions_counts'].plot(
+                    column='percentage',
+                    # cmap='YlOrRd',
+                    cmap='inferno_r',
+                    ax=ax,
+                )
+                ax.set(facecolor='white')
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.set_title('% of OpenActive Opportunities by Region')
+                scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
+                colorbar = plt.colorbar(scalarmappable,  orientation='horizontal', pad=-0.04)
+                colorbar.set_label('%')
+                st.pyplot(fig)
+                plt.close(fig)
 
-            fig, ax = plt.subplots(1, 1, figsize=(3, 6))
-            plt.style.use('ggplot')
-            st.session_state.analysis['gdf_total_regions_counts'].plot(
-                column='percentage',
-                # cmap='YlOrRd',
-                cmap='inferno_r',
-                ax=ax,
-            )
-            ax.set(facecolor='white')
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_title('% of OpenActive Opportunities by Region')
-            scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
-            colorbar = plt.colorbar(scalarmappable,  orientation='horizontal', pad=-0.04)
-            colorbar.set_label('%')
-            st.pyplot(fig)
-            plt.close(fig)
+            st.markdown(" ")
+            st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.analysis['total_num_opportunities_future'], precision=1)} opportunities** to get active over the coming weeks.")
 
 # dated_counts = {
 #     'Jan 17': 0,
@@ -313,3 +345,5 @@ with tabs[1]:
 #        "LAD24NM": "Location",
 #        "count": "Opportunity Count",  # More descriptive column name
 #    })
+
+
