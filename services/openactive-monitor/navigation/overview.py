@@ -10,24 +10,24 @@ from millify import millify
 
 #print(st.session_state.analysis.keys())
 #For reference in presenting numbers
-#dict_keys(['num_publishers_regular', 'num_publishers_preview', 'num_publishers', 
-# 'num_datasets_regular', 'num_datasets_preview', 'num_datasets', 
-# 'num_feeds_regular', 'num_feeds_preview', 'num_feeds', 
-# 'num_feeds_with_analysed_data_regular', 'num_feeds_with_analysed_data_preview', 'num_feeds_with_analysed_data', 
-# 'total_num_opportunities_regular', 'total_num_opportunities_preview', 'total_num_opportunities', 
-# 'total_num_opportunities_future_regular', 'total_num_opportunities_future_preview', 'total_num_opportunities_future', 
-# 'total_num_opportunities_future_week_regular', 'total_num_opportunities_future_week_preview', 'total_num_opportunities_future_week', 
-# 'df_total_activities_counts', 'total_num_activities', 'total_num_opportunities_with_activities', 
-# 'df_total_organisers_counts', 'total_num_organisers', 'total_num_opportunities_with_organisers', 
-# 'gdf_total_regions_counts', 'total_num_regions', 'total_num_opportunities_with_regions', 
-# 'gdf_total_lads_counts', 'total_num_lads', 'total_num_opportunities_with_lads', 
-# 'df_total_kinds_counts', 'total_num_kinds', 'total_num_opportunities_with_kinds', 
-# 'df_total_types_counts', 'total_num_types', 'total_num_opportunities_with_types', 
-# 'df_total_address_counts', 'total_num_address', 'total_num_opportunities_with_address', 
-# 'df_total_sad_counts_matched', 'df_total_sad_counts_unmatched', 
-# 'total_num_activities_with_sad', 'total_num_activities_without_sad', 'total_num_opportunities_with_sad', 'total_num_opportunities_without_sad', 
-# 'num_sad', 'num_sad_matched', 'num_sad_unmatched', 
-# 'percentage_sad_matched', 'percentage_sad_unmatched', 'df_se_sport_and_discipline_unmatched', 
+#dict_keys(['num_publishers_regular', 'num_publishers_preview', 'num_publishers',
+# 'num_datasets_regular', 'num_datasets_preview', 'num_datasets',
+# 'num_feeds_regular', 'num_feeds_preview', 'num_feeds',
+# 'num_feeds_with_analysed_data_regular', 'num_feeds_with_analysed_data_preview', 'num_feeds_with_analysed_data',
+# 'total_num_opportunities_regular', 'total_num_opportunities_preview', 'total_num_opportunities',
+# 'total_num_opportunities_future_regular', 'total_num_opportunities_future_preview', 'total_num_opportunities_future',
+# 'total_num_opportunities_future_week_regular', 'total_num_opportunities_future_week_preview', 'total_num_opportunities_future_week',
+# 'df_total_activities_counts', 'total_num_activities', 'total_num_opportunities_with_activities',
+# 'df_total_organisers_counts', 'total_num_organisers', 'total_num_opportunities_with_organisers',
+# 'gdf_total_regions_counts', 'total_num_regions', 'total_num_opportunities_with_regions',
+# 'gdf_total_lads_counts', 'total_num_lads', 'total_num_opportunities_with_lads',
+# 'df_total_kinds_counts', 'total_num_kinds', 'total_num_opportunities_with_kinds',
+# 'df_total_types_counts', 'total_num_types', 'total_num_opportunities_with_types',
+# 'df_total_address_counts', 'total_num_address', 'total_num_opportunities_with_address',
+# 'df_total_sad_counts_matched', 'df_total_sad_counts_unmatched',
+# 'total_num_activities_with_sad', 'total_num_activities_without_sad', 'total_num_opportunities_with_sad', 'total_num_opportunities_without_sad',
+# 'num_sad', 'num_sad_matched', 'num_sad_unmatched',
+# 'percentage_sad_matched', 'percentage_sad_unmatched', 'df_se_sport_and_discipline_unmatched',
 # 'filenames_sampleitems'])
 
 #Combine SE data for display
@@ -52,7 +52,7 @@ if ('buttons' not in st.session_state):
         'opportunities': f"**{millify(st.session_state.analysis['total_num_opportunities_future'], precision=1)}**\n\nLive opportunities",
         'kpis': f"Draft\n\nKPIs"
     }
-    st.session_state.button_name_clicked = 'providers' 
+    st.session_state.button_name_clicked = 'providers'
 
 def click_button(button_name_clicked):
     st.session_state.button_name_clicked = button_name_clicked
@@ -101,11 +101,11 @@ with cols[1]:
                     with cols[j]:
                         st.image(url, width=200)
             time.sleep(1.5)
-            image_placeholder.empty() 
+            image_placeholder.empty()
 
     elif (st.session_state.button_name_clicked == 'feeds'):
         content.empty()
-        
+
         cols = st.columns([2, 1])
         with cols[0]:
             st.markdown("There are different types of **OpenActive** data feeds. ")
@@ -116,7 +116,7 @@ with cols[1]:
             st.markdown("Similarly:")
             st.markdown(" - A FacilityUse feed includes details that apply to a number of bookable time slots: location, type of facility, organiser, etc")
             st.markdown(" - A Slot feed includes details that apply to a specific time slot: date, time, etc")
-            
+
         with cols[1]:
             # Convert the dictionary to a DataFrame for Streamlit display
             df_feed_types = pd.DataFrame(list(st.session_state.feed_type_counts.items()), columns=['Feed Type', 'Count'])
@@ -124,11 +124,11 @@ with cols[1]:
             df_feed_types = df_feed_types.sort_values(by='Count', ascending=False)
             # Display the table
             st.dataframe(df_feed_types, use_container_width=True, hide_index=True)
-        
+
         st.markdown(" ")
-        st.markdown(f"This snapshot include data from {st.session_state.analysis['num_feeds_preview']} 'preview' feeds - these are work in progress and not yet recognised as OpenActive compliant, but may be of interest to data users for exploratory use.")
+        st.markdown(f"This snapshot includes data from {st.session_state.analysis['num_feeds_preview']} 'preview' feeds - these are work in progress and not yet recognised as OpenActive compliant, but may be of interest to data users for exploratory use.")
         st.markdown("You can explore each data feed using the **[visualiser](https://visualiser.openactive.io/)** which includes some high-level data quality metrics.")
-            
+
     elif (st.session_state.button_name_clicked == 'activities'):
         content.empty()
         cols = st.columns([2, 1])
@@ -153,7 +153,7 @@ with cols[1]:
                     ),
                 },
             )
-            
+
     elif st.session_state.button_name_clicked == 'opportunities':
         content.empty()
         cols = st.columns([2, 1])
@@ -184,7 +184,7 @@ with cols[1]:
             colorbar.set_label('%')
             st.pyplot(fig, use_container_width=True)
             plt.close(fig)
-        
+
     #Need more historic datapoints to make this a compelling visual
     # dated_counts = {
     #     'Jan 17': 0,
@@ -212,14 +212,14 @@ with cols[1]:
         st.markdown('**Key Performance Indicators**')
         st.markdown('**Growth of OpenActive**')
         st.markdown(f"***{st.session_state.analysis['percentage_sad_matched']:.1f}% of Sport England recognised Sports and Disciplines appear in OpenActive data feeds***")
-        with st.expander('This is a simple measure of coverage across sports in the OpenActive ecosystem.  \nClick here for more details.'):
-            st.write(f"{st.session_state.analysis['num_sad_matched']} of the {st.session_state.analysis['num_sad']} recognised Sports and Disciplines found in OpenActive data ({st.session_state.analysis['percentage_sad_matched']:.1f}%)")    
+        with st.expander('This is a simple measure of coverage across sports in the OpenActive ecosystem.\n\nClick here for more details.'):
+            st.write(f"{st.session_state.analysis['num_sad_matched']} of the {st.session_state.analysis['num_sad']} recognised Sports and Disciplines found in OpenActive data ({st.session_state.analysis['percentage_sad_matched']:.1f}%)")
             st.dataframe(
                 combined_SE_df,
                 use_container_width=True,
                 hide_index=True,
                 column_config={
-                    "sport_and_discipline": "Sports and Disciplines",  
+                    "sport_and_discipline": "Sports and Disciplines",
                     "activity": "Activities and Facilities in OpenActive data",
                     "% of Opportunities": st.column_config.NumberColumn(
                         "% of Opportunities", format="%0.1f"
@@ -235,7 +235,7 @@ with cols[1]:
             st.write('Sports and Disciplines')
             st.markdown('These are the sports governed by the list of national governing bodies recognised by the UK Sports Councils. Source: spreadsheet downloaded from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) on 2024-01-24.')
             st.write('Disciplines are categories within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
-            
+
         gdf = st.session_state.analysis['gdf_total_lads_counts']
 
         # Filter for counts 50 or greater (important to include NaNs as 'not greater than or equal to 50')
@@ -245,13 +245,13 @@ with cols[1]:
         percentage_1000_or_more = (len(gdf_filtered) / len(gdf)) * 100
 
         st.markdown(f"***{percentage_1000_or_more:.1f}% of UK Local Authorities have more than 1000 opportunities in OpenActive data feeds***")
-        with st.expander('This is a simple measure of UK coverage in the OpenActive ecosystem.   \nClick here for more details.'):
-            
-            st.write(f"{len(gdf_filtered)} of the {len(gdf)} Local Authorities in the UK have more than 1000 opportunities in OpenActive data ({percentage_1000_or_more:.1f}%)")    
-          
+        with st.expander('This is a simple measure of UK coverage in the OpenActive ecosystem.\n\nClick here for more details.'):
+
+            st.write(f"{len(gdf_filtered)} of the {len(gdf)} Local Authorities in the UK have more than 1000 opportunities in OpenActive data ({percentage_1000_or_more:.1f}%)")
+
             cols = st.columns(2)
             with cols[0]:
-                
+
                 st.dataframe(
                     st.session_state.analysis['gdf_total_lads_counts'][['LAD24NM', 'count', 'percentage']],
                     use_container_width=True,
@@ -285,8 +285,8 @@ with cols[1]:
 
             st.markdown(" ")
             st.divider()
-            st.write(f"Using November 24 data, we explored the coverage of local areas in OpenActive data feeds.")
-            st.write("There are over 32,000 [Lower Layer Super Output Areas (LSOAs)](https://www.ons.gov.uk/methodology/geography/ukgeographies/statisticalgeographies) in England, with populations between 1000 and 3000 people. There are ranked by the Office of National Statistics by indicators of deprivation.")
+            st.write(f"Using November 2024 data, we explored the coverage of local areas in OpenActive data feeds.")
+            st.write("There are over 32,000 [Lower Layer Super Output Areas (LSOAs)](https://www.ons.gov.uk/methodology/geography/ukgeographies/statisticalgeographies) in England, with populations between 1000 and 3000 people. These are ranked by the Office of National Statistics by indicators of deprivation.")
             st.write("Less than 30% of most deprived areas appear in OpenActive data, compared to almost 50% of the least deprived areas.")
             # LSOAs by deprivation deciles
             data = """Most Deprived,	945,	3285
@@ -317,20 +317,20 @@ with cols[1]:
             ))
 
             fig.update_layout(
-                title="Percentage of OA coverage across LSOA areas, ranked by deprivation index",
-                xaxis_title="LSOAs grouped by deprivation indices",
+                title="OA coverage across LSOAs, ranked by deprivation index",
+                xaxis_title="LSOAs grouped by deprivation index",
                 yaxis_title="% of LSOAs in each group with OpenActive opportunities",
                 height=600,
                 yaxis_range=[0, 100],
                 xaxis = dict(
                     type = 'category' #This tells Plotly to treat the x-axis as categorical
-                    )
+                )
             )
             # Display chart in Streamlit
             st.plotly_chart(fig, use_container_width=True)
 
             st.write(' ')
-                            
+
 #print(st.session_state.analysis.keys())
 #print(st.session_state.analysis['total_num_lads'])
 #print(st.session_state.analysis['gdf_total_lads_counts'])
@@ -350,5 +350,3 @@ with cols[1]:
 #        "LAD24NM": "Location",
 #        "count": "Opportunity Count",  # More descriptive column name
 #    })
-
-
