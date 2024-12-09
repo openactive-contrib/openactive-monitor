@@ -244,7 +244,7 @@ with cols[1]:
         # Calculate the percentage
         percentage_1000_or_more = (len(gdf_filtered) / len(gdf)) * 100
 
-        st.markdown(f"***{percentage_1000_or_more:.1f}% of UK Local Authorities have more than 1000 opportunities in OpenActive data feeds***")
+        st.markdown(f"***{percentage_1000_or_more:.1f}% of UK Local Authority areas have more than 1000 opportunities across the OpenActive data feeds***")
         with st.expander('This is a simple measure of UK coverage in the OpenActive ecosystem.\n\nClick here for more details.'):
 
             st.write(f"{len(gdf_filtered)} of the {len(gdf)} Local Authorities in the UK have more than 1000 opportunities in OpenActive data ({percentage_1000_or_more:.1f}%)")
