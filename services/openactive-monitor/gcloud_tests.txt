@@ -1,1 +1,0 @@
-- openactive-monitor-dev-build-trigger-new doesn't properly launch the service when triggered manually, despite all positive ticks when run. Does this GitHub tweak result in a successful launch, which is the actual desired method for the trigger?
