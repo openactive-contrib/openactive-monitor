@@ -1,9 +1,11 @@
+import csv
 import pickle
 import sys
 from datetime import datetime
 from google.cloud import pubsub_v1
 # from openactive import get_feeds
-from os import getenv
+from os import getenv, listdir, remove, symlink
+from os.path import isfile
 
 sys.path.append('../volume-1/common')
 from openactive_custom import get_feeds
@@ -17,11 +19,23 @@ from openactive_custom import get_feeds
 #   $ gcloud beta run jobs update get-feeds \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
-RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
+FEEDS_RELATIVE_FILEPATH = getenv('FEEDS_RELATIVE_FILEPATH', '../volume-1/data-feeds')
 
-FILENAME_FEEDS = getenv('FILENAME_FEEDS', 'feeds.pickle') # Located in RELATIVE_FILEPATH_FEEDS
-FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle') # Located in RELATIVE_FILEPATH_FEEDS
+REGULAR_FEEDS_FILENAME_BASE = getenv('REGULAR_FEEDS_FILENAME_BASE', 'regular-feeds')
+PREVIEW_FEEDS_FILENAME_BASE = getenv('PREVIEW_FEEDS_FILENAME_BASE', 'preview-feeds')
+FEEDS_FILENAME_SUFFIX = '.pickle'
+REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated in other jobs
+PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated in other jobs
+REGULAR_FEEDS_HISTORY_FILENAME = getenv('REGULAR_FEEDS_HISTORY_FILENAME', 'regular-feeds-history.csv') # Located in FEEDS_RELATIVE_FILEPATH
+PREVIEW_FEEDS_HISTORY_FILENAME = getenv('PREVIEW_FEEDS_HISTORY_FILENAME', 'preview-feeds-history.csv') # Located in FEEDS_RELATIVE_FILEPATH
+SKIP_FILENAMES = [
+    REGULAR_FEEDS_LATEST_FILENAME,
+    PREVIEW_FEEDS_LATEST_FILENAME,
+    REGULAR_FEEDS_HISTORY_FILENAME,
+    PREVIEW_FEEDS_HISTORY_FILENAME,
+]
 
+MAX_NUM_FILES = int(getenv('MAX_NUM_FILES', '500')) # Number of historical outputs to keep for each feed type (regular and preview), including the latest output. 2025-09-03 A regular feeds file is currently ~100KB, so 500 of these is ~50MB. A preview feeds file is currently ~1KB, so 500 of these is ~0.5MB. 500 was chosen to go back ~1.5 years if this is run daily.
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
 
@@ -35,31 +49,186 @@ HEADERS = {
 }
 
 print('Environment variables:')
-print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
-print('FILENAME_FEEDS:', FILENAME_FEEDS)
-print('FILENAME_FEEDS_PREVIEW:', FILENAME_FEEDS_PREVIEW)
+print('FEEDS_RELATIVE_FILEPATH:', FEEDS_RELATIVE_FILEPATH)
+print('REGULAR_FEEDS_FILENAME_BASE:', REGULAR_FEEDS_FILENAME_BASE)
+print('PREVIEW_FEEDS_FILENAME_BASE:', PREVIEW_FEEDS_FILENAME_BASE)
+print('REGULAR_FEEDS_LATEST_FILENAME:', REGULAR_FEEDS_LATEST_FILENAME)
+print('PREVIEW_FEEDS_LATEST_FILENAME:', PREVIEW_FEEDS_LATEST_FILENAME)
+print('REGULAR_FEEDS_HISTORY_FILENAME:', REGULAR_FEEDS_HISTORY_FILENAME)
+print('PREVIEW_FEEDS_HISTORY_FILENAME:', PREVIEW_FEEDS_HISTORY_FILENAME)
+print('MAX_NUM_FILES:', MAX_NUM_FILES)
 print('VERBOSE:', VERBOSE)
+
+# --------------------------------------------------------------------------------------------------
+
+# A filename is formed of a base, a stamp, and a suffix. The base can be anything depending on context.
+# The stamp is like the following (the exact parts may differ depending on the nature of this job):
+#   '--timeFinish-2024-11-28-02-17-30-651905-UTC--timeTaken-0-374038--numItems-4059--numUrls-39--status-COMPLETE'
+# The suffix is like:
+#   '.pickle' or '.pickle.gzip'
+class FilenameStamp:
+    # Files of the same filename base are later grouped and alphabetically sorted to determine the order
+    # in which they were made, via the filename stamp, so that earlier files can be deleted. It's important
+    # that 'timeFinish' is the first part of the filename stamp for this to work as intended. Other parts
+    # can appear in any order. The alternative would be to break down the stamp and seek the 'timeFinish'
+    # part when sorting, which is a bit more work and not necessary at the time of writing (2024-06-20):
+    parts = [
+        'timeFinish',
+        'timeTaken',
+        'numFeeds',
+        'numDatasets',
+        'status',
+    ]
+
+    # This is important to know outside of this class for when the filename is broken into parts, in order
+    # to know how many of the parts form the stamp:
+    num_parts = len(parts)
+
+    def __init__(self, t1, t2, num_feeds, num_datasets, status):
+        time_delta = t2 - t1
+        self.value = ''
+        for part in self.parts:
+            if (part == 'timeFinish'):
+                self.value += f"--{part}-{t2.year}-{t2.month:02}-{t2.day:02}-{t2.hour:02}-{t2.minute:02}-{t2.second:02}-{t2.microsecond:06}-UTC"
+            elif (part == 'timeTaken'):
+                self.value += f"--{part}-{time_delta.seconds}-{time_delta.microseconds}"
+            elif (part == 'numFeeds'):
+                self.value += f"--{part}-{num_feeds}"
+            elif (part == 'numDatasets'):
+                self.value += f"--{part}-{num_datasets}"
+            elif (part == 'status'):
+                self.value += f"--{part}-{status}"
+
+# --------------------------------------------------------------------------------------------------
+
+filenames = None
+# filename_bases = None # Not currently used herein, but may be useful
+def get_filenames():
+    global filenames
+    # global filename_bases
+
+    filenames = sorted([
+        i
+        for i in listdir(FEEDS_RELATIVE_FILEPATH)
+        if (    (isfile(FEEDS_RELATIVE_FILEPATH + '/' + i))
+            and (i.startswith(REGULAR_FEEDS_FILENAME_BASE) or i.startswith(PREVIEW_FEEDS_FILENAME_BASE))
+            and (i.endswith(FEEDS_FILENAME_SUFFIX))
+            and (i not in SKIP_FILENAMES)
+        )
+    ])
+
+    # Here we split on '--' which is used as the filename stamp delimiter, then remove the number of parts
+    # that we know exist in the filename stamp. If we are then left with multiple fragments from the split,
+    # that's because there were other instances of '--' in the filename base that we don't want to lose,
+    # hence we rejoin these fragments with '--' again:
+    # filename_bases = sorted(set([
+    #     '--'.join(i.split('--')[:-FilenameStamp.num_parts])
+    #     for i in filenames
+    # ]))
 
 # --------------------------------------------------------------------------------------------------
 
 def run_get_feeds(**kwargs):
     preview = kwargs.get('preview', False)
 
+    # --------------------------------------------------------------------------------------------------
+
     t1 = datetime.now()
     feeds = get_feeds(**{**kwargs, **{'flat': True}})
     t2 = datetime.now()
 
-    with open(RELATIVE_FILEPATH_FEEDS + '/' + (FILENAME_FEEDS_PREVIEW if preview else FILENAME_FEEDS), 'wb') as file_out:
+    # --------------------------------------------------------------------------------------------------
+
+    num_feeds = len(feeds)
+    num_datasets = len(set([feed['datasetUrl'] for feed in feeds]))
+
+    # --------------------------------------------------------------------------------------------------
+
+    current_filename_base = PREVIEW_FEEDS_FILENAME_BASE if preview else REGULAR_FEEDS_FILENAME_BASE
+    current_filename = current_filename_base + FilenameStamp(t1, t2, num_feeds, num_datasets, 'COMPLETE').value + FEEDS_FILENAME_SUFFIX
+    relative_filepath_current_filename = FEEDS_RELATIVE_FILEPATH + '/' + current_filename
+
+    with open(relative_filepath_current_filename, 'wb') as file_out:
         pickle.dump(
             {
                 'time_start': str(t1),
                 'time_finish': str(t2),
                 'time_taken': str(t2 - t1),
-                'num_feeds': len(feeds),
+                'num_feeds': num_feeds,
+                'num_datasets': num_datasets,
                 'feeds': feeds,
             },
             file_out
         )
+
+    # --------------------------------------------------------------------------------------------------
+
+    # By the above code, a new file with a unique filename stamp will be made every time this code is run.
+    # In other jobs we just want the latest version, and rather than having those jobs check all filename
+    # stamps we instead use this job to make a constantly named symlink file, which can always be taken
+    # as referring to the latest content without actually duplicating it. Note that the relative filepath
+    # is only needed on the location of the symlink file being made, as symlinks are relative to their point
+    # of use and the file being referred to is already at that location:
+
+    current_latest_filename = PREVIEW_FEEDS_LATEST_FILENAME if preview else REGULAR_FEEDS_LATEST_FILENAME
+    relative_filepath_current_latest_filename = FEEDS_RELATIVE_FILEPATH + '/' + current_latest_filename
+
+    try:
+        remove(relative_filepath_current_latest_filename)
+    except:
+        pass
+
+    symlink(current_filename, relative_filepath_current_latest_filename)
+
+    # --------------------------------------------------------------------------------------------------
+
+    try:
+        get_filenames()
+    except Exception as error:
+        print('ERROR:', error)
+        sys.exit(1)
+
+    current_filenames = sorted([
+        filename
+        for filename in filenames
+        if (filename.startswith(current_filename_base))
+    ])
+
+    if (len(current_filenames) > MAX_NUM_FILES):
+        for filename in current_filenames[:-MAX_NUM_FILES]:
+            remove(FEEDS_RELATIVE_FILEPATH + '/' + filename)
+
+    # --------------------------------------------------------------------------------------------------
+
+    current_history_filename = PREVIEW_FEEDS_HISTORY_FILENAME if preview else REGULAR_FEEDS_HISTORY_FILENAME
+    relative_filepath_current_history_filename = FEEDS_RELATIVE_FILEPATH + '/' + current_history_filename
+
+    current_historical_filenames = []
+    current_feed_urls_records = {}
+
+    try:
+        with open(relative_filepath_current_history_filename, 'r') as file_in:
+            csv_reader = csv.reader(file_in)
+            for row in csv_reader:
+                if (csv_reader.line_num == 1):
+                    current_historical_filenames = row[1:]
+                else:
+                    current_feed_urls_records[row[0]] = row[1:]
+    except:
+        pass
+
+    num_current_historical_filenames = len(current_historical_filenames)
+    for feed_url in sorted(set([feed['url'] for feed in feeds])):
+        if (feed_url in current_feed_urls_records.keys()):
+            current_feed_urls_records[feed_url].append('y')
+        else:
+            current_feed_urls_records[feed_url] = num_current_historical_filenames * [''] + ['y']
+
+    with open(relative_filepath_current_history_filename, 'w') as file_out:
+        csv_writer = csv.writer(file_out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writerow(['feed_url'] + current_historical_filenames + [current_filename])
+        for key, val in current_feed_urls_records.items():
+            csv_writer.writerow([key] + val)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -74,18 +243,16 @@ def run_job(name_job):
 # --------------------------------------------------------------------------------------------------
 
 if (__name__ == '__main__'):
-    # Temporarily disabled as GCloud is not getting all feeds for some reason, so just using feeds from
-    # local run instead:
-    # for preview in [False, True]:
-    #     try:
-    #         run_get_feeds(
-    #             headers = HEADERS,
-    #             preview = preview,
-    #             verbose = VERBOSE,
-    #         )
-    #     except Exception as error:
-    #         print('ERROR:', error)
-    #         sys.exit(1)
+    for preview in [False, True]:
+        try:
+            run_get_feeds(
+                headers = HEADERS,
+                preview = preview,
+                verbose = VERBOSE,
+            )
+        except Exception as error:
+            print('ERROR:', error)
+            sys.exit(1)
 
     # --------------------------------------------------------------------------------------------------
 
