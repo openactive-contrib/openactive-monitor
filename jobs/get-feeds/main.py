@@ -33,17 +33,16 @@ SKIP_FILENAMES = [
     PREVIEW_FEEDS_LATEST_FILENAME,
     REGULAR_FEEDS_HISTORY_FILENAME,
     PREVIEW_FEEDS_HISTORY_FILENAME,
-]
+] # Filenames to skip when checking for files in storage
 
-MAX_NUM_FILES = int(getenv('MAX_NUM_FILES', '500')) # Number of historical outputs to keep for each feed type (regular and preview), including the latest output. 2025-09-03 A regular feeds file is currently ~100KB, so 500 of these is ~50MB. A preview feeds file is currently ~1KB, so 500 of these is ~0.5MB. 500 was chosen to go back ~1.5 years if this is run daily.
+MAX_NUM_FEEDS_FILES = int(getenv('MAX_NUM_FEEDS_FILES', '500')) # Number of feeds files to keep for each feed type (regular and preview), including the latest output. 2025-09-03 A regular feeds file is currently ~100KB, so 500 of these is ~50MB. A preview feeds file is currently ~1KB, so 500 of these is ~0.5MB. 500 was chosen to go back ~1.5 years if this is run daily.
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
 
 HEADERS = {
     'timeout': '10',
     'User-Agent': 'OpenActive admin',
-    # Alternative 'User-Agent' based on laptop browser settings. Still doesn't seem to help some GCloud 403 errors though:
-    # 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36',
+    # 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36', # Alternative 'User-Agent' based on laptop browser settings. Still doesn't seem to help some GCloud 403 errors though.
     'From': 'hello@openactive.io',
     'Referer': 'https://www.openactive.io',
 }
@@ -56,18 +55,20 @@ print('REGULAR_FEEDS_LATEST_FILENAME:', REGULAR_FEEDS_LATEST_FILENAME)
 print('PREVIEW_FEEDS_LATEST_FILENAME:', PREVIEW_FEEDS_LATEST_FILENAME)
 print('REGULAR_FEEDS_HISTORY_FILENAME:', REGULAR_FEEDS_HISTORY_FILENAME)
 print('PREVIEW_FEEDS_HISTORY_FILENAME:', PREVIEW_FEEDS_HISTORY_FILENAME)
-print('MAX_NUM_FILES:', MAX_NUM_FILES)
+print('MAX_NUM_FEEDS_FILES:', MAX_NUM_FEEDS_FILES)
 print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
-# A filename is formed of a base, a stamp, and a suffix. The base can be anything depending on context.
-# The stamp is like the following (the exact parts may differ depending on the nature of this job):
-#   '--timeFinish-2024-11-28-02-17-30-651905-UTC--timeTaken-0-374038--numItems-4059--numUrls-39--status-COMPLETE'
+# A feeds filename is formed of a base, a stamp, and a suffix.
+# The base is like:
+#   'regular-feeds' or 'preview-feeds'
+# The stamp is like:
+#   '--timeFinish-2025-09-03-18-32-43-729646-UTC--timeTaken-131-21962--numFeeds-452--numDatasets-167'
 # The suffix is like:
-#   '.pickle' or '.pickle.gzip'
+#   '.pickle'
 class FilenameStamp:
-    # Files of the same filename base are later grouped and alphabetically sorted to determine the order
+    # Files of the same filename pre-stamp are later grouped and alphabetically sorted to find the order
     # in which they were made, via the filename stamp, so that earlier files can be deleted. It's important
     # that 'timeFinish' is the first part of the filename stamp for this to work as intended. Other parts
     # can appear in any order. The alternative would be to break down the stamp and seek the 'timeFinish'
@@ -77,14 +78,13 @@ class FilenameStamp:
         'timeTaken',
         'numFeeds',
         'numDatasets',
-        'status',
     ]
 
     # This is important to know outside of this class for when the filename is broken into parts, in order
     # to know how many of the parts form the stamp:
     num_parts = len(parts)
 
-    def __init__(self, t1, t2, num_feeds, num_datasets, status):
+    def __init__(self, t1, t2, num_feeds, num_datasets):
         time_delta = t2 - t1
         self.value = ''
         for part in self.parts:
@@ -96,16 +96,14 @@ class FilenameStamp:
                 self.value += f"--{part}-{num_feeds}"
             elif (part == 'numDatasets'):
                 self.value += f"--{part}-{num_datasets}"
-            elif (part == 'status'):
-                self.value += f"--{part}-{status}"
 
 # --------------------------------------------------------------------------------------------------
 
 filenames = None
-# filename_bases = None # Not currently used herein, but may be useful
+# filename_prestamps = None # Not currently used herein, but may be useful
 def get_filenames():
     global filenames
-    # global filename_bases
+    # global filename_prestamps
 
     filenames = sorted([
         i
@@ -119,9 +117,10 @@ def get_filenames():
 
     # Here we split on '--' which is used as the filename stamp delimiter, then remove the number of parts
     # that we know exist in the filename stamp. If we are then left with multiple fragments from the split,
-    # that's because there were other instances of '--' in the filename base that we don't want to lose,
-    # hence we rejoin these fragments with '--' again:
-    # filename_bases = sorted(set([
+    # that's because there were other instances of '--' in the filename pre-stamp that we don't want to
+    # lose, hence we rejoin these fragments with '--' again:
+
+    # filename_prestamps = sorted(set([
     #     '--'.join(i.split('--')[:-FilenameStamp.num_parts])
     #     for i in filenames
     # ]))
@@ -139,27 +138,35 @@ def run_get_feeds(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    num_feeds = len(feeds)
-    num_datasets = len(set([feed['datasetUrl'] for feed in feeds]))
-
-    # --------------------------------------------------------------------------------------------------
-
     current_filename_base = PREVIEW_FEEDS_FILENAME_BASE if preview else REGULAR_FEEDS_FILENAME_BASE
-    current_filename = current_filename_base + FilenameStamp(t1, t2, num_feeds, num_datasets, 'COMPLETE').value + FEEDS_FILENAME_SUFFIX
-    relative_filepath_current_filename = FEEDS_RELATIVE_FILEPATH + '/' + current_filename
+    current_filename = \
+        current_filename_base + \
+        FilenameStamp(t1, t2, len(feeds), len(set([feed['datasetUrl'] for feed in feeds]))).value + \
+        FEEDS_FILENAME_SUFFIX
 
-    with open(relative_filepath_current_filename, 'wb') as file_out:
+    with open(FEEDS_RELATIVE_FILEPATH + '/' + current_filename, 'wb') as file_out:
+        # TODO: Change this to the following when accommodated in other jobs, no further information is necessary:
+        # pickle.dump(feeds, file_out)
         pickle.dump(
             {
-                'time_start': str(t1),
-                'time_finish': str(t2),
-                'time_taken': str(t2 - t1),
-                'num_feeds': num_feeds,
-                'num_datasets': num_datasets,
                 'feeds': feeds,
+                'num_feeds': len(feeds),
             },
             file_out
         )
+
+    filenames.append(current_filename)
+    current_filenames = sorted([
+        filename
+        for filename in filenames
+        if (filename.startswith(current_filename_base))
+    ])
+
+    # --------------------------------------------------------------------------------------------------
+
+    if (len(current_filenames) > MAX_NUM_FEEDS_FILES):
+        for filename in current_filenames[:-MAX_NUM_FEEDS_FILES]:
+            remove(FEEDS_RELATIVE_FILEPATH + '/' + filename)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -171,43 +178,23 @@ def run_get_feeds(**kwargs):
     # of use and the file being referred to is already at that location:
 
     current_latest_filename = PREVIEW_FEEDS_LATEST_FILENAME if preview else REGULAR_FEEDS_LATEST_FILENAME
-    relative_filepath_current_latest_filename = FEEDS_RELATIVE_FILEPATH + '/' + current_latest_filename
 
     try:
-        remove(relative_filepath_current_latest_filename)
+        remove(FEEDS_RELATIVE_FILEPATH + '/' + current_latest_filename)
     except:
         pass
 
-    symlink(current_filename, relative_filepath_current_latest_filename)
-
-    # --------------------------------------------------------------------------------------------------
-
-    try:
-        get_filenames()
-    except Exception as error:
-        print('ERROR:', error)
-        sys.exit(1)
-
-    current_filenames = sorted([
-        filename
-        for filename in filenames
-        if (filename.startswith(current_filename_base))
-    ])
-
-    if (len(current_filenames) > MAX_NUM_FILES):
-        for filename in current_filenames[:-MAX_NUM_FILES]:
-            remove(FEEDS_RELATIVE_FILEPATH + '/' + filename)
+    symlink(current_filename, FEEDS_RELATIVE_FILEPATH + '/' + current_latest_filename)
 
     # --------------------------------------------------------------------------------------------------
 
     current_history_filename = PREVIEW_FEEDS_HISTORY_FILENAME if preview else REGULAR_FEEDS_HISTORY_FILENAME
-    relative_filepath_current_history_filename = FEEDS_RELATIVE_FILEPATH + '/' + current_history_filename
 
     current_historical_filenames = []
     current_feed_urls_records = {}
 
     try:
-        with open(relative_filepath_current_history_filename, 'r') as file_in:
+        with open(FEEDS_RELATIVE_FILEPATH + '/' + current_history_filename, 'r') as file_in:
             csv_reader = csv.reader(file_in)
             for row in csv_reader:
                 if (csv_reader.line_num == 1):
@@ -224,7 +211,7 @@ def run_get_feeds(**kwargs):
         else:
             current_feed_urls_records[feed_url] = num_current_historical_filenames * [''] + ['y']
 
-    with open(relative_filepath_current_history_filename, 'w') as file_out:
+    with open(FEEDS_RELATIVE_FILEPATH + '/' + current_history_filename, 'w') as file_out:
         csv_writer = csv.writer(file_out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         csv_writer.writerow(['feed_url'] + current_historical_filenames + [current_filename])
         for key, val in current_feed_urls_records.items():
@@ -243,6 +230,15 @@ def run_job(name_job):
 # --------------------------------------------------------------------------------------------------
 
 if (__name__ == '__main__'):
+
+    try:
+        get_filenames()
+    except Exception as error:
+        print('ERROR:', error)
+        sys.exit(1)
+
+    # --------------------------------------------------------------------------------------------------
+
     for preview in [False, True]:
         try:
             run_get_feeds(
@@ -252,15 +248,14 @@ if (__name__ == '__main__'):
             )
         except Exception as error:
             print('ERROR:', error)
-            sys.exit(1)
 
     # --------------------------------------------------------------------------------------------------
 
+    # For running on Google Cloud to trigger the next job, comment out if running locally:
     try:
         run_job('get-opportunities')
     except Exception as error:
         print('ERROR:', error)
-        sys.exit(1)
 
     # --------------------------------------------------------------------------------------------------
 
