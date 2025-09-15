@@ -155,6 +155,7 @@ def run_get_opportunities(feed, **kwargs):
     current_filename_url = feed['url'].replace('https://', '').replace('http://', '').replace('www.', '').replace('.', '-').replace('/', '-').strip('-')
     current_filename_prestamp = current_filename_base + '--' + current_filename_url
 
+    get_filenames()
     current_filenames = sorted([
         filename
         for filename in filenames
@@ -202,28 +203,30 @@ def run_get_opportunities(feed, **kwargs):
         # issue have large file sizes, so the ultimate cause is unknown, it could be something about the actual
         # characters involved. Online comments for this error suggest trying to write the file again in the
         # first instance, hence the write-read-rewrite process below. This workaround at least results in only
-        # safe files that can be opened being kept in storage.
+        # safe files that can be opened being kept in storage:
 
         num_write_tries = 0
         while (num_write_tries < MAX_NUM_WRITE_TRIES):
             num_write_tries += 1
             try:
-                print(f'Attempt {num_write_tries}/{MAX_NUM_WRITE_TRIES} to write file {current_filename}')
+                print(f'Try {num_write_tries}/{MAX_NUM_WRITE_TRIES} of writing file {current_filename}')
                 with gzip.open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + current_filename, 'wb') as file_out:
                     pickle.dump(opportunities, file_out)
                 with gzip.open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + current_filename, 'rb') as file_in:
                     opportunities_test = pickle.load(file_in)
-                print('Write successful')
-                filenames.append(current_filename)
-                current_filenames.append(current_filename)
+                print('Successful write')
                 del(opportunities_test)
                 break
             except:
-                print('ERROR: Write unsuccessful')
-                remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + current_filename)
-                if (num_write_tries == MAX_NUM_WRITE_TRIES):
-                    print(f'ERROR: Maximum number of write attempts reached, file not written')
+                if (num_write_tries < MAX_NUM_WRITE_TRIES):
+                    print('Unsuccessful write, retrying ...')
+                else:
+                    print('Unsuccessful write, maximum number of tries reached')
                     opportunities['status'] = 'ERROR'
+                try:
+                    remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + current_filename)
+                except:
+                    pass
 
     # --------------------------------------------------------------------------------------------------
 
@@ -232,14 +235,25 @@ def run_get_opportunities(feed, **kwargs):
     # be so if file removal was inhibited on the previous run or if the maximum number of files to keep
     # has changed since the previous run:
 
+    get_filenames()
+    current_filenames = sorted([
+        filename
+        for filename in filenames
+        if (filename.startswith(current_filename_prestamp))
+    ])
+
     if (len(current_filenames) > MAX_NUM_OPPORTUNITIES_FILES):
         for filename in current_filenames[:-MAX_NUM_OPPORTUNITIES_FILES]:
-            remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + filename)
+            try:
+                remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + filename)
+            except:
+                pass
 
     # --------------------------------------------------------------------------------------------------
 
     # 2024-06-14 Not currently using this as forced garbage collection is suspected of affecting Google
     # Cloud memory performance:
+
     # gc.collect()
 
     return opportunities
@@ -257,16 +271,6 @@ def run_job(name_job):
 # --------------------------------------------------------------------------------------------------
 
 if (__name__ == '__main__'):
-
-    try:
-        get_filenames()
-    except Exception as error:
-        print('ERROR:', error)
-        sys.exit(1)
-
-    # --------------------------------------------------------------------------------------------------
-
-    feeds = None
     for preview in [False, True]:
         try:
             # RUNNING_FEEDS_FILENAME and RUNNING_FEED_FILENAME are deleted at the end of a complete run of this
@@ -296,7 +300,7 @@ if (__name__ == '__main__'):
 
             # --------------------------------------------------------------------------------------------------
 
-            print(f"\nSTARTED {'preview' if preview else 'regular'} feeds")
+            print(f"\n***** Started {'preview' if preview else 'regular'} feeds *****")
 
             while (any([(feed['status'] in [None, 'ERROR']) and (feed['num_tries'] < MAX_NUM_FEED_TRIES) for feed in feeds])):
 
@@ -320,7 +324,7 @@ if (__name__ == '__main__'):
                     # --------------------------------------------------------------------------------------------------
 
                     try:
-                        print(f"\nAttempt {feed['num_tries']}/{MAX_NUM_FEED_TRIES} of {'preview' if preview else 'regular'} feed {feed_idx} {feed['url']}")
+                        print(f"\nTry {feed['num_tries']}/{MAX_NUM_FEED_TRIES} of {'preview' if preview else 'regular'} feed {feed_idx+1} {feed['url']}")
                         opportunities = run_get_opportunities(
                             feed,
                             headers = HEADERS,
@@ -340,20 +344,30 @@ if (__name__ == '__main__'):
                     else:
                         feed['status'] = 'ERROR'
 
+                    if (feed['status'] == 'COMPLETE'):
+                        print('Successful feed')
+                    elif (feed['status'] == 'TIMEOUT'):
+                        print('Successful feed as read so far, but timed out so may be incomplete. Not retrying timeouts.')
+                    elif (feed['status'] == 'ERROR'):
+                        if (feed['num_tries'] < MAX_NUM_FEED_TRIES):
+                            print('Unsuccessful feed, retrying after any other feeds left to try first ...')
+                        else:
+                            print('Unsuccessful feed, maximum number of tries reached')
+
                     with open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + RUNNING_FEEDS_FILENAME, 'wb') as file_out:
                         pickle.dump(feeds, file_out)
 
             # --------------------------------------------------------------------------------------------------
 
-            if (RUNNING_FEEDS_FILENAME in listdir(OPPORTUNITIES_RELATIVE_FILEPATH)):
+            try:
                 remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + RUNNING_FEEDS_FILENAME)
+            except:
+                pass
 
-            if (RUNNING_FEED_FILENAME in listdir(OPPORTUNITIES_RELATIVE_FILEPATH)):
+            try:
                 remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + RUNNING_FEED_FILENAME)
-
-            # --------------------------------------------------------------------------------------------------
-
-            print(f"\nFINISHED {'preview' if preview else 'regular'} feeds")
+            except:
+                pass
 
         except Exception as error:
             print('ERROR:', error)
@@ -368,4 +382,4 @@ if (__name__ == '__main__'):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Finished')
+    print('\nFinished')
