@@ -155,18 +155,19 @@ def run_get_feeds(**kwargs):
             file_out
         )
 
-    filenames.append(current_filename)
+    get_filenames()
     current_filenames = sorted([
         filename
         for filename in filenames
         if (filename.startswith(current_filename_base))
     ])
 
-    # --------------------------------------------------------------------------------------------------
-
     if (len(current_filenames) > MAX_NUM_FEEDS_FILES):
         for filename in current_filenames[:-MAX_NUM_FEEDS_FILES]:
-            remove(FEEDS_RELATIVE_FILEPATH + '/' + filename)
+            try:
+                remove(FEEDS_RELATIVE_FILEPATH + '/' + filename)
+            except:
+                pass
 
     # --------------------------------------------------------------------------------------------------
 
@@ -230,15 +231,6 @@ def run_job(name_job):
 # --------------------------------------------------------------------------------------------------
 
 if (__name__ == '__main__'):
-
-    try:
-        get_filenames()
-    except Exception as error:
-        print('ERROR:', error)
-        sys.exit(1)
-
-    # --------------------------------------------------------------------------------------------------
-
     for preview in [False, True]:
         try:
             run_get_feeds(
@@ -259,4 +251,4 @@ if (__name__ == '__main__'):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Finished')
+    print('\nFinished')
