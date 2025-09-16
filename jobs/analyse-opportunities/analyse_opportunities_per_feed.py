@@ -146,7 +146,7 @@ def get_pairs_filenames_with_infostamp(pairs_filenames_without_infostamp, filena
 
 # --------------------------------------------------------------------------------------------------
 
-def analyse_opportunities(pairs_filenames_with_infostamp, **kwargs):
+def analyse_opportunities_per_feed(pairs_filenames_with_infostamp, **kwargs):
     verbose = kwargs.get('verbose', False)
 
     # List the items we want to collect for each feed. These column headers need to be specified here in

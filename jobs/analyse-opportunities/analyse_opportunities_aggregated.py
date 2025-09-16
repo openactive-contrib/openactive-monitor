@@ -45,7 +45,7 @@ print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
-def create_summary():
+def analyse_opportunities_aggregated():
 
     with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in:
         feeds = pickle.load(file_in)
