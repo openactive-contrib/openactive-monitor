@@ -33,8 +33,8 @@ print('ANALYSIS_RELATIVE_FILEPATH:', ANALYSIS_RELATIVE_FILEPATH)
 print('REGULAR_FEEDS_LATEST_FILENAME:', REGULAR_FEEDS_LATEST_FILENAME)
 print('PREVIEW_FEEDS_LATEST_FILENAME:', PREVIEW_FEEDS_LATEST_FILENAME)
 print('ANALYSIS_PER_FEED_FILENAME:', ANALYSIS_PER_FEED_FILENAME)
-print('SAMPLE_ITEMS_FILENAME:', SAMPLE_ITEMS_FILENAME)
 print('ANALYSIS_AGGREGATED_FILENAME:', ANALYSIS_AGGREGATED_FILENAME)
+print('SAMPLE_ITEMS_FILENAME:', SAMPLE_ITEMS_FILENAME)
 print('GEO_REGIONS_FILENAME:', GEO_REGIONS_FILENAME)
 print('GEO_LADS_FILENAME:', GEO_LADS_FILENAME)
 print('SE_SPORT_AND_DISCIPLINE_FILENAME:', SE_SPORT_AND_DISCIPLINE_FILENAME)
@@ -42,7 +42,10 @@ print('OA_SE_MAPPING_FILENAME:', OA_SE_MAPPING_FILENAME)
 
 # --------------------------------------------------------------------------------------------------
 
-def analyse_opportunities_aggregated():
+def analyse_opportunities_aggregated(**kwargs):
+    verbose = kwargs.get('verbose', False)
+
+    # --------------------------------------------------------------------------------------------------
 
     with open(FEEDS_RELATIVE_FILEPATH + '/' + REGULAR_FEEDS_LATEST_FILENAME, 'rb') as file_in:
         feeds = pickle.load(file_in)
