@@ -159,7 +159,7 @@ def run_get_opportunities(feed, **kwargs):
     current_filenames = sorted([
         filename
         for filename in filenames
-        if (filename.startswith(current_filename_prestamp))
+        if ('--'.join(filename.split('--')[:-FilenameStamp.num_parts]) == current_filename_prestamp) # We can't simply use filename.startswith(current_filename_prestamp), as current_filename_prestamp might be a substring of a filename with a longer pre-stamp, which would then also be gathered e.g. consider 'facility-uses' and 'facility-uses-events' within the pre-stamp
     ])
 
     # --------------------------------------------------------------------------------------------------
@@ -239,7 +239,7 @@ def run_get_opportunities(feed, **kwargs):
     current_filenames = sorted([
         filename
         for filename in filenames
-        if (filename.startswith(current_filename_prestamp))
+        if ('--'.join(filename.split('--')[:-FilenameStamp.num_parts]) == current_filename_prestamp) # We can't simply use filename.startswith(current_filename_prestamp), as current_filename_prestamp might be a substring of a filename with a longer pre-stamp, which would then also be gathered e.g. consider 'facility-uses' and 'facility-uses-events' within the pre-stamp
     ])
 
     if (len(current_filenames) > MAX_NUM_OPPORTUNITIES_FILES):
