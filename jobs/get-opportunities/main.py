@@ -117,12 +117,7 @@ class FilenameStamp:
 
 # --------------------------------------------------------------------------------------------------
 
-filenames = None
-# filename_prestamps = None # Not currently used herein, but may be useful
 def get_filenames():
-    global filenames
-    # global filename_prestamps
-
     filenames = sorted([
         i
         for i in listdir(OPPORTUNITIES_RELATIVE_FILEPATH)
@@ -133,15 +128,18 @@ def get_filenames():
         )
     ])
 
-    # Here we split on '--' which is used as the filename stamp delimiter, then remove the number of parts
-    # that we know exist in the filename stamp. If we are then left with multiple fragments from the split,
-    # that's because there were other instances of '--' in the filename pre-stamp that we don't want to
-    # lose, hence we rejoin these fragments with '--' again:
+    return filenames
 
-    # filename_prestamps = sorted(set([
-    #     '--'.join(i.split('--')[:-FilenameStamp.num_parts])
-    #     for i in filenames
-    # ]))
+# --------------------------------------------------------------------------------------------------
+
+def get_current_filenames(filename_prestamp, filenames):
+    current_filenames = sorted([
+        filename
+        for filename in filenames
+        if ('--'.join(filename.split('--')[:-FilenameStamp.num_parts]) == filename_prestamp) # We can't simply use filename.startswith(filename_prestamp), as filename_prestamp might be a substring of a filename with a longer pre-stamp, which would then also be gathered e.g. consider 'facility-uses' and 'facility-uses-events' within the pre-stamp
+    ])
+
+    return current_filenames
 
 # --------------------------------------------------------------------------------------------------
 
@@ -155,12 +153,8 @@ def run_get_opportunities(feed, **kwargs):
     current_filename_url = feed['url'].replace('https://', '').replace('http://', '').replace('www.', '').replace('.', '-').replace('/', '-').strip('-')
     current_filename_prestamp = current_filename_base + '--' + current_filename_url
 
-    get_filenames()
-    current_filenames = sorted([
-        filename
-        for filename in filenames
-        if ('--'.join(filename.split('--')[:-FilenameStamp.num_parts]) == current_filename_prestamp) # We can't simply use filename.startswith(current_filename_prestamp), as current_filename_prestamp might be a substring of a filename with a longer pre-stamp, which would then also be gathered e.g. consider 'facility-uses' and 'facility-uses-events' within the pre-stamp
-    ])
+    filenames = get_filenames()
+    current_filenames = get_current_filenames(current_filename_prestamp, filenames)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -235,12 +229,8 @@ def run_get_opportunities(feed, **kwargs):
     # be so if file removal was inhibited on the previous run or if the maximum number of files to keep
     # has changed since the previous run:
 
-    get_filenames()
-    current_filenames = sorted([
-        filename
-        for filename in filenames
-        if ('--'.join(filename.split('--')[:-FilenameStamp.num_parts]) == current_filename_prestamp) # We can't simply use filename.startswith(current_filename_prestamp), as current_filename_prestamp might be a substring of a filename with a longer pre-stamp, which would then also be gathered e.g. consider 'facility-uses' and 'facility-uses-events' within the pre-stamp
-    ])
+    filenames = get_filenames()
+    current_filenames = get_current_filenames(current_filename_prestamp, filenames)
 
     if (len(current_filenames) > MAX_NUM_OPPORTUNITIES_FILES):
         for filename in current_filenames[:-MAX_NUM_OPPORTUNITIES_FILES]:
