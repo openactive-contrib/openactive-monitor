@@ -8,55 +8,52 @@ from os import getenv
 # --------------------------------------------------------------------------------------------------
 
 # These folders must have been made via the Google Cloud browser console under Cloud Storage for this
-# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. With
-# this job called 'analyse-opportunities', this was done as follows (note that the volume and its mount-path
-# were given the same name, which didn't have to be so):
-#   $ gcloud beta run jobs update analyse-opportunities \
+# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. This
+# was done for each job as follows (note that the volume and its mount-path were given the same name,
+# which didn't have to be so):
+#   $ gcloud beta run jobs update <JOB NAME> \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
-RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
-RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
+FEEDS_RELATIVE_FILEPATH = getenv('FEEDS_RELATIVE_FILEPATH', '../volume-1/data-feeds')
+ANALYSIS_RELATIVE_FILEPATH = getenv('ANALYSIS_RELATIVE_FILEPATH', '../volume-1/data-analysis')
 
-FILENAME_FEEDS = getenv('FILENAME_FEEDS', 'feeds.pickle') # Located in RELATIVE_FILEPATH_FEEDS
-FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle') # Located in RELATIVE_FILEPATH_FEEDS
-FILENAME_ANALYSIS_DATA = getenv('FILENAME_ANALYSIS_DATA', 'analysis-data.pickle')
-FILENAME_SAMPLE_DATA = getenv('FILENAME_SAMPLE_DATA', 'sample_data.pickle')
-FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
-FILENAME_REGIONS = getenv('FILENAME_REGIONS', 'regions.geojson')
-FILENAME_LADS = getenv('FILENAME_LADS', 'lads.geojson')
-FILENAME_SE_SPORT_AND_DISCIPLINE = getenv('FILENAME_SE_SPORT_AND_DISCIPLINE', 'SE-sport-and-discipline.csv')
-FILENAME_OA_SE_MAPPING = getenv('FILENAME_OA_SE_MAPPING', 'OA-SE-mapping.csv')
-VERBOSE = getenv('VERBOSE', 'False').title()
-VERBOSE = True if (VERBOSE == 'True') else False
+REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated in other jobs
+PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated in other jobs
+ANALYSIS_PER_FEED_FILENAME = getenv('ANALYSIS_PER_FEED_FILENAME', 'analysis-data.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-per-feed.pickle' when accommodated in service
+ANALYSIS_AGGREGATED_FILENAME = getenv('ANALYSIS_AGGREGATED_FILENAME', 'analysis.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-aggregated.pickle' when accommodated in service
+SAMPLE_ITEMS_FILENAME = getenv('SAMPLE_ITEMS_FILENAME', 'sample_data.pickle')
+GEO_REGIONS_FILENAME = getenv('GEO_REGIONS_FILENAME', 'regions.geojson')
+GEO_LADS_FILENAME = getenv('GEO_LADS_FILENAME', 'lads.geojson')
+SE_SPORT_AND_DISCIPLINE_FILENAME = getenv('SE_SPORT_AND_DISCIPLINE_FILENAME', 'SE-sport-and-discipline.csv')
+OA_SE_MAPPING_FILENAME = getenv('OA_SE_MAPPING_FILENAME', 'OA-SE-mapping.csv')
 
 print('Environment variables:')
-print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
-print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
-print('FILENAME_FEEDS:', FILENAME_FEEDS)
-print('FILENAME_FEEDS_PREVIEW:', FILENAME_FEEDS_PREVIEW)
-print('FILENAME_ANALYSIS_DATA:', FILENAME_ANALYSIS_DATA)
-print('FILENAME_SAMPLE_DATA:', FILENAME_SAMPLE_DATA)
-print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
-print('FILENAME_REGIONS:', FILENAME_REGIONS)
-print('FILENAME_LADS:', FILENAME_LADS)
-print('FILENAME_SE_SPORT_AND_DISCIPLINE:', FILENAME_SE_SPORT_AND_DISCIPLINE)
-print('FILENAME_OA_SE_MAPPING:', FILENAME_OA_SE_MAPPING)
-print('VERBOSE:', VERBOSE)
+print('FEEDS_RELATIVE_FILEPATH:', FEEDS_RELATIVE_FILEPATH)
+print('ANALYSIS_RELATIVE_FILEPATH:', ANALYSIS_RELATIVE_FILEPATH)
+print('REGULAR_FEEDS_LATEST_FILENAME:', REGULAR_FEEDS_LATEST_FILENAME)
+print('PREVIEW_FEEDS_LATEST_FILENAME:', PREVIEW_FEEDS_LATEST_FILENAME)
+print('ANALYSIS_PER_FEED_FILENAME:', ANALYSIS_PER_FEED_FILENAME)
+print('SAMPLE_ITEMS_FILENAME:', SAMPLE_ITEMS_FILENAME)
+print('ANALYSIS_AGGREGATED_FILENAME:', ANALYSIS_AGGREGATED_FILENAME)
+print('GEO_REGIONS_FILENAME:', GEO_REGIONS_FILENAME)
+print('GEO_LADS_FILENAME:', GEO_LADS_FILENAME)
+print('SE_SPORT_AND_DISCIPLINE_FILENAME:', SE_SPORT_AND_DISCIPLINE_FILENAME)
+print('OA_SE_MAPPING_FILENAME:', OA_SE_MAPPING_FILENAME)
 
 # --------------------------------------------------------------------------------------------------
 
 def analyse_opportunities_aggregated():
 
-    with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in:
+    with open(FEEDS_RELATIVE_FILEPATH + '/' + REGULAR_FEEDS_LATEST_FILENAME, 'rb') as file_in:
         feeds = pickle.load(file_in)
 
-    with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS_PREVIEW, 'rb') as file_in:
+    with open(FEEDS_RELATIVE_FILEPATH + '/' + PREVIEW_FEEDS_LATEST_FILENAME, 'rb') as file_in:
         feeds_preview = pickle.load(file_in)
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS_DATA, 'rb') as file_in:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_PER_FEED_FILENAME, 'rb') as file_in:
          df_analysis_data = pickle.load(file_in)
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_SAMPLE_DATA, 'rb') as file_in:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'rb') as file_in:
          filenames_sampleitems = pickle.load(file_in)
 
     # --------------------------------------------------------------------------------------------------
@@ -136,9 +133,9 @@ def analyse_opportunities_aggregated():
     df_total_coords_counts = df_total_coords_counts[['latitude', 'longitude', 'count', 'percentage']]
 
     # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry']
-    gdf_regions = gpd.read_file(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_REGIONS)
+    gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
     # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
-    gdf_lads = gpd.read_file(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_LADS)
+    gdf_lads = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
 
     # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
     gdf_total_regions_counts, \
@@ -169,9 +166,9 @@ def analyse_opportunities_aggregated():
     # For the 'KPIs' tab
 
     # Columns: ['sport', 'discipline', 'sport_and_discipline']
-    df_se_sport_and_discipline = pd.read_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_SE_SPORT_AND_DISCIPLINE)
+    df_se_sport_and_discipline = pd.read_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + SE_SPORT_AND_DISCIPLINE_FILENAME)
     # Columns: ['activity', 'sport_and_discipline']
-    df_oa_se_mapping = pd.read_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_OA_SE_MAPPING)
+    df_oa_se_mapping = pd.read_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + OA_SE_MAPPING_FILENAME)
 
     # Automatically update the mapping file if confident in the handling of incoming activity labels i.e.
     # if the names have been stripped of junk and formatted in a compatible way, otherwise we'll potentially
@@ -193,7 +190,7 @@ def analyse_opportunities_aggregated():
     #     .sort_values(by='activity') \
     #     .reset_index(drop=True)
 
-    # df_oa_se_mapping.to_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_OA_SE_MAPPING)
+    # df_oa_se_mapping.to_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + OA_SE_MAPPING_FILENAME)
 
     # Columns: ['activity', 'count', 'sport_and_discipline']
     df_total_sad_counts = pd.merge(
@@ -207,7 +204,7 @@ def analyse_opportunities_aggregated():
     # Pull out non-matching activities before they are changed to 'No Match', as then they will be indistinguishable
     # from the existing 'No Match' entries in the mapping file:
     df_total_sad_counts_na = df_total_sad_counts.loc[df_total_sad_counts['sport_and_discipline'].isna()]
-    df_total_sad_counts_na.to_csv(RELATIVE_FILEPATH_ANALYSIS + '/' + 'unmatched_activities.csv', index=False)
+    df_total_sad_counts_na.to_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + 'unmatched_activities.csv', index=False)
 
     df_total_sad_counts['sport_and_discipline'].fillna('No Match', inplace=True)
     df_total_sad_counts_matched = df_total_sad_counts.loc[df_total_sad_counts['sport_and_discipline'] != 'No Match']
@@ -353,12 +350,12 @@ def analyse_opportunities_aggregated():
 
     # --------------------------------------------------------------------------------------------------
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'wb') as file_out:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_AGGREGATED_FILENAME, 'wb') as file_out:
         pickle.dump(analysis, file_out)
 
     # TEMPORARY: For checking geographically localised high opportunity count spikes
     # global coords_check
-    # with open(RELATIVE_FILEPATH_ANALYSIS + '/' + 'coords_check.pickle', 'wb') as file_out:
+    # with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'coords_check.pickle', 'wb') as file_out:
     #     pickle.dump(coords_check, file_out)
 
 # --------------------------------------------------------------------------------------------------

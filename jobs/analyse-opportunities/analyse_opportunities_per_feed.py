@@ -17,41 +17,46 @@ import openactive_custom as oa
 # --------------------------------------------------------------------------------------------------
 
 # These folders must have been made via the Google Cloud browser console under Cloud Storage for this
-# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. With
-# this job called 'analyse-opportunities', this was done as follows (note that the volume and its mount-path
-# were given the same name, which didn't have to be so):
-#   $ gcloud beta run jobs update analyse-opportunities \
+# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. This
+# was done for each job as follows (note that the volume and its mount-path were given the same name,
+# which didn't have to be so):
+#   $ gcloud beta run jobs update <JOB NAME> \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
-RELATIVE_FILEPATH_OPPORTUNITIES = getenv('RELATIVE_FILEPATH_OPPORTUNITIES', '../volume-1/data-opportunities')
-RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
+OPPORTUNITIES_RELATIVE_FILEPATH = getenv('OPPORTUNITIES_RELATIVE_FILEPATH', '../volume-1/data-opportunities')
+ANALYSIS_RELATIVE_FILEPATH = getenv('ANALYSIS_RELATIVE_FILEPATH', '../volume-1/data-analysis')
 
-FILENAME_FEEDS_SEEN = '000-feeds-seen.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
-FILENAME_FEEDS_CRASHED = '000-feeds-crashed.txt' # Located in RELATIVE_FILEPATH_OPPORTUNITIES
-FILENAMES_SKIP = [FILENAME_FEEDS_SEEN, FILENAME_FEEDS_CRASHED] # Filenames to skip when checking for opportunity files in RELATIVE_FILEPATH_OPPORTUNITIES
-SUFFIX_FILENAME_OPPORTUNITIES = '.pickle.gzip'
-LEN_SUFFIX_FILENAME_OPPORTUNITIES = len(SUFFIX_FILENAME_OPPORTUNITIES)
-FILENAME_ANALYSIS_DATA = getenv('FILENAME_ANALYSIS_DATA', 'analysis-data.pickle')
-FILENAME_SAMPLE_DATA = getenv('FILENAME_SAMPLE_DATA', 'sample_data.pickle')
+OPPORTUNITIES_FILENAME_SUFFIX = '.pickle.gzip'
+LEN_OPPORTUNITIES_FILENAME_SUFFIX = len(OPPORTUNITIES_FILENAME_SUFFIX)
+RUNNING_FEEDS_FILENAME = '000-running-feeds.pickle' # Located in OPPORTUNITIES_RELATIVE_FILEPATH
+RUNNING_FEED_FILENAME = '000-running-feed.txt' # Located in OPPORTUNITIES_RELATIVE_FILEPATH
+CRASHED_FEEDS_FILENAME = '000-crashed-feeds.txt' # Located in OPPORTUNITIES_RELATIVE_FILEPATH
+SKIP_FILENAMES = [
+    RUNNING_FEEDS_FILENAME,
+    RUNNING_FEED_FILENAME,
+    CRASHED_FEEDS_FILENAME,
+] # Filenames to skip when checking for files in storage
+ANALYSIS_PER_FEED_FILENAME = getenv('ANALYSIS_PER_FEED_FILENAME', 'analysis-data.pickle')
+SAMPLE_ITEMS_FILENAME = getenv('SAMPLE_ITEMS_FILENAME', 'sample_data.pickle')
 VERBOSE = getenv('VERBOSE', 'False').title()
 VERBOSE = True if (VERBOSE == 'True') else False
 
 print('Environment variables:')
-print('RELATIVE_FILEPATH_OPPORTUNITIES:', RELATIVE_FILEPATH_OPPORTUNITIES)
-print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
-print('FILENAME_ANALYSIS_DATA:', FILENAME_ANALYSIS_DATA)
-print('FILENAME_SAMPLE_DATA:', FILENAME_SAMPLE_DATA)
+print('OPPORTUNITIES_RELATIVE_FILEPATH:', OPPORTUNITIES_RELATIVE_FILEPATH)
+print('ANALYSIS_RELATIVE_FILEPATH:', ANALYSIS_RELATIVE_FILEPATH)
+print('ANALYSIS_PER_FEED_FILENAME:', ANALYSIS_PER_FEED_FILENAME)
+print('SAMPLE_ITEMS_FILENAME:', SAMPLE_ITEMS_FILENAME)
 print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
-#Moving away from this nominatum approach, which creates coords from postcodes
-#Moving towards creating a postcode for each record, from coords if necessary for nspl matching
-#4 positions:
-#1) Item has postcode and coords - use postcode
-#2) Item has postcode no coords - use postcode
-#3) Item has coords no postcode - find nearest centroid and use that postcode
-#4) Item has no postcode no coords - if not online event, use an organiser postcode, otherwise flag as missing
+# Moving away from the former nominatum approach, which creates coords from postcodes.
+# Moving towards creating a postcode for each record, from coords if necessary for NSPL matching.
+# 4 positions:
+# 1) Item has postcode, has coords - use postcode
+# 2) Item has postcode, has no coords - use postcode
+# 3) Item has no postcode, has coords - find nearest centroid and use that postcode
+# 4) Item has no postcode, has no coords - if not online event, use an organiser postcode, otherwise flag as missing
 
 # --------------------------------------------------------------------------------------------------
 
@@ -92,12 +97,12 @@ class Infostamp:
 
 def get_filenames():
     filenames_with_infostamp = sorted([
-        i[:-LEN_SUFFIX_FILENAME_OPPORTUNITIES]
-        for i in listdir(RELATIVE_FILEPATH_OPPORTUNITIES)
-        if (    (isfile(RELATIVE_FILEPATH_OPPORTUNITIES + '/' + i))
-            and (i not in FILENAMES_SKIP)
-            and (len(i) > LEN_SUFFIX_FILENAME_OPPORTUNITIES)
-            and (i[-LEN_SUFFIX_FILENAME_OPPORTUNITIES:] == SUFFIX_FILENAME_OPPORTUNITIES)
+        i[:-LEN_OPPORTUNITIES_FILENAME_SUFFIX]
+        for i in listdir(OPPORTUNITIES_RELATIVE_FILEPATH)
+        if (    (isfile(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + i))
+            and (i not in SKIP_FILENAMES)
+            and (len(i) > LEN_OPPORTUNITIES_FILENAME_SUFFIX)
+            and (i[-LEN_OPPORTUNITIES_FILENAME_SUFFIX:] == OPPORTUNITIES_FILENAME_SUFFIX)
         )
     ])
 
@@ -197,7 +202,7 @@ def analyse_opportunities_per_feed(pairs_filenames_with_infostamp, **kwargs):
             opportunities_in = None
             if (filename_with_infostamp is not None):
                 try:
-                    relative_filepath_opportunities_in = RELATIVE_FILEPATH_OPPORTUNITIES + '/' + filename_with_infostamp + SUFFIX_FILENAME_OPPORTUNITIES
+                    relative_filepath_opportunities_in = OPPORTUNITIES_RELATIVE_FILEPATH + '/' + filename_with_infostamp + OPPORTUNITIES_FILENAME_SUFFIX
                     with gzip.open(relative_filepath_opportunities_in, 'rb') as file_in:
                         opportunities_in = pickle.load(file_in)
                     if (verbose):
@@ -296,10 +301,10 @@ def analyse_opportunities_per_feed(pairs_filenames_with_infostamp, **kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS_DATA, 'wb') as file_out:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_PER_FEED_FILENAME, 'wb') as file_out:
         pickle.dump(df_analysis_data, file_out)
 
-    with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_SAMPLE_DATA, 'wb') as file_out:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:
         pickle.dump(filenames_sampleitems, file_out)
 
 # --------------------------------------------------------------------------------------------------

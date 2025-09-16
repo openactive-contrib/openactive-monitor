@@ -14,10 +14,10 @@ from openactive_custom import get_opportunities, get_bytesize
 # --------------------------------------------------------------------------------------------------
 
 # These folders must have been made via the Google Cloud browser console under Cloud Storage for this
-# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. With
-# this job called 'get-opportunities', this was done as follows (note that the volume and its mount-path
-# were given the same name, which didn't have to be so):
-#   $ gcloud beta run jobs update get-opportunities \
+# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. This
+# was done for each job as follows (note that the volume and its mount-path were given the same name,
+# which didn't have to be so):
+#   $ gcloud beta run jobs update <JOB NAME> \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
 FEEDS_RELATIVE_FILEPATH = getenv('FEEDS_RELATIVE_FILEPATH', '../volume-1/data-feeds')
