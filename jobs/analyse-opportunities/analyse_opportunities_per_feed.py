@@ -37,7 +37,7 @@ SKIP_FILENAMES = [
     RUNNING_FEED_FILENAME,
     CRASHED_FEEDS_FILENAME,
 ] # Filenames to skip when checking for files in storage
-ANALYSIS_PER_FEED_FILENAME = getenv('ANALYSIS_PER_FEED_FILENAME', 'analysis-data.pickle')
+ANALYSIS_PER_FEED_FILENAME = getenv('ANALYSIS_PER_FEED_FILENAME', 'analysis-data.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-per-feed.pickle' when accommodated elsewhere
 SAMPLE_ITEMS_FILENAME = getenv('SAMPLE_ITEMS_FILENAME', 'sample_data.pickle')
 
 print('Environment variables:')

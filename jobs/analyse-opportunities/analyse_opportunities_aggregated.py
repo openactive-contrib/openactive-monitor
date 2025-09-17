@@ -17,10 +17,10 @@ from os import getenv
 FEEDS_RELATIVE_FILEPATH = getenv('FEEDS_RELATIVE_FILEPATH', '../volume-1/data-feeds')
 ANALYSIS_RELATIVE_FILEPATH = getenv('ANALYSIS_RELATIVE_FILEPATH', '../volume-1/data-analysis')
 
-REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated in other jobs
-PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated in other jobs
-ANALYSIS_PER_FEED_FILENAME = getenv('ANALYSIS_PER_FEED_FILENAME', 'analysis-data.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-per-feed.pickle' when accommodated in service
-ANALYSIS_AGGREGATED_FILENAME = getenv('ANALYSIS_AGGREGATED_FILENAME', 'analysis.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-aggregated.pickle' when accommodated in service
+REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated elsewhere
+PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated elsewhere
+ANALYSIS_PER_FEED_FILENAME = getenv('ANALYSIS_PER_FEED_FILENAME', 'analysis-data.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-per-feed.pickle' when accommodated elsewhere
+ANALYSIS_AGGREGATED_FILENAME = getenv('ANALYSIS_AGGREGATED_FILENAME', 'analysis.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-aggregated.pickle' when accommodated elsewhere
 SAMPLE_ITEMS_FILENAME = getenv('SAMPLE_ITEMS_FILENAME', 'sample_data.pickle')
 GEO_REGIONS_FILENAME = getenv('GEO_REGIONS_FILENAME', 'regions.geojson')
 GEO_LADS_FILENAME = getenv('GEO_LADS_FILENAME', 'lads.geojson')

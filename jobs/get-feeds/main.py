@@ -24,8 +24,8 @@ FEEDS_RELATIVE_FILEPATH = getenv('FEEDS_RELATIVE_FILEPATH', '../volume-1/data-fe
 REGULAR_FEEDS_FILENAME_BASE = getenv('REGULAR_FEEDS_FILENAME_BASE', 'regular-feeds')
 PREVIEW_FEEDS_FILENAME_BASE = getenv('PREVIEW_FEEDS_FILENAME_BASE', 'preview-feeds')
 FEEDS_FILENAME_SUFFIX = '.pickle'
-REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated in other jobs
-PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated in other jobs
+REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated elsewhere
+PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated elsewhere
 REGULAR_FEEDS_HISTORY_FILENAME = getenv('REGULAR_FEEDS_HISTORY_FILENAME', 'regular-feeds-history.csv') # Located in FEEDS_RELATIVE_FILEPATH
 PREVIEW_FEEDS_HISTORY_FILENAME = getenv('PREVIEW_FEEDS_HISTORY_FILENAME', 'preview-feeds-history.csv') # Located in FEEDS_RELATIVE_FILEPATH
 SKIP_FILENAMES = [
@@ -143,7 +143,7 @@ def run_get_feeds(**kwargs):
         FEEDS_FILENAME_SUFFIX
 
     with open(FEEDS_RELATIVE_FILEPATH + '/' + current_filename, 'wb') as file_out:
-        # TODO: Change this to the following when accommodated in other jobs, no further information is necessary:
+        # TODO: Change this to the following when accommodated elsewhere, no further information is necessary:
         # pickle.dump(feeds, file_out)
         pickle.dump(
             {

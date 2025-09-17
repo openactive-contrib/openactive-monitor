@@ -23,8 +23,8 @@ from openactive_custom import get_opportunities, get_bytesize
 FEEDS_RELATIVE_FILEPATH = getenv('FEEDS_RELATIVE_FILEPATH', '../volume-1/data-feeds')
 OPPORTUNITIES_RELATIVE_FILEPATH = getenv('OPPORTUNITIES_RELATIVE_FILEPATH', '../volume-1/data-opportunities')
 
-REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated in other jobs
-PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated in other jobs
+REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated elsewhere
+PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated elsewhere
 REGULAR_OPPORTUNITIES_FILENAME_BASE = getenv('REGULAR_OPPORTUNITIES_FILENAME_BASE', 'regular-ops')
 PREVIEW_OPPORTUNITIES_FILENAME_BASE = getenv('PREVIEW_OPPORTUNITIES_FILENAME_BASE', 'preview-ops')
 OPPORTUNITIES_FILENAME_SUFFIX = '.pickle.gzip'
