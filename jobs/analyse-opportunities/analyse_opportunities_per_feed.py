@@ -295,7 +295,7 @@ def analyse_opportunities_per_feed(**kwargs):
                     ):
                         event_type = oa.get_event_type(list(item_data_types_pair[opportunities_idx].keys())[0])
                     else:
-                        event_type = oa.get_event_type(opportunities.get('feed', {}).get('type'))
+                        event_type = oa.get_event_type(opportunities['feed']['type'])
                 except Exception as error:
                     print('ERROR:', error)
             event_type_pair.append(event_type)
