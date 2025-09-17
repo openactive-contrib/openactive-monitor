@@ -182,10 +182,14 @@ def analyse_opportunities_per_feed(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    filename_pairs = []
+    try:
     filenames = get_filenames()
     filename_prestamps = get_filename_prestamps(filenames)
     filename_prestamp_pairs = get_filename_prestamp_pairs(filename_prestamps)
     filename_pairs = get_filename_pairs(filename_prestamp_pairs, filenames)
+    except Exception as error:
+        print('ERROR:', error)
 
     # --------------------------------------------------------------------------------------------------
 
