@@ -184,10 +184,10 @@ def analyse_opportunities_per_feed(**kwargs):
 
     filename_pairs = []
     try:
-    filenames = get_filenames()
-    filename_prestamps = get_filename_prestamps(filenames)
-    filename_prestamp_pairs = get_filename_prestamp_pairs(filename_prestamps)
-    filename_pairs = get_filename_pairs(filename_prestamp_pairs, filenames)
+        filenames = get_filenames()
+        filename_prestamps = get_filename_prestamps(filenames)
+        filename_prestamp_pairs = get_filename_prestamp_pairs(filename_prestamps)
+        filename_pairs = get_filename_pairs(filename_prestamp_pairs, filenames)
     except Exception as error:
         print('ERROR:', error)
 
@@ -232,7 +232,8 @@ def analyse_opportunities_per_feed(**kwargs):
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
 
         if (verbose):
-            print(filename_pair_idx, filename_pair)
+            print(f'{filename_pair_idx+1}/{len(filename_pairs)}')
+            print(f'Filenames: {filename_pair}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -249,16 +250,50 @@ def analyse_opportunities_per_feed(**kwargs):
                     print('ERROR:', error)
             opportunities_pair.append(opportunities)
 
+        if (verbose):
+            print(f'Loaded: {[opportunities is not None for opportunities in opportunities_pair]}')
+
         # --------------------------------------------------------------------------------------------------
 
-        event_type_pair = []
+        item_kinds_pair = []
         for opportunities in opportunities_pair:
-            event_type = None
+            item_kinds = None
+            if (opportunities is not None):
+                try:
+                    item_kinds = oa.get_item_kinds(opportunities)
+                except Exception as error:
+                    print('ERROR:', error)
+            item_kinds_pair.append(item_kinds)
+
+        if (verbose):
+            print(f'Item kinds: {item_kinds_pair}')
+
+        # --------------------------------------------------------------------------------------------------
+
+        item_data_types_pair = []
+        for opportunities in opportunities_pair:
+            item_data_types = None
             if (opportunities is not None):
                 try:
                     item_data_types = oa.get_item_data_types(opportunities)
-                    if (len(item_data_types.keys()) == 1):
-                        event_type = oa.get_event_type(list(item_data_types.keys())[0])
+                except Exception as error:
+                    print('ERROR:', error)
+            item_data_types_pair.append(item_data_types)
+
+        if (verbose):
+            print(f'Item data types: {item_data_types_pair}')
+
+        # --------------------------------------------------------------------------------------------------
+
+        event_type_pair = []
+        for opportunities_idx, opportunities in enumerate(opportunities_pair):
+            event_type = None
+            if (opportunities is not None):
+                try:
+                    if (    (item_data_types_pair[opportunities_idx] is not None)
+                        and (len(item_data_types_pair[opportunities_idx].keys()) == 1)
+                    ):
+                        event_type = oa.get_event_type(list(item_data_types_pair[opportunities_idx].keys())[0])
                     else:
                         event_type = oa.get_event_type(opportunities.get('feed', {}).get('type'))
                 except Exception as error:
@@ -287,6 +322,9 @@ def analyse_opportunities_per_feed(**kwargs):
             except Exception as error:
                 print('ERROR:', error)
 
+        if (verbose):
+            print(f'Merged: {is_merged_with_partner}')
+
         # --------------------------------------------------------------------------------------------------
 
         for idx in range(2):
@@ -311,13 +349,13 @@ def analyse_opportunities_per_feed(**kwargs):
                         'event_type': event_type_pair[idx],
                         'event_type_partner': event_type_pair[idx-1],
                         'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was inhibited via keyword setting.
-                        'is_regular': '000-preview' not in filename_pair[idx],
+                        'is_regular': filename_pair[idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
                         'num_items': len(opportunities_pair[idx]['items'].keys()),
                         'num_items_future': num_items_future,
                         'num_items_future_week': num_items_future_week,
                         'num_urls': len(opportunities_pair[idx]['urls']),
-                        'kinds_counts': oa.get_item_kinds(opportunities_pair[idx]),
-                        'types_counts': oa.get_item_data_types(opportunities_pair[idx]),
+                        'kinds_counts': item_kinds_pair[idx],
+                        'types_counts': item_data_types_pair[idx],
                         'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
                         'organisers_counts': get_values_counts(opportunities_pair[idx], 'organizer', 'name'),
                         'address_counts': get_values_counts(opportunities_pair[idx], 'location'),
