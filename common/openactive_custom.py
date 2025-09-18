@@ -558,44 +558,51 @@ def get_event_type(label):
 
 # --------------------------------------------------------------------------------------------------
 
-#Modified by HA:
-# - always merge
-# - return None if unable to match a subevent with its superevent if both event types present in pair_event_types
-# - report orphaned counts in VERBOSE (TO DO - store these for reporting in dashboard)
-
-def get_merged_opportunities(subevent_opportunities, superevent_opportunities, **kwargs):
+def get_merged_opportunities(superevent_opportunities, subevent_opportunities, **kwargs):
     verbose = kwargs.get('verbose', False)
-
-    num_superevents = len(superevent_opportunities['items'].keys())
-    num_subevents = len(subevent_opportunities['items'].keys())
-    orphaned_superevents = 0
-    orphaned_subevents = 0
 
     if (verbose):
         print(stack()[0].function)
 
-    if (num_superevents == 0 or  num_subevents == 0):
+    # --------------------------------------------------------------------------------------------------
+
+    num_superevents = len(superevent_opportunities['items'].keys())
+    num_subevents = len(subevent_opportunities['items'].keys())
+
+    if (    (num_superevents == 0)
+        or  (num_subevents == 0)
+    ):
         if (verbose):
-            if (num_superevents == 0):
-                print('\tNo superevents')
-            if (num_subevents == 0):
-                print('\tNo subevents')
-        print('\tMissing sub or superevent data - no merging possible')
-        #return None
+            if (    (num_superevents == 0)
+                and (num_subevents > 0)
+            ):
+                print('\tNo superevents - merging not possible')
+            elif (  (num_superevents > 0)
+                and (num_subevents == 0)
+            ):
+                print('\tNo subevents - merging not possible')
+            elif (  (num_superevents == 0)
+                and (num_subevents == 0)
+            ):
+                print('\tNo superevents and no subevents - merging not possible')
+        return None, num_superevents, num_subevents
+
+    # --------------------------------------------------------------------------------------------------
 
     superevent_modified_id_v_superevent_id = {}
     superevent_data_modified_id_v_superevent_id = {}
-    subevent_id_v_superevent_modified_id_in_subevent = {}
+    subevent_id_v_subevent_superevent_modified_id = {}
     subevent_id_v_superevent_id = {}
 
-    #We have some subevent data and some superevent data...
+    # --------------------------------------------------------------------------------------------------
 
     # superevent_id is identical to how it appears in a feed and its opportunities dictionary, and can be a string or an integer.
     # superevent_modified_id and superevent_data_modified_id are both strings.
+
     if (verbose):
         print('\tDetermining superevent modified IDs for superevents:')
     for idx, (superevent_id, superevent) in enumerate(superevent_opportunities['items'].items()):
-        superevent_modified_id, superevent_data_modified_id = get_superevent_modified_ids_in_superevent(superevent)
+        superevent_modified_id, superevent_data_modified_id = get_item_modified_ids(superevent)
         if (superevent_modified_id is not None):
             superevent_modified_id_v_superevent_id[superevent_modified_id] = superevent_id
         if (superevent_data_modified_id is not None):
@@ -605,109 +612,109 @@ def get_merged_opportunities(subevent_opportunities, superevent_opportunities, *
         ):
             print(f"\t\t{datetime.now()} {idx+1}/{num_superevents} superevents processed", end=('\r' if (idx < num_superevents - 1) else '\n'))
 
+    # --------------------------------------------------------------------------------------------------
+
     # subevent_id is identical to how it appears in a feed and its opportunities dictionary, and can be a string or an integer.
-    # superevent_modified_id_in_subevent is a string.
+    # subevent_superevent_modified_id is a string.
+
     if (verbose):
         print('\tDetermining superevent modified IDs for subevents:')
     for idx, (subevent_id, subevent) in enumerate(subevent_opportunities['items'].items()):
-        superevent_modified_id_in_subevent = get_superevent_modified_id_in_subevent(subevent)
-        if (superevent_modified_id_in_subevent is not None):
-            subevent_id_v_superevent_modified_id_in_subevent[subevent_id] = superevent_modified_id_in_subevent
+        subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
+        if (subevent_superevent_modified_id is not None):
+            subevent_id_v_subevent_superevent_modified_id[subevent_id] = subevent_superevent_modified_id
         if (    (verbose)
             and ((num_subevents <= 10) or ((idx + 1) % 10 == 0) or (idx == num_subevents - 1))
         ):
             print(f"\t\t{datetime.now()} {idx+1}/{num_subevents} subevents processed", end=('\r' if (idx < num_subevents - 1) else '\n'))
 
-    num_subevents_with_superevent_modified_id = len(subevent_id_v_superevent_modified_id_in_subevent.keys())
+    num_subevents_with_superevent_modified_id = len(subevent_id_v_subevent_superevent_modified_id.keys())
 
     if (num_subevents_with_superevent_modified_id == 0):
         if (verbose):
-            print('\t\tNo subevents with superevent modified ID')
-        #return None
+            print('\t\tNo subevents with superevent modified ID - merging not possible')
+        return None, num_superevents, num_subevents
+
+    # --------------------------------------------------------------------------------------------------
 
     # Search for matching superevent IDs between subevents and superevents, and use to make matching pairs
     # of subevent_id and superevent_id. The modified IDs are always strings and so can be directly compared
     # as needed. The subevent_id and superevent_id may each either be a string or an integer, identical
     # to how they appear in a feed and its opportunities dictionary.
+
     if (verbose):
         print('\tDetermining superevent IDs for subevents:')
-    orphaned_superevent_ids = []
-    for idx, (subevent_id, superevent_modified_id_in_subevent) in enumerate(subevent_id_v_superevent_modified_id_in_subevent.items()):
-        if (superevent_modified_id_in_subevent in superevent_modified_id_v_superevent_id.keys()):
-            subevent_id_v_superevent_id[subevent_id] = superevent_modified_id_v_superevent_id[superevent_modified_id_in_subevent]
-        elif (superevent_modified_id_in_subevent in superevent_data_modified_id_v_superevent_id.keys()):
-            subevent_id_v_superevent_id[subevent_id] = superevent_data_modified_id_v_superevent_id[superevent_modified_id_in_subevent]
-        else:
-            if superevent_modified_id_in_subevent not in orphaned_superevent_ids:
-                orphaned_superevent_ids.append(superevent_modified_id_in_subevent)
-
+    for idx, (subevent_id, subevent_superevent_modified_id) in enumerate(subevent_id_v_subevent_superevent_modified_id.items()):
+        if (subevent_superevent_modified_id in superevent_modified_id_v_superevent_id.keys()):
+            subevent_id_v_superevent_id[subevent_id] = superevent_modified_id_v_superevent_id[subevent_superevent_modified_id]
+        elif (subevent_superevent_modified_id in superevent_data_modified_id_v_superevent_id.keys()):
+            subevent_id_v_superevent_id[subevent_id] = superevent_data_modified_id_v_superevent_id[subevent_superevent_modified_id]
         if (    (verbose)
             and ((num_subevents_with_superevent_modified_id <= 10) or ((idx + 1) % 10 == 0) or (idx == num_subevents_with_superevent_modified_id - 1))
         ):
             print(f"\t\t{datetime.now()} {idx+1}/{num_subevents_with_superevent_modified_id} subevents with superevent modified ID processed", end=('\r' if (idx < num_subevents_with_superevent_modified_id - 1) else '\n'))
 
+    num_superevents_with_subevent_id = len(set(subevent_id_v_superevent_id.values()))
     num_subevents_with_superevent_id = len(subevent_id_v_superevent_id.keys())
 
     if (num_subevents_with_superevent_id == 0):
         if (verbose):
-            print('\t\tNo subevents with superevent ID - no merging possible')
-        #return None
+            print('\t\tNo subevents with superevent ID - merging not possible')
+        return None, num_superevents, num_subevents
+
+    # --------------------------------------------------------------------------------------------------
 
     # Now we have known matching pairs of existing subevent_id and superevent_id from their respective
     # opportunities dictionaries, we can merge superevent items into associated subevent items. The output
-    # subevent_opportunities dictionary is then a modified version of the input subevent_opportunities
-    # dictionary.
+    # merged_opportunities dictionary is a modified version of the input subevent_opportunities dictionary.
+
+    merged_opportunities = copy.deepcopy(subevent_opportunities)
 
     if (verbose):
         print('\tMerging superevents into subevents:')
     for idx, (subevent_id, superevent_id) in enumerate(subevent_id_v_superevent_id.items()):
-        subevent_opportunities['items'][subevent_id]['superevent_item'] = superevent_opportunities['items'][superevent_id]
+        merged_opportunities['items'][subevent_id]['superevent_item'] = superevent_opportunities['items'][superevent_id]
         if (    (verbose)
             and ((num_subevents_with_superevent_id <= 10) or ((idx + 1) % 10 == 0) or (idx == num_subevents_with_superevent_id - 1))
         ):
             print(f"\t\t{datetime.now()} {idx+1}/{num_subevents_with_superevent_id} subevents with superevent ID processed", end=('\r' if (idx < num_subevents_with_superevent_id - 1) else '\n'))
 
+    # --------------------------------------------------------------------------------------------------
 
-    orphaned_superevents = len(orphaned_superevent_ids)
-    orphaned_subevents = num_subevents - num_subevents_with_superevent_id
+    num_unmatched_superevents = num_superevents - num_superevents_with_subevent_id
+    num_unmatched_subevents = num_subevents - num_subevents_with_superevent_id
 
-    if (verbose):
-        print(f'\t{orphaned_superevents} orphaned superevents.')
-        print(f'\t{orphaned_subevents} orphaned subevents.')
-
-    return orphaned_superevents, orphaned_subevents, subevent_opportunities
+    return merged_opportunities, num_unmatched_superevents, num_unmatched_subevents
 
 # --------------------------------------------------------------------------------------------------
 
-def get_superevents(subevent, superevent_opportunities, superevent_ids_skip):
+def get_superevents(subevent, superevent_opportunities, skip_superevent_ids):
     superevents = []
 
-    superevent_modified_id_in_subevent = get_superevent_modified_id_in_subevent(subevent)
+    subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
 
-    if (superevent_modified_id_in_subevent is not None):
+    if (subevent_superevent_modified_id is not None):
         for superevent_id, superevent in superevent_opportunities['items'].items():
-            if (superevent_id not in superevent_ids_skip):
-                superevent_modified_id, superevent_data_modified_id = get_superevent_modified_ids_in_superevent(superevent)
-                if (superevent_modified_id_in_subevent in [superevent_modified_id, superevent_data_modified_id]):
+            if (superevent_id not in skip_superevent_ids):
+                superevent_modified_ids = get_item_modified_ids(superevent)
+                if (subevent_superevent_modified_id in superevent_modified_ids):
                     superevents.append(superevent)
 
     return superevents
 
 # --------------------------------------------------------------------------------------------------
 
-def get_subevents(superevent, subevent_opportunities, subevent_ids_skip):
+def get_subevents(superevent, subevent_opportunities, skip_subevent_ids):
     subevents = []
 
-    superevent_modified_id, superevent_data_modified_id = get_superevent_modified_ids_in_superevent(superevent)
+    superevent_modified_ids = get_item_modified_ids(superevent)
 
-    if (    (superevent_modified_id is not None)
-        or  (superevent_data_modified_id is not None)
-    ):
+    if (any(superevent_modified_ids)):
         for subevent_id, subevent in subevent_opportunities['items'].items():
-            if (subevent_id not in subevent_ids_skip):
-                superevent_modified_id_in_subevent = get_superevent_modified_id_in_subevent(subevent)
-                if (    (superevent_modified_id_in_subevent is not None)
-                    and (superevent_modified_id_in_subevent in [superevent_modified_id, superevent_data_modified_id])
+            if (subevent_id not in skip_subevent_ids):
+                subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
+                if (    (subevent_superevent_modified_id is not None)
+                    and (subevent_superevent_modified_id in superevent_modified_ids)
                 ):
                     subevents.append(subevent)
 
@@ -715,38 +722,38 @@ def get_subevents(superevent, subevent_opportunities, subevent_ids_skip):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_superevent_modified_id_in_subevent(subevent):
-    superevent_modified_id_in_subevent = None
+def get_subevent_superevent_modified_id(subevent):
+    subevent_superevent_modified_id = None
 
     if ('data' in subevent.keys()):
         for key in ['superEvent', 'facilityUse']:
             if (    (key in subevent['data'].keys())
                 and (type(subevent['data'][key]) in [str, int])
             ):
-                superevent_modified_id_in_subevent = str(subevent['data'][key]).split('/')[-1]
+                subevent_superevent_modified_id = str(subevent['data'][key]).split('/')[-1]
                 break
 
-    return superevent_modified_id_in_subevent
+    return subevent_superevent_modified_id
 
 # --------------------------------------------------------------------------------------------------
 
-def get_superevent_modified_ids_in_superevent(superevent):
-    superevent_modified_id = None
-    superevent_data_modified_id = None
+def get_item_modified_ids(item):
+    item_modified_id = None
+    item_data_modified_id = None
 
     for key in ['id', '@id']:
-        if (    (key in superevent.keys())
-            and (type(superevent[key]) in [str, int])
+        if (    (key in item.keys())
+            and (type(item[key]) in [str, int])
         ):
-            superevent_modified_id = str(superevent[key]).split('/')[-1]
+            item_modified_id = str(item[key]).split('/')[-1]
             break
 
-    if ('data' in superevent.keys()):
+    if ('data' in item.keys()):
         for key in ['id', '@id']:
-            if (    (key in superevent['data'].keys())
-                and (type(superevent['data'][key]) in [str, int])
+            if (    (key in item['data'].keys())
+                and (type(item['data'][key]) in [str, int])
             ):
-                superevent_data_modified_id = str(superevent['data'][key]).split('/')[-1]
+                item_data_modified_id = str(item['data'][key]).split('/')[-1]
                 break
 
-    return superevent_modified_id, superevent_data_modified_id
+    return item_modified_id, item_data_modified_id

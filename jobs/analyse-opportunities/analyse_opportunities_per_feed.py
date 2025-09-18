@@ -198,8 +198,10 @@ def analyse_opportunities_per_feed(**kwargs):
     df_analysis_data = pd.DataFrame(columns=[
         'file_name',
         'file_name_partner',
-        'feed_name',
+        'event_type',
+        'event_type_partner',
         'feed_type',
+        'feed_name',
         'feed_url',
         'dataset_url',
         'discussion_url',
@@ -207,22 +209,20 @@ def analyse_opportunities_per_feed(**kwargs):
         'logo_url',
         'publisher_name',
         'status',
-        'event_type',
-        'event_type_partner',
-        'is_merged_with_partner',
         'is_regular',
+        'is_merged_with_partner',
+        'num_urls',
         'num_items',
         'num_items_future',
         'num_items_future_week',
-        'num_urls',
+        'num_unmatched_superevent_items',
+        'num_unmatched_subevent_items',
         'kinds_counts',
         'types_counts',
         'activities_counts',
         'organisers_counts',
         'address_counts',
         'coords_counts',
-        'orphaned_superevents',
-        'orphaned_subevents',
     ])
 
     filenames_sampleitems = {}
@@ -306,19 +306,23 @@ def analyse_opportunities_per_feed(**kwargs):
         # --------------------------------------------------------------------------------------------------
 
         is_merged_with_partner = False
+        num_unmatched_superevent_items = None
+        num_unmatched_subevent_items = None
         if (    ('superevent' in event_type_pair)
             and ('subevent' in event_type_pair)
         ):
             try:
-                orphaned_superevents, \
-                orphaned_subevents, \
-                opportunities_pair[event_type_pair.index('subevent')] = oa.get_merged_opportunities(
-                    opportunities_pair[event_type_pair.index('subevent')],
+                merged_opportunities, \
+                num_unmatched_superevent_items, \
+                num_unmatched_subevent_items = oa.get_merged_opportunities(
                     opportunities_pair[event_type_pair.index('superevent')],
+                    opportunities_pair[event_type_pair.index('subevent')],
                     **kwargs
                 )
-                opportunities_pair[event_type_pair.index('superevent')] = None
-                is_merged_with_partner = True
+                if (merged_opportunities is not None):
+                    opportunities_pair[event_type_pair.index('superevent')] = None
+                    opportunities_pair[event_type_pair.index('subevent')] = merged_opportunities
+                    is_merged_with_partner = True
             except Exception as error:
                 print('ERROR:', error)
 
@@ -337,8 +341,10 @@ def analyse_opportunities_per_feed(**kwargs):
                     df_analysis_data.loc[len(df_analysis_data)] = {
                         'file_name': filename_pair[idx],
                         'file_name_partner': filename_pair[1-idx],
-                        'feed_name': opportunities_pair[idx].get('feed', {}).get('name'),
+                        'event_type': event_type_pair[idx],
+                        'event_type_partner': event_type_pair[idx-1],
                         'feed_type': opportunities_pair[idx].get('feed', {}).get('type'),
+                        'feed_name': opportunities_pair[idx].get('feed', {}).get('name'),
                         'feed_url': opportunities_pair[idx].get('feed', {}).get('url'),
                         'dataset_url': opportunities_pair[idx].get('feed', {}).get('datasetUrl'),
                         'discussion_url': opportunities_pair[idx].get('feed', {}).get('discussionUrl'),
@@ -346,22 +352,20 @@ def analyse_opportunities_per_feed(**kwargs):
                         'logo_url': opportunities_pair[idx].get('feed', {}).get('logoUrl'),
                         'publisher_name': opportunities_pair[idx].get('feed', {}).get('publisherName'),
                         'status': opportunities_pair[idx]['status'],
-                        'event_type': event_type_pair[idx],
-                        'event_type_partner': event_type_pair[idx-1],
-                        'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was inhibited via keyword setting.
                         'is_regular': filename_pair[idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
+                        'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited.
+                        'num_urls': len(opportunities_pair[idx]['urls']),
                         'num_items': len(opportunities_pair[idx]['items'].keys()),
                         'num_items_future': num_items_future,
                         'num_items_future_week': num_items_future_week,
-                        'num_urls': len(opportunities_pair[idx]['urls']),
+                        'num_unmatched_superevent_items': num_unmatched_superevent_items,
+                        'num_unmatched_subevent_items': num_unmatched_subevent_items,
                         'kinds_counts': item_kinds_pair[idx],
                         'types_counts': item_data_types_pair[idx],
                         'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
                         'organisers_counts': get_values_counts(opportunities_pair[idx], 'organizer', 'name'),
                         'address_counts': get_values_counts(opportunities_pair[idx], 'location'),
                         'coords_counts': get_coords_counts(opportunities_pair[idx]), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
-                        'orphaned_superevents': orphaned_superevents,
-                        'orphaned_subevents': orphaned_subevents,
                     }
 
                     if (num_items_future_week > 0):
