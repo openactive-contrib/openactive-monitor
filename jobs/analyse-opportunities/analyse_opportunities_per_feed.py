@@ -8,45 +8,12 @@ import random
 import sys
 from datetime import datetime, timedelta
 from dateutil import tz # For timezone handling
-from os import getenv, listdir
+from os import listdir
 from os.path import isfile
 
 sys.path.append('../volume-1/common')
-import openactive_custom as oa
-
-# --------------------------------------------------------------------------------------------------
-
-# These folders must have been made via the Google Cloud browser console under Cloud Storage for this
-# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. This
-# was done for each job as follows (note that the volume and its mount-path were given the same name,
-# which didn't have to be so):
-#   $ gcloud beta run jobs update <JOB NAME> \
-#   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
-#   --add-volume-mount volume=volume-1,mount-path=/volume-1
-OPPORTUNITIES_RELATIVE_FILEPATH = getenv('OPPORTUNITIES_RELATIVE_FILEPATH', '../volume-1/data-opportunities')
-ANALYSIS_RELATIVE_FILEPATH = getenv('ANALYSIS_RELATIVE_FILEPATH', '../volume-1/data-analysis')
-
-REGULAR_OPPORTUNITIES_FILENAME_BASE = getenv('REGULAR_OPPORTUNITIES_FILENAME_BASE', 'regular-ops')
-PREVIEW_OPPORTUNITIES_FILENAME_BASE = getenv('PREVIEW_OPPORTUNITIES_FILENAME_BASE', 'preview-ops')
-OPPORTUNITIES_FILENAME_SUFFIX = '.pickle.gzip'
-RUNNING_FEEDS_FILENAME = '000-running-feeds.pickle' # Located in OPPORTUNITIES_RELATIVE_FILEPATH
-RUNNING_FEED_FILENAME = '000-running-feed.txt' # Located in OPPORTUNITIES_RELATIVE_FILEPATH
-CRASHED_FEEDS_FILENAME = '000-crashed-feeds.txt' # Located in OPPORTUNITIES_RELATIVE_FILEPATH
-SKIP_FILENAMES = [
-    RUNNING_FEEDS_FILENAME,
-    RUNNING_FEED_FILENAME,
-    CRASHED_FEEDS_FILENAME,
-] # Filenames to skip when checking for files in storage
-ANALYSIS_PER_FEED_FILENAME = getenv('ANALYSIS_PER_FEED_FILENAME', 'analysis-data.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-per-feed.pickle' when accommodated elsewhere
-SAMPLE_ITEMS_FILENAME = getenv('SAMPLE_ITEMS_FILENAME', 'sample_data.pickle')
-
-print('Environment variables:')
-print('OPPORTUNITIES_RELATIVE_FILEPATH:', OPPORTUNITIES_RELATIVE_FILEPATH)
-print('ANALYSIS_RELATIVE_FILEPATH:', ANALYSIS_RELATIVE_FILEPATH)
-print('REGULAR_OPPORTUNITIES_FILENAME_BASE:', REGULAR_OPPORTUNITIES_FILENAME_BASE)
-print('PREVIEW_OPPORTUNITIES_FILENAME_BASE:', PREVIEW_OPPORTUNITIES_FILENAME_BASE)
-print('ANALYSIS_PER_FEED_FILENAME:', ANALYSIS_PER_FEED_FILENAME)
-print('SAMPLE_ITEMS_FILENAME:', SAMPLE_ITEMS_FILENAME)
+from settings import *
+from openactive_custom import get_partner_feed_url, get_item_kinds, get_item_data_types, get_event_type, get_merged_opportunities
 
 # --------------------------------------------------------------------------------------------------
 
@@ -111,7 +78,7 @@ def get_filenames():
         if (    (isfile(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + i))
             and (i.startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE) or i.startswith(PREVIEW_OPPORTUNITIES_FILENAME_BASE))
             and (i.endswith(OPPORTUNITIES_FILENAME_SUFFIX))
-            and (i not in SKIP_FILENAMES)
+            and (i not in OPPORTUNITIES_RELATIVE_FILEPATH_SKIP_FILENAMES)
         )
     ])
 
@@ -151,7 +118,7 @@ def get_filename_prestamp_pairs(filename_prestamps):
 
     for filename_prestamp in filename_prestamps:
         if (filename_prestamp not in found_filename_prestamps):
-            partner_filename_prestamp = oa.get_partner_feed_url(filename_prestamp, filename_prestamps)
+            partner_filename_prestamp = get_partner_feed_url(filename_prestamp, filename_prestamps)
             filename_prestamp_pairs.append([filename_prestamp, partner_filename_prestamp])
             if (partner_filename_prestamp is not None):
                 found_filename_prestamps.append(partner_filename_prestamp)
@@ -260,7 +227,7 @@ def analyse_opportunities_per_feed(**kwargs):
             item_kinds = None
             if (opportunities is not None):
                 try:
-                    item_kinds = oa.get_item_kinds(opportunities)
+                    item_kinds = get_item_kinds(opportunities)
                 except Exception as error:
                     print('ERROR:', error)
             item_kinds_pair.append(item_kinds)
@@ -275,7 +242,7 @@ def analyse_opportunities_per_feed(**kwargs):
             item_data_types = None
             if (opportunities is not None):
                 try:
-                    item_data_types = oa.get_item_data_types(opportunities)
+                    item_data_types = get_item_data_types(opportunities)
                 except Exception as error:
                     print('ERROR:', error)
             item_data_types_pair.append(item_data_types)
@@ -293,9 +260,9 @@ def analyse_opportunities_per_feed(**kwargs):
                     if (    (item_data_types_pair[opportunities_idx] is not None)
                         and (len(item_data_types_pair[opportunities_idx].keys()) == 1)
                     ):
-                        event_type = oa.get_event_type(list(item_data_types_pair[opportunities_idx].keys())[0])
+                        event_type = get_event_type(list(item_data_types_pair[opportunities_idx].keys())[0])
                     else:
-                        event_type = oa.get_event_type(opportunities['feed']['type'])
+                        event_type = get_event_type(opportunities['feed']['type'])
                 except Exception as error:
                     print('ERROR:', error)
             event_type_pair.append(event_type)
@@ -314,7 +281,7 @@ def analyse_opportunities_per_feed(**kwargs):
             try:
                 merged_opportunities, \
                 num_unmatched_superevent_items, \
-                num_unmatched_subevent_items = oa.get_merged_opportunities(
+                num_unmatched_subevent_items = get_merged_opportunities(
                     opportunities_pair[event_type_pair.index('superevent')],
                     opportunities_pair[event_type_pair.index('subevent')],
                     **kwargs

@@ -1,12 +1,15 @@
+import sys
 from analyse_opportunities_per_feed import analyse_opportunities_per_feed
 from analyse_opportunities_aggregated import analyse_opportunities_aggregated
 from os import getenv
 
-VERBOSE = getenv('VERBOSE', 'False').title()
-VERBOSE = True if (VERBOSE == 'True') else False
+sys.path.append('../volume-1/common')
+from settings import *
 
-print('Environment variables:')
-print('VERBOSE:', VERBOSE)
+# --------------------------------------------------------------------------------------------------
+
+VERBOSE = getenv('VERBOSE', str(ANALYSE_OPPORTUNITIES_VERBOSE)).title()
+VERBOSE = True if (VERBOSE == 'True') else False
 
 # --------------------------------------------------------------------------------------------------
 

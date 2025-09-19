@@ -1,44 +1,11 @@
 import geopandas as gpd
-# import openactive as oa
 import pandas as pd
 import pickle
+import sys
 from numpy import nan
-from os import getenv
 
-# --------------------------------------------------------------------------------------------------
-
-# These folders must have been made via the Google Cloud browser console under Cloud Storage for this
-# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. This
-# was done for each job as follows (note that the volume and its mount-path were given the same name,
-# which didn't have to be so):
-#   $ gcloud beta run jobs update <JOB NAME> \
-#   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
-#   --add-volume-mount volume=volume-1,mount-path=/volume-1
-FEEDS_RELATIVE_FILEPATH = getenv('FEEDS_RELATIVE_FILEPATH', '../volume-1/data-feeds')
-ANALYSIS_RELATIVE_FILEPATH = getenv('ANALYSIS_RELATIVE_FILEPATH', '../volume-1/data-analysis')
-
-REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated elsewhere
-PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated elsewhere
-ANALYSIS_PER_FEED_FILENAME = getenv('ANALYSIS_PER_FEED_FILENAME', 'analysis-data.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-per-feed.pickle' when accommodated elsewhere
-ANALYSIS_AGGREGATED_FILENAME = getenv('ANALYSIS_AGGREGATED_FILENAME', 'analysis.pickle') # Located in ANALYSIS_RELATIVE_FILEPATH TODO: Change to 'analysis-aggregated.pickle' when accommodated elsewhere
-SAMPLE_ITEMS_FILENAME = getenv('SAMPLE_ITEMS_FILENAME', 'sample_data.pickle')
-GEO_REGIONS_FILENAME = getenv('GEO_REGIONS_FILENAME', 'regions.geojson')
-GEO_LADS_FILENAME = getenv('GEO_LADS_FILENAME', 'lads.geojson')
-SE_SPORT_AND_DISCIPLINE_FILENAME = getenv('SE_SPORT_AND_DISCIPLINE_FILENAME', 'SE-sport-and-discipline.csv')
-OA_SE_MAPPING_FILENAME = getenv('OA_SE_MAPPING_FILENAME', 'OA-SE-mapping.csv')
-
-print('Environment variables:')
-print('FEEDS_RELATIVE_FILEPATH:', FEEDS_RELATIVE_FILEPATH)
-print('ANALYSIS_RELATIVE_FILEPATH:', ANALYSIS_RELATIVE_FILEPATH)
-print('REGULAR_FEEDS_LATEST_FILENAME:', REGULAR_FEEDS_LATEST_FILENAME)
-print('PREVIEW_FEEDS_LATEST_FILENAME:', PREVIEW_FEEDS_LATEST_FILENAME)
-print('ANALYSIS_PER_FEED_FILENAME:', ANALYSIS_PER_FEED_FILENAME)
-print('ANALYSIS_AGGREGATED_FILENAME:', ANALYSIS_AGGREGATED_FILENAME)
-print('SAMPLE_ITEMS_FILENAME:', SAMPLE_ITEMS_FILENAME)
-print('GEO_REGIONS_FILENAME:', GEO_REGIONS_FILENAME)
-print('GEO_LADS_FILENAME:', GEO_LADS_FILENAME)
-print('SE_SPORT_AND_DISCIPLINE_FILENAME:', SE_SPORT_AND_DISCIPLINE_FILENAME)
-print('OA_SE_MAPPING_FILENAME:', OA_SE_MAPPING_FILENAME)
+sys.path.append('../volume-1/common')
+from settings import *
 
 # --------------------------------------------------------------------------------------------------
 

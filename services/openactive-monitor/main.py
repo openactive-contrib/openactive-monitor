@@ -1,7 +1,10 @@
 import pickle
 import seaborn as sns
 import streamlit as st
-from os import getenv
+import sys
+
+sys.path.append('../volume-1/common')
+from settings import *
 
 # --------------------------------------------------------------------------------------------------
 
@@ -42,36 +45,12 @@ st.html(f'''
 # --------------------------------------------------------------------------------------------------
 
 if ('initialised' not in st.session_state):
-    # These folders must have been made via the Google Cloud browser console under Cloud Storage for this
-    # project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. With
-    # this service called 'openactive-monitor', this was done as follows (note that the volume and its mount-path
-    # were given the same name, which didn't have to be so):
-    #   $ gcloud beta run services update openactive-monitor \
-    #   --region europe-west2 \
-    #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
-    #   --add-volume-mount volume=volume-1,mount-path=/volume-1
-    RELATIVE_FILEPATH_FEEDS = getenv('RELATIVE_FILEPATH_FEEDS', '../volume-1/data-feeds')
-    RELATIVE_FILEPATH_ANALYSIS = getenv('RELATIVE_FILEPATH_ANALYSIS', '../volume-1/data-analysis')
-    FILENAME_FEEDS = getenv('FILENAME_FEEDS', 'feeds.pickle') # Located in RELATIVE_FILEPATH_FEEDS
-    FILENAME_FEEDS_PREVIEW = getenv('FILENAME_FEEDS_PREVIEW', 'feeds-preview.pickle') # Located in RELATIVE_FILEPATH_FEEDS
-    FILENAME_ANALYSIS = getenv('FILENAME_ANALYSIS', 'analysis.pickle')
-
-    print('Environment variables:')
-    print('RELATIVE_FILEPATH_FEEDS:', RELATIVE_FILEPATH_FEEDS)
-    print('RELATIVE_FILEPATH_ANALYSIS:', RELATIVE_FILEPATH_ANALYSIS)
-    print('FILENAME_FEEDS:', FILENAME_FEEDS)
-    print('FILENAME_FEEDS_PREVIEW:', FILENAME_FEEDS_PREVIEW)
-    print('FILENAME_ANALYSIS:', FILENAME_ANALYSIS)
-
-    # --------------------------------------------------------------------------------------------------
 
     st.session_state.error = False
 
-    # --------------------------------------------------------------------------------------------------
-
     if (not st.session_state.error):
         try:
-            with open(RELATIVE_FILEPATH_FEEDS + '/' + FILENAME_FEEDS, 'rb') as file_in: # Or FILENAME_FEEDS_PREVIEW
+            with open(RELATIVE_FILEPATH_FEEDS + '/' + REGULAR_FEEDS_LATEST_FILENAME, 'rb') as file_in: # Or PREVIEW_FEEDS_LATEST_FILENAME
                 feeds = pickle.load(file_in)
         except:
             st.session_state.error = True
@@ -83,7 +62,7 @@ if ('initialised' not in st.session_state):
 
         feed_type_map = {
             'ScheduledSessions': 'ScheduledSession',
-            'Slot for FacilityUse': 'Slot',           
+            'Slot for FacilityUse': 'Slot',
         }
 
         for feed in feeds['feeds']:
@@ -149,7 +128,7 @@ if ('initialised' not in st.session_state):
 
     if (not st.session_state.error):
         try:
-            with open(RELATIVE_FILEPATH_ANALYSIS + '/' + FILENAME_ANALYSIS, 'rb') as file_in:
+            with open(RELATIVE_FILEPATH_ANALYSIS + '/' + ANALYSIS_AGGREGATED_FILENAME, 'rb') as file_in:
                 st.session_state.analysis = pickle.load(file_in)
         except:
             st.session_state.error = True

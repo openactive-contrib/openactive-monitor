@@ -8,55 +8,13 @@ from os import getenv, listdir, remove, symlink
 from os.path import isfile
 
 sys.path.append('../volume-1/common')
+from settings import *
 from openactive_custom import get_feeds
 
 # --------------------------------------------------------------------------------------------------
 
-# These folders must have been made via the Google Cloud browser console under Cloud Storage for this
-# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. This
-# was done for each job as follows (note that the volume and its mount-path were given the same name,
-# which didn't have to be so):
-#   $ gcloud beta run jobs update <JOB NAME> \
-#   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
-#   --add-volume-mount volume=volume-1,mount-path=/volume-1
-FEEDS_RELATIVE_FILEPATH = getenv('FEEDS_RELATIVE_FILEPATH', '../volume-1/data-feeds')
-
-REGULAR_FEEDS_FILENAME_BASE = getenv('REGULAR_FEEDS_FILENAME_BASE', 'regular-feeds')
-PREVIEW_FEEDS_FILENAME_BASE = getenv('PREVIEW_FEEDS_FILENAME_BASE', 'preview-feeds')
-FEEDS_FILENAME_SUFFIX = '.pickle'
-REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated elsewhere
-PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated elsewhere
-REGULAR_FEEDS_HISTORY_FILENAME = getenv('REGULAR_FEEDS_HISTORY_FILENAME', 'regular-feeds-history.csv') # Located in FEEDS_RELATIVE_FILEPATH
-PREVIEW_FEEDS_HISTORY_FILENAME = getenv('PREVIEW_FEEDS_HISTORY_FILENAME', 'preview-feeds-history.csv') # Located in FEEDS_RELATIVE_FILEPATH
-SKIP_FILENAMES = [
-    REGULAR_FEEDS_LATEST_FILENAME,
-    PREVIEW_FEEDS_LATEST_FILENAME,
-    REGULAR_FEEDS_HISTORY_FILENAME,
-    PREVIEW_FEEDS_HISTORY_FILENAME,
-] # Filenames to skip when checking for files in storage
-
-MAX_NUM_FEEDS_FILES = int(getenv('MAX_NUM_FEEDS_FILES', '500')) # Number of feeds files to keep for each feed type (regular and preview), including the latest output. 2025-09-03 A regular feeds file is currently ~100KB, so 500 of these is ~50MB. A preview feeds file is currently ~1KB, so 500 of these is ~0.5MB. 500 was chosen to go back ~1.5 years if this is run daily.
-VERBOSE = getenv('VERBOSE', 'False').title()
+VERBOSE = getenv('VERBOSE', str(GET_FEEDS_VERBOSE)).title()
 VERBOSE = True if (VERBOSE == 'True') else False
-
-HEADERS = {
-    'timeout': '10',
-    'User-Agent': 'OpenActive admin',
-    # 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36', # Alternative 'User-Agent' based on laptop browser settings. Still doesn't seem to help some GCloud 403 errors though.
-    'From': 'hello@openactive.io',
-    'Referer': 'https://www.openactive.io',
-}
-
-print('Environment variables:')
-print('FEEDS_RELATIVE_FILEPATH:', FEEDS_RELATIVE_FILEPATH)
-print('REGULAR_FEEDS_FILENAME_BASE:', REGULAR_FEEDS_FILENAME_BASE)
-print('PREVIEW_FEEDS_FILENAME_BASE:', PREVIEW_FEEDS_FILENAME_BASE)
-print('REGULAR_FEEDS_LATEST_FILENAME:', REGULAR_FEEDS_LATEST_FILENAME)
-print('PREVIEW_FEEDS_LATEST_FILENAME:', PREVIEW_FEEDS_LATEST_FILENAME)
-print('REGULAR_FEEDS_HISTORY_FILENAME:', REGULAR_FEEDS_HISTORY_FILENAME)
-print('PREVIEW_FEEDS_HISTORY_FILENAME:', PREVIEW_FEEDS_HISTORY_FILENAME)
-print('MAX_NUM_FEEDS_FILES:', MAX_NUM_FEEDS_FILES)
-print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -106,7 +64,7 @@ def get_filenames():
         if (    (isfile(FEEDS_RELATIVE_FILEPATH + '/' + i))
             and (i.startswith(REGULAR_FEEDS_FILENAME_BASE) or i.startswith(PREVIEW_FEEDS_FILENAME_BASE))
             and (i.endswith(FEEDS_FILENAME_SUFFIX))
-            and (i not in SKIP_FILENAMES)
+            and (i not in FEEDS_RELATIVE_FILEPATH_SKIP_FILENAMES)
         )
     ])
 

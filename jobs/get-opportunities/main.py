@@ -9,67 +9,16 @@ from os import getenv, listdir, remove
 from os.path import isfile
 
 sys.path.append('../volume-1/common')
+from settings import *
 from openactive_custom import get_opportunities, get_bytesize
 
 # --------------------------------------------------------------------------------------------------
 
-# These folders must have been made via the Google Cloud browser console under Cloud Storage for this
-# project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. This
-# was done for each job as follows (note that the volume and its mount-path were given the same name,
-# which didn't have to be so):
-#   $ gcloud beta run jobs update <JOB NAME> \
-#   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
-#   --add-volume-mount volume=volume-1,mount-path=/volume-1
-FEEDS_RELATIVE_FILEPATH = getenv('FEEDS_RELATIVE_FILEPATH', '../volume-1/data-feeds')
-OPPORTUNITIES_RELATIVE_FILEPATH = getenv('OPPORTUNITIES_RELATIVE_FILEPATH', '../volume-1/data-opportunities')
-
-REGULAR_FEEDS_LATEST_FILENAME = getenv('REGULAR_FEEDS_LATEST_FILENAME', 'feeds.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'regular-feeds-latest.pickle' when accommodated elsewhere
-PREVIEW_FEEDS_LATEST_FILENAME = getenv('PREVIEW_FEEDS_LATEST_FILENAME', 'feeds-preview.pickle') # Located in FEEDS_RELATIVE_FILEPATH TODO: Change to 'preview-feeds-latest.pickle' when accommodated elsewhere
-REGULAR_OPPORTUNITIES_FILENAME_BASE = getenv('REGULAR_OPPORTUNITIES_FILENAME_BASE', 'regular-ops')
-PREVIEW_OPPORTUNITIES_FILENAME_BASE = getenv('PREVIEW_OPPORTUNITIES_FILENAME_BASE', 'preview-ops')
-OPPORTUNITIES_FILENAME_SUFFIX = '.pickle.gzip'
-RUNNING_FEEDS_FILENAME = '000-running-feeds.pickle' # Located in OPPORTUNITIES_RELATIVE_FILEPATH
-RUNNING_FEED_FILENAME = '000-running-feed.txt' # Located in OPPORTUNITIES_RELATIVE_FILEPATH
-CRASHED_FEEDS_FILENAME = '000-crashed-feeds.txt' # Located in OPPORTUNITIES_RELATIVE_FILEPATH
-SKIP_FILENAMES = [
-    RUNNING_FEEDS_FILENAME,
-    RUNNING_FEED_FILENAME,
-    CRASHED_FEEDS_FILENAME,
-] # Filenames to skip when checking for files in storage
-
-MAX_NUM_FEEDS = int(getenv('MAX_NUM_FEEDS', '-1'))
-MAX_NUM_FEEDS = None if (MAX_NUM_FEEDS < 0) else MAX_NUM_FEEDS # Negative indicates to do all feeds, otherwise cap at the stated number of feeds. This is useful for testing on a subset of all feeds.
-MAX_NUM_FEED_SECONDS = int(getenv('MAX_NUM_FEED_SECONDS', '600'))
-MAX_NUM_FEED_TRIES = int(getenv('MAX_NUM_FEED_TRIES', '3'))
-MAX_NUM_WRITE_TRIES = int(getenv('MAX_NUM_WRITE_TRIES', '3'))
-MAX_NUM_OPPORTUNITIES_FILES = int(getenv('MAX_NUM_OPPORTUNITIES_FILES', '1')) # Number of opportunities files to keep for each feed, including the latest output
-LOG_MEMORY = getenv('LOG_MEMORY', 'False').title()
+LOG_MEMORY = getenv('LOG_MEMORY', str(GET_OPPORTUNITIES_LOG_MEMORY)).title()
 LOG_MEMORY = True if (LOG_MEMORY == 'True') else False
-VERBOSE = getenv('VERBOSE', 'False').title()
+
+VERBOSE = getenv('VERBOSE', str(GET_OPPORTUNITIES_VERBOSE)).title()
 VERBOSE = True if (VERBOSE == 'True') else False
-
-HEADERS = {
-    'timeout': '10',
-    'User-Agent': 'OpenActive admin',
-    # 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36', # Alternative 'User-Agent' based on laptop browser settings. Still doesn't seem to help some GCloud 403 errors though.
-    'From': 'hello@openactive.io',
-    'Referer': 'https://www.openactive.io',
-}
-
-print('Environment variables:')
-print('FEEDS_RELATIVE_FILEPATH:', FEEDS_RELATIVE_FILEPATH)
-print('OPPORTUNITIES_RELATIVE_FILEPATH:', OPPORTUNITIES_RELATIVE_FILEPATH)
-print('REGULAR_FEEDS_LATEST_FILENAME:', REGULAR_FEEDS_LATEST_FILENAME)
-print('PREVIEW_FEEDS_LATEST_FILENAME:', PREVIEW_FEEDS_LATEST_FILENAME)
-print('REGULAR_OPPORTUNITIES_FILENAME_BASE:', REGULAR_OPPORTUNITIES_FILENAME_BASE)
-print('PREVIEW_OPPORTUNITIES_FILENAME_BASE:', PREVIEW_OPPORTUNITIES_FILENAME_BASE)
-print('MAX_NUM_FEEDS:', MAX_NUM_FEEDS)
-print('MAX_NUM_FEED_SECONDS:', MAX_NUM_FEED_SECONDS)
-print('MAX_NUM_FEED_TRIES:', MAX_NUM_FEED_TRIES)
-print('MAX_NUM_WRITE_TRIES:', MAX_NUM_WRITE_TRIES)
-print('MAX_NUM_OPPORTUNITIES_FILES:', MAX_NUM_OPPORTUNITIES_FILES)
-print('LOG_MEMORY:', LOG_MEMORY)
-print('VERBOSE:', VERBOSE)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -124,7 +73,7 @@ def get_filenames():
         if (    (isfile(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + i))
             and (i.startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE) or i.startswith(PREVIEW_OPPORTUNITIES_FILENAME_BASE))
             and (i.endswith(OPPORTUNITIES_FILENAME_SUFFIX))
-            and (i not in SKIP_FILENAMES)
+            and (i not in OPPORTUNITIES_RELATIVE_FILEPATH_SKIP_FILENAMES)
         )
     ])
 
