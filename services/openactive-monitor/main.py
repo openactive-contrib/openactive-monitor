@@ -50,7 +50,7 @@ if ('initialised' not in st.session_state):
 
     if (not st.session_state.error):
         try:
-            with open(RELATIVE_FILEPATH_FEEDS + '/' + REGULAR_FEEDS_LATEST_FILENAME, 'rb') as file_in: # Or PREVIEW_FEEDS_LATEST_FILENAME
+            with open(FEEDS_RELATIVE_FILEPATH + '/' + REGULAR_FEEDS_LATEST_FILENAME, 'rb') as file_in: # Or PREVIEW_FEEDS_LATEST_FILENAME
                 feeds = pickle.load(file_in)
         except:
             st.session_state.error = True
@@ -128,7 +128,7 @@ if ('initialised' not in st.session_state):
 
     if (not st.session_state.error):
         try:
-            with open(RELATIVE_FILEPATH_ANALYSIS + '/' + ANALYSIS_AGGREGATED_FILENAME, 'rb') as file_in:
+            with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_AGGREGATED_FILENAME, 'rb') as file_in:
                 st.session_state.analysis = pickle.load(file_in)
         except:
             st.session_state.error = True
