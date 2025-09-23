@@ -157,6 +157,7 @@ def analyse_opportunities_per_feed(**kwargs):
         filename_pairs = get_filename_pairs(filename_prestamp_pairs, filenames)
     except Exception as error:
         print('ERROR:', error)
+        sys.exit(1)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -211,8 +212,6 @@ def analyse_opportunities_per_feed(**kwargs):
                 try:
                     with gzip.open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + filename, 'rb') as file_in:
                         opportunities = pickle.load(file_in)
-                    if (verbose):
-                        print(f'Loaded {filename}')
                 except Exception as error:
                     print('ERROR:', error)
             opportunities_pair.append(opportunities)
@@ -297,6 +296,9 @@ def analyse_opportunities_per_feed(**kwargs):
             print(f'Merged: {is_merged_with_partner}')
 
         # --------------------------------------------------------------------------------------------------
+
+        if (verbose):
+            print('Processing ...')
 
         for idx in range(2):
             if (opportunities_pair[idx] is not None):

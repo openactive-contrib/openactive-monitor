@@ -131,8 +131,7 @@ def run_get_opportunities(feed, **kwargs):
     # --------------------------------------------------------------------------------------------------
 
     if (type(opportunities) == dict):
-        if ('feed' not in opportunities.keys()):
-            opportunities['feed'] = feed
+        opportunities['feed'] = feed
 
         current_filename = \
             current_filename_prestamp + \
@@ -208,6 +207,8 @@ def run_job(name_job):
     future.result()
 
 # --------------------------------------------------------------------------------------------------
+
+# TODO: Add file count check to run on reboot after crash, remove unnecessary files that weren't deleted as intended above
 
 if (__name__ == '__main__'):
     for preview in [False, True]:
