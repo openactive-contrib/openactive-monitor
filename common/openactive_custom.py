@@ -572,7 +572,6 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
     if (    (num_superevents == 0)
         or  (num_subevents == 0)
     ):
-        if (verbose):
             if (    (num_superevents == 0)
                 and (num_subevents > 0)
             ):
