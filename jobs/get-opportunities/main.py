@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from google.cloud import pubsub_v1
 # from openactive import get_opportunities, get_bytesize
-from os import getenv, listdir, remove
+from os import getenv, listdir, remove, rename
 from os.path import isfile
 
 sys.path.append('../volume-1/common')
@@ -143,19 +143,32 @@ def run_get_opportunities(feed, **kwargs):
         # things up on the next run of this code when that file is to be used as the input. This seems to affect
         # certain feeds more than others, and is not simply due to large file sizes as some feeds without this
         # issue have large file sizes, so the ultimate cause is unknown, it could be something about the actual
-        # characters involved. Online comments for this error suggest trying to write the file again in the
-        # first instance, hence the write-read-rewrite process below. This workaround at least results in only
-        # safe files that can be opened being kept in storage:
+        # characters involved. Online comments for this error suggest trying to rewrite the file in the first
+        # instance, hence the write-read-rewrite process below. Also, after the initial write the attempted
+        # file opening may completely kill this running code, at least on Google Cloud, meaning the exception
+        # handling itself is never entered. For this reason we use a temporary file name which we know not
+        # to trust if found in storage, and only rename it to the desired name if it passes the opening test.
+        # This workaround means that any opportunities file in storage which does not have the temporary file
+        # name has been checked to open correctly, and should be fine for further use:
 
         num_write_tries = 0
         while (num_write_tries < MAX_NUM_WRITE_TRIES):
             num_write_tries += 1
+            print(f'Writing filename: {current_filename}')
+            print(f'Try: {num_write_tries}/{MAX_NUM_WRITE_TRIES}')
             try:
-                print(f'Try {num_write_tries}/{MAX_NUM_WRITE_TRIES} of writing file {current_filename}')
-                with gzip.open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + current_filename, 'wb') as file_out:
+                try:
+                    remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + TEMPORARY_OPPORTUNITIES_FILENAME)
+                except:
+                    pass
+                with gzip.open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + TEMPORARY_OPPORTUNITIES_FILENAME, 'wb') as file_out:
                     pickle.dump(opportunities, file_out)
-                with gzip.open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + current_filename, 'rb') as file_in:
+                with gzip.open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + TEMPORARY_OPPORTUNITIES_FILENAME, 'rb') as file_in:
                     opportunities_test = pickle.load(file_in)
+                rename(
+                    OPPORTUNITIES_RELATIVE_FILEPATH + '/' + TEMPORARY_OPPORTUNITIES_FILENAME,
+                    OPPORTUNITIES_RELATIVE_FILEPATH + '/' + current_filename
+                )
                 print('Successful write')
                 del(opportunities_test)
                 break
@@ -165,10 +178,6 @@ def run_get_opportunities(feed, **kwargs):
                 else:
                     print('Unsuccessful write, maximum number of tries reached')
                     opportunities['status'] = 'ERROR'
-                try:
-                    remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + current_filename)
-                except:
-                    pass
 
     # --------------------------------------------------------------------------------------------------
 
@@ -207,8 +216,6 @@ def run_job(name_job):
     future.result()
 
 # --------------------------------------------------------------------------------------------------
-
-# TODO: Add file count check to run on reboot after crash, remove unnecessary files that weren't deleted as intended above
 
 if (__name__ == '__main__'):
     for preview in [False, True]:
@@ -298,6 +305,11 @@ if (__name__ == '__main__'):
                         pickle.dump(feeds, file_out)
 
             # --------------------------------------------------------------------------------------------------
+
+            try:
+                remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + TEMPORARY_OPPORTUNITIES_FILENAME)
+            except:
+                pass
 
             try:
                 remove(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + RUNNING_FEEDS_FILENAME)
