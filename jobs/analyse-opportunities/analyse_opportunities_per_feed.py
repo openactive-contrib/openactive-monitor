@@ -200,7 +200,7 @@ def analyse_opportunities_per_feed(**kwargs):
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
 
         print(f'Feed pair: {filename_pair_idx+1}/{num_filename_pairs}')
-            print(f'Filenames: {filename_pair}')
+        print(f'Filenames: {filename_pair}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -215,7 +215,7 @@ def analyse_opportunities_per_feed(**kwargs):
                     print('ERROR:', error)
             opportunities_pair.append(opportunities)
 
-            print(f'Loaded: {[opportunities is not None for opportunities in opportunities_pair]}')
+        print(f'Loaded: {[opportunities is not None for opportunities in opportunities_pair]}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -229,7 +229,7 @@ def analyse_opportunities_per_feed(**kwargs):
                     print('ERROR:', error)
             item_kinds_pair.append(item_kinds)
 
-            print(f'Item kinds: {item_kinds_pair}')
+        print(f'Item kinds: {item_kinds_pair}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -243,7 +243,7 @@ def analyse_opportunities_per_feed(**kwargs):
                     print('ERROR:', error)
             item_data_types_pair.append(item_data_types)
 
-            print(f'Item data types: {item_data_types_pair}')
+        print(f'Item data types: {item_data_types_pair}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -262,32 +262,55 @@ def analyse_opportunities_per_feed(**kwargs):
                     print('ERROR:', error)
             event_type_pair.append(event_type)
 
-            print(f'Event types: {event_type_pair}')
+        print(f'Event types: {event_type_pair}')
 
         # --------------------------------------------------------------------------------------------------
 
-        is_merged_with_partner = False
         num_unmatched_superevent_items = None
         num_unmatched_subevent_items = None
+        is_merged_with_partner = False
         if (    ('superevent' in event_type_pair)
             and ('subevent' in event_type_pair)
         ):
             try:
-                merged_opportunities, \
-                num_unmatched_superevent_items, \
-                num_unmatched_subevent_items = get_merged_opportunities(
+                num_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
+                num_subevent_items = len(opportunities_pair[event_type_pair.index('subevent')]['items'].keys())
+
+                opportunities_pair[event_type_pair.index('superevent')], \
+                opportunities_pair[event_type_pair.index('subevent')] = get_merged_opportunities(
                     opportunities_pair[event_type_pair.index('superevent')],
-                    opportunities_pair[event_type_pair.index('subevent')],
-                    **kwargs
+                    opportunities_pair[event_type_pair.index('subevent')]
                 )
-                if (merged_opportunities is not None):
+
+                num_unmatched_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
+                num_unmatched_subevent_items = len([item['id'] for item in opportunities_pair[event_type_pair.index('subevent')]['items'].values() if 'superevent_item' not in item.keys()])
+                num_matched_superevent_items = num_superevent_items - num_unmatched_superevent_items
+                num_matched_subevent_items = num_subevent_items - num_unmatched_subevent_items
+
+                print(f'num_superevent_items: {num_superevent_items}')
+                print(f'num_subevent_items: {num_subevent_items}')
+                print(f'num_unmatched_superevent_items: {num_unmatched_superevent_items}')
+                print(f'num_unmatched_subevent_items: {num_unmatched_subevent_items}')
+                print(f'num_matched_superevent_items: {num_matched_superevent_items}')
+                print(f'num_matched_subevent_items: {num_matched_subevent_items}')
+
+                if (    (num_matched_superevent_items > 0)
+                    and (num_matched_subevent_items == 0)
+                ):
+                    print('ERROR: Matched superevents but unmatched subevents ... should not be possible')
+                elif (  (num_matched_superevent_items == 0)
+                    and (num_matched_subevent_items > 0)
+                ):
+                    print('ERROR: Unmatched superevents but matched subevents ... should not be possible')
+                elif (  (num_matched_superevent_items > 0)
+                    and (num_matched_subevent_items > 0)
+                ):
                     opportunities_pair[event_type_pair.index('superevent')] = None
-                    opportunities_pair[event_type_pair.index('subevent')] = merged_opportunities
                     is_merged_with_partner = True
             except Exception as error:
                 print('ERROR:', error)
 
-            print(f'Merged: {is_merged_with_partner}')
+        print(f'Merged: {is_merged_with_partner}')
 
         # --------------------------------------------------------------------------------------------------
 
