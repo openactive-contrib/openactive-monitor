@@ -239,6 +239,8 @@ if (__name__ == '__main__'):
                     feed['num_tries'] = 0
                     feed['status'] = None
 
+            num_feeds = len(feeds)
+
             if (RUNNING_FEED_FILENAME in listdir(OPPORTUNITIES_RELATIVE_FILEPATH)):
                 with open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + RUNNING_FEED_FILENAME, 'r') as file_in:
                     date_time_feed_url = file_in.read()
@@ -270,8 +272,11 @@ if (__name__ == '__main__'):
 
                     # --------------------------------------------------------------------------------------------------
 
+                    print(f"Running {'preview' if preview else 'regular'} feed: {feed_idx+1}/{num_feeds}")
+                    print(f"URL: {feed['url']}")
+                    print(f"Try: {feed['num_tries']}/{MAX_NUM_FEED_TRIES}")
+
                     try:
-                        print(f"\nTry {feed['num_tries']}/{MAX_NUM_FEED_TRIES} of {'preview' if preview else 'regular'} feed {feed_idx+1} {feed['url']}")
                         opportunities = run_get_opportunities(
                             feed,
                             headers = HEADERS,
@@ -303,6 +308,8 @@ if (__name__ == '__main__'):
 
                     with open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + RUNNING_FEEDS_FILENAME, 'wb') as file_out:
                         pickle.dump(feeds, file_out)
+
+                    print('--------------------------------------------------')
 
             # --------------------------------------------------------------------------------------------------
 
