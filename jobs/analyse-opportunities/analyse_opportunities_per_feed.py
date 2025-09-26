@@ -155,6 +155,7 @@ def analyse_opportunities_per_feed(**kwargs):
         filename_prestamps = get_filename_prestamps(filenames)
         filename_prestamp_pairs = get_filename_prestamp_pairs(filename_prestamps)
         filename_pairs = get_filename_pairs(filename_prestamp_pairs, filenames)
+        num_filename_pairs = len(filename_pairs)
     except Exception as error:
         raise Exception(error)
 
@@ -198,8 +199,7 @@ def analyse_opportunities_per_feed(**kwargs):
 
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
 
-        if (verbose):
-            print(f'{filename_pair_idx+1}/{len(filename_pairs)}')
+        print(f'Feed pair: {filename_pair_idx+1}/{num_filename_pairs}')
             print(f'Filenames: {filename_pair}')
 
         # --------------------------------------------------------------------------------------------------
@@ -215,7 +215,6 @@ def analyse_opportunities_per_feed(**kwargs):
                     print('ERROR:', error)
             opportunities_pair.append(opportunities)
 
-        if (verbose):
             print(f'Loaded: {[opportunities is not None for opportunities in opportunities_pair]}')
 
         # --------------------------------------------------------------------------------------------------
@@ -230,7 +229,6 @@ def analyse_opportunities_per_feed(**kwargs):
                     print('ERROR:', error)
             item_kinds_pair.append(item_kinds)
 
-        if (verbose):
             print(f'Item kinds: {item_kinds_pair}')
 
         # --------------------------------------------------------------------------------------------------
@@ -245,7 +243,6 @@ def analyse_opportunities_per_feed(**kwargs):
                     print('ERROR:', error)
             item_data_types_pair.append(item_data_types)
 
-        if (verbose):
             print(f'Item data types: {item_data_types_pair}')
 
         # --------------------------------------------------------------------------------------------------
@@ -265,7 +262,6 @@ def analyse_opportunities_per_feed(**kwargs):
                     print('ERROR:', error)
             event_type_pair.append(event_type)
 
-        if (verbose):
             print(f'Event types: {event_type_pair}')
 
         # --------------------------------------------------------------------------------------------------
@@ -291,13 +287,11 @@ def analyse_opportunities_per_feed(**kwargs):
             except Exception as error:
                 print('ERROR:', error)
 
-        if (verbose):
             print(f'Merged: {is_merged_with_partner}')
 
         # --------------------------------------------------------------------------------------------------
 
-        if (verbose):
-            print('Processing ...')
+        print('Running counts and adding entry to dataframe ...')
 
         for idx in range(2):
             if (opportunities_pair[idx] is not None):
@@ -346,6 +340,10 @@ def analyse_opportunities_per_feed(**kwargs):
 
                 except Exception as error:
                     print('ERROR:', error)
+
+        # --------------------------------------------------------------------------------------------------
+
+        print('--------------------------------------------------')
 
     # --------------------------------------------------------------------------------------------------
 
