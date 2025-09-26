@@ -241,19 +241,26 @@ if (__name__ == '__main__'):
 
             num_feeds = len(feeds)
 
+            crashed_feed_url = None
             if (RUNNING_FEED_FILENAME in listdir(OPPORTUNITIES_RELATIVE_FILEPATH)):
                 with open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + RUNNING_FEED_FILENAME, 'r') as file_in:
-                    date_time_feed_url = file_in.read()
+                    date_time_crashed_feed_url = file_in.read()
                 with open(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + CRASHED_FEEDS_FILENAME, 'a') as file_out:
-                    file_out.write(f'{date_time_feed_url}\n')
+                    file_out.write(f'{date_time_crashed_feed_url}\n')
+                crashed_feed_url = date_time_crashed_feed_url.split()[-1]
 
             # --------------------------------------------------------------------------------------------------
-
-            print(f"\n***** Started {'preview' if preview else 'regular'} feeds *****")
 
             while (any([(feed['status'] in [None, 'ERROR']) and (feed['num_tries'] < MAX_NUM_FEED_TRIES) for feed in feeds])):
 
                 for feed_idx, feed in enumerate(feeds):
+
+                    # If the previous run crashed then now jump ahead and progress from the next feed:
+                    if (crashed_feed_url is not None):
+                        if (feed['url'] == crashed_feed_url):
+                            crashed_feed_url = None
+                        continue
+
                     if (feed['status'] in ['COMPLETE', 'TIMEOUT']):
                         continue
                     elif (feed['status'] in [None, 'ERROR']):
