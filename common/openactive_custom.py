@@ -584,7 +584,7 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
                 and (num_subevents == 0)
             ):
                 print('\tNo superevents and no subevents - merging not possible')
-        return None, num_superevents, num_subevents
+        return superevent_opportunities, subevent_opportunities
 
     # --------------------------------------------------------------------------------------------------
 
@@ -632,7 +632,7 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
     if (num_subevents_with_superevent_modified_id == 0):
         if (verbose):
             print('\t\tNo subevents with superevent modified ID - merging not possible')
-        return None, num_superevents, num_subevents
+        return superevent_opportunities, subevent_opportunities
 
     # --------------------------------------------------------------------------------------------------
 
@@ -659,7 +659,7 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
     if (num_subevents_with_superevent_id == 0):
         if (verbose):
             print('\t\tNo subevents with superevent ID - merging not possible')
-        return None, num_superevents, num_subevents
+        return superevent_opportunities, subevent_opportunities
 
     # --------------------------------------------------------------------------------------------------
 
@@ -680,10 +680,7 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
 
     # --------------------------------------------------------------------------------------------------
 
-    num_unmatched_superevents = num_superevents - num_superevents_with_subevent_id
-    num_unmatched_subevents = num_subevents - num_subevents_with_superevent_id
-
-    return merged_opportunities, num_unmatched_superevents, num_unmatched_subevents
+    return superevent_opportunities, subevent_opportunities
 
 # --------------------------------------------------------------------------------------------------
 
