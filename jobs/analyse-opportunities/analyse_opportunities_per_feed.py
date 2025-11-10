@@ -156,6 +156,45 @@ def analyse_opportunities_per_feed(**kwargs):
         filename_prestamp_pairs = get_filename_prestamp_pairs(filename_prestamps)
         filename_pairs = get_filename_pairs(filename_prestamp_pairs, filenames)
         num_filename_pairs = len(filename_pairs)
+
+        analysis_filenames = [
+            filename
+            for filename_pair in filename_pairs
+            for filename in filename_pair
+            if filename is not None
+        ]
+        unique_analysis_filenames = list(set(analysis_filenames))
+
+        num_analysis_filenames = len(analysis_filenames)
+        num_unique_analysis_filenames = len(unique_analysis_filenames)
+
+        if (num_analysis_filenames != num_unique_analysis_filenames):
+            raise Exception('At least one filename has been matched to more than one other filename. This should not occur and the filename pairing procedure needs to be investigated.')
+
+        # If something unusual seems to be going on with the filename pairing, then uncomment the following
+        # and run to see exactly what is being paired:
+
+        # print('\nfilenames:')
+        # for filename in filenames:
+        #     print(filename)
+
+        # print('\nfilename_prestamps:')
+        # for filename_prestamp in filename_prestamps:
+        #     print(filename_prestamp)
+
+        # print('\nfilename_prestamp_pairs:')
+        # for filename_prestamp_pair in filename_prestamp_pairs:
+        #     print(filename_prestamp_pair[0])
+        #     print(filename_prestamp_pair[1])
+        #     print()
+
+        # print('filename_pairs:')
+        # for filename_pair in filename_pairs:
+        #     print(filename_pair[0])
+        #     print(filename_pair[1])
+        #     print()
+
+        # sys.exit(1)
     except Exception as error:
         raise Exception(error)
 
