@@ -1,4 +1,3 @@
-import geopandas as gpd
 import gzip
 import json
 # import openactive as oa
@@ -7,7 +6,7 @@ import pickle
 import random
 import sys
 from datetime import datetime, timedelta
-from dateutil import tz # For timezone handling
+from dateutil import parser, tz
 from os import listdir
 from os.path import isfile
 
@@ -220,8 +219,8 @@ def analyse_opportunities_per_feed(**kwargs):
         'is_merged_with_partner',
         'num_urls',
         'num_items',
-        'num_items_future',
-        'num_items_future_week',
+        'num_future_items',
+        'num_future_week_items',
         'num_unmatched_superevent_items',
         'num_unmatched_subevent_items',
         'kinds_counts',
@@ -358,9 +357,17 @@ def analyse_opportunities_per_feed(**kwargs):
         for idx in range(2):
             if (opportunities_pair[idx] is not None):
                 try:
-                    items_future_week, \
-                    num_items_future_week, \
-                    num_items_future = get_items_future_week(opportunities_pair[idx])
+                    future_item_ids, \
+                    future_week_item_ids = get_future_item_ids(opportunities_pair[idx])
+
+                    num_future_items = len(future_item_ids)
+                    num_future_week_items = len(future_week_item_ids)
+
+                    if (num_future_week_items > 0):
+                        filenames_sampleitems[filename_pair[idx]] = {
+                            item_id: opportunities_pair[idx]['items'][item_id]
+                            for item_id in random.sample(future_week_item_ids, min(2, num_future_week_items))
+                        }
 
                     df_analysis_data.loc[len(df_analysis_data)] = {
                         'file_name': filename_pair[idx],
@@ -380,8 +387,8 @@ def analyse_opportunities_per_feed(**kwargs):
                         'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited.
                         'num_urls': len(opportunities_pair[idx]['urls']),
                         'num_items': len(opportunities_pair[idx]['items'].keys()),
-                        'num_items_future': num_items_future,
-                        'num_items_future_week': num_items_future_week,
+                        'num_future_items': num_future_items,
+                        'num_future_week_items': num_future_week_items,
                         'num_unmatched_superevent_items': num_unmatched_superevent_items,
                         'num_unmatched_subevent_items': num_unmatched_subevent_items,
                         'kinds_counts': item_kinds_pair[idx],
@@ -391,14 +398,6 @@ def analyse_opportunities_per_feed(**kwargs):
                         'address_counts': get_values_counts(opportunities_pair[idx], 'location'),
                         'coords_counts': get_coords_counts(opportunities_pair[idx]), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
                     }
-
-                    if (num_items_future_week > 0):
-                        filenames_sampleitems[filename_pair[idx]] = dict(
-                            random.sample(
-                                list(items_future_week.items()),
-                                min(2, num_items_future_week)
-                            )
-                        )
 
                 except Exception as error:
                     print('ERROR:', error)
@@ -526,159 +525,58 @@ def get_item_coords_from_geo(data):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_items_future_week(opportunities):
-    items_future_week = {}
-    num_items_future = 0
+def get_future_item_ids(opportunities):
+    future_item_ids = []
+    future_week_item_ids = []
 
-    today = datetime.now(tz=tz.UTC).date()
+    todays_date = datetime.now(tz=tz.UTC).date()
+    next_weeks_date = todays_date + timedelta(days=7)
 
     for item_id, item in opportunities['items'].items():
-        item_start_date = get_item_start_date(item)
-        if (    (item_start_date is not None)
-            and (item_start_date.date() >= today)
+        item_start_dates = get_item_start_dates(item)
+        future_item_start_dates = [
+            item_start_date
+            for item_start_date in item_start_dates
+            if item_start_date >= todays_date
+        ]
+        future_week_item_start_dates = [
+            item_start_date
+            for item_start_date in future_item_start_dates
+            if item_start_date <= next_weeks_date
+        ]
+        if (len(future_item_start_dates) > 0):
+            future_item_ids.append(item_id)
+        if (len(future_week_item_start_dates) > 0):
+            future_week_item_ids.append(item_id)
+
+    return future_item_ids, future_week_item_ids
+
+# --------------------------------------------------------------------------------------------------
+
+def get_item_start_dates(item):
+    item_start_dates = []
+
+    if ('data' in item.keys()):
+        item_start_datetimes = []
+
+        if ('startDate' in item['data'].keys()):
+            item_start_datetimes.append(item['data']['startDate'])
+        elif ('dateStart' in item['data'].keys()):
+            item_start_datetimes.append(item['data']['dateStart'])
+        elif (  ('subEvent' in item['data'].keys())
+            and (isinstance(item['data']['subEvent'], list))
         ):
-            num_items_future += 1
-            if (item_start_date.date() <= today + timedelta(days=7)):
-                items_future_week[item_id] = item
+            for subevent in item['data']['subEvent']:
+                if (isinstance(subevent, dict)):
+                    if ('startDate' in subevent.keys()):
+                        item_start_datetimes.append(subevent['startDate'])
+                    elif ('dateStart' in subevent.keys()):
+                        item_start_datetimes.append(subevent['dateStart'])
 
-    return items_future_week, len(items_future_week.keys()), num_items_future
+        for item_start_datetime in item_start_datetimes:
+            try:
+                item_start_dates.append(parser.parse(item_start_datetime).astimezone(tz.UTC).date())
+            except:
+                pass
 
-# --------------------------------------------------------------------------------------------------
-
-def get_item_start_date(item):
-    if ('data' not in item.keys()):
-        return None
-
-    if ('startDate' in item['data'].keys()):
-        return parse_date(item['data']['startDate'])
-    elif ('dateStart' in item['data'].keys()):
-        return parse_date(item['data']['dateStart'])
-    elif (  ('subEvent' in item['data'].keys())
-        and (isinstance(item['data']['subEvent'], list))
-    ):
-        for subevent in item['data']['subEvent']:
-            if (    (isinstance(subevent, dict))
-                and ('startDate' in subevent.keys())
-            ):
-                return parse_date(subevent['startDate'])
-
-    return None
-
-# --------------------------------------------------------------------------------------------------
-
-def parse_date(date_string):
-    date_formats = [
-        '%Y-%m-%dT%H:%M:%SZ', # ISO 8601 format
-        '%Y-%m-%d %H:%M:%S', # Common date/time format
-        '%Y-%m-%d', # Date only format
-        '%Y/%m/%d', # Another common date format
-        '%Y-%m-%dT%H:%M:%S.%fZ', # ISO 8601 with milliseconds
-        '%Y-%m-%dT%H:%M:%S.%f', # ISO 8601 with milliseconds (no Z)
-        '%Y-%m-%dT%H:%M:%S%z', # ISO 8601 with timezone offset
-        '%Y-%m-%dT%H:%M:%S%Z', # ISO 8601 with timezone name
-    ]
-
-    for date_format in date_formats:
-        try:
-            parsed_datetime = datetime.strptime(date_string, date_format)
-            # If the date string has a timezone, use it:
-            if (date_format in ['%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S%Z']):
-                return parsed_datetime.astimezone(tz.UTC)
-            # Otherwise, assume UTC and set the timezone:
-            else:
-                return parsed_datetime.replace(tzinfo=tz.UTC)
-        except:
-            pass
-
-    return None
-
-# --------------------------------------------------------------------------------------------------
-
-def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include='all'):
-    if (feeds_to_include == 'all'):
-        df_total_values_counts = df_analysis_data
-    elif (feeds_to_include == 'regular'):
-        df_total_values_counts = df_analysis_data.loc[df_analysis_data['is_regular']]
-    elif (feeds_to_include == 'preview'):
-        df_total_values_counts = df_analysis_data.loc[~df_analysis_data['is_regular']]
-
-    df_total_values_counts = \
-        df_total_values_counts[values_counts] \
-        .apply(pd.Series) \
-        .sum() \
-        .apply(int) \
-        .sort_values(ascending=False) \
-        .reset_index()
-
-    if (values_counts == 'kinds_counts'):
-        df_total_values_counts.columns = ['kind', 'count']
-    elif (values_counts == 'types_counts'):
-        df_total_values_counts.columns = ['type', 'count']
-    elif (values_counts == 'activities_counts'):
-        df_total_values_counts.columns = ['activity', 'count']
-    elif (values_counts == 'organisers_counts'):
-        df_total_values_counts.columns = ['organiser', 'count']
-    elif (values_counts == 'coords_counts'):
-        df_total_values_counts.columns = ['coords', 'count']
-
-    total_num_keys = df_total_values_counts.shape[0]
-    total_num_opportunities_with_keys = df_total_values_counts['count'].sum()
-
-    df_total_values_counts['percentage'] = (df_total_values_counts['count'] / total_num_opportunities_with_keys) * 100
-
-    return df_total_values_counts, total_num_keys, total_num_opportunities_with_keys
-
-# --------------------------------------------------------------------------------------------------
-
-def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_locations_name_column):
-    # Columns: ['latitude', 'longitude', 'count', 'percentage', 'geometry']
-    gdf_total_coords_counts = gpd.GeoDataFrame(
-            df_total_coords_counts,
-            geometry=gpd.points_from_xy(
-                df_total_coords_counts['longitude'],
-                df_total_coords_counts['latitude'],
-            ),
-            crs='epsg:4326', # Set CRS to WGS84
-        ) \
-        .to_crs(gdf_locations.crs)
-
-    # Columns: [<gdf_locations_name_column>, 'count']
-    gdf_total_locations_counts = gpd.GeoDataFrame(
-        gpd.sjoin(
-            gdf_locations[['geometry', gdf_locations_name_column]],
-            gdf_total_coords_counts[['geometry', 'count']],
-            how='right',
-            predicate='intersects',
-        ) \
-        .groupby(gdf_locations_name_column)['count'] \
-        .sum()
-    ) \
-    .reset_index()
-
-    # If gdf_locations is 'regions.geojson':
-    #     Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count']
-    # If gdf_locations is 'lads.geojson':
-    #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count']
-    gdf_total_locations_counts = \
-        gdf_locations \
-        .merge(gdf_total_locations_counts, on=gdf_locations_name_column, how='left') \
-        .sort_values(by='count', ascending=False) \
-        .fillna(0)
-
-    # If we had any NaN count rows during the last manipulation, then the count column would have been
-    # converted to float, so re-type back to int:
-    gdf_total_locations_counts['count'] = gdf_total_locations_counts['count'].astype(int)
-
-    total_num_locations = gdf_total_locations_counts.shape[0]
-    total_num_opportunities_with_locations = gdf_total_locations_counts['count'].sum()
-
-    # If gdf_locations is 'regions.geojson':
-    #     Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
-    # If gdf_locations is 'lads.geojson':
-    #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
-    gdf_total_locations_counts['percentage'] = (gdf_total_locations_counts['count'] / total_num_opportunities_with_locations) * 100
-
-    # print(f'gdf_total_locations_counts ({gdf_locations_name_column}):')
-    # print(gdf_total_locations_counts)
-
-    return gdf_total_locations_counts, total_num_locations, total_num_opportunities_with_locations
+    return item_start_dates
