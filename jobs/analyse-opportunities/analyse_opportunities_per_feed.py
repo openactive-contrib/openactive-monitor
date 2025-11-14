@@ -223,8 +223,8 @@ def analyse_opportunities_per_feed(**kwargs):
         'num_future_week_items',
         'num_unmatched_superevent_items',
         'num_unmatched_subevent_items',
-        'kinds_counts',
-        'types_counts',
+        'item_kinds_counts',
+        'item_data_types_counts',
         'activities_counts',
         'organisers_counts',
         'address_counts',
@@ -257,31 +257,31 @@ def analyse_opportunities_per_feed(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
-        item_kinds_pair = []
+        item_kinds_counts_pair = []
         for opportunities in opportunities_pair:
-            item_kinds = None
+            item_kinds_counts = None
             if (opportunities is not None):
                 try:
-                    item_kinds = get_item_kinds(opportunities)
+                    item_kinds_counts = get_item_kinds(opportunities)
                 except Exception as error:
                     print('ERROR:', error)
-            item_kinds_pair.append(item_kinds)
+            item_kinds_counts_pair.append(item_kinds_counts)
 
-        print(f'Item kinds: {item_kinds_pair}')
+        print(f'Item kinds: {item_kinds_counts_pair}')
 
         # --------------------------------------------------------------------------------------------------
 
-        item_data_types_pair = []
+        item_data_types_counts_pair = []
         for opportunities in opportunities_pair:
-            item_data_types = None
+            item_data_types_counts = None
             if (opportunities is not None):
                 try:
-                    item_data_types = get_item_data_types(opportunities)
+                    item_data_types_counts = get_item_data_types(opportunities)
                 except Exception as error:
                     print('ERROR:', error)
-            item_data_types_pair.append(item_data_types)
+            item_data_types_counts_pair.append(item_data_types_counts)
 
-        print(f'Item data types: {item_data_types_pair}')
+        print(f'Item data types: {item_data_types_counts_pair}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -391,8 +391,8 @@ def analyse_opportunities_per_feed(**kwargs):
                         'num_future_week_items': num_future_week_items,
                         'num_unmatched_superevent_items': num_unmatched_superevent_items,
                         'num_unmatched_subevent_items': num_unmatched_subevent_items,
-                        'kinds_counts': item_kinds_pair[idx],
-                        'types_counts': item_data_types_pair[idx],
+                        'item_kinds_counts': item_kinds_counts_pair[idx],
+                        'item_data_types_counts': item_data_types_counts_pair[idx],
                         'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
                         'organisers_counts': get_values_counts(opportunities_pair[idx], 'organizer', 'name'),
                         'address_counts': get_values_counts(opportunities_pair[idx], 'location'),
