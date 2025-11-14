@@ -591,7 +591,7 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
     superevent_modified_id_v_superevent_id = {}
     superevent_data_modified_id_v_superevent_id = {}
     subevent_id_v_subevent_superevent_modified_id = {}
-    superevent_id_vs_subevent_ids = {}
+    superevent_id_v_subevent_ids = {}
 
     # --------------------------------------------------------------------------------------------------
 
@@ -650,15 +650,15 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
         elif (subevent_superevent_modified_id in superevent_data_modified_id_v_superevent_id.keys()):
             superevent_id = superevent_data_modified_id_v_superevent_id[subevent_superevent_modified_id]
         if (superevent_id is not None):
-            if (superevent_id not in superevent_id_vs_subevent_ids.keys()):
-                superevent_id_vs_subevent_ids[superevent_id] = []
-            superevent_id_vs_subevent_ids[superevent_id].append(subevent_id)
+            if (superevent_id not in superevent_id_v_subevent_ids.keys()):
+                superevent_id_v_subevent_ids[superevent_id] = []
+            superevent_id_v_subevent_ids[superevent_id].append(subevent_id)
         if (    (verbose)
             and ((num_subevents_with_superevent_modified_id <= 10) or ((idx + 1) % 10 == 0) or (idx == num_subevents_with_superevent_modified_id - 1))
         ):
             print(f"\t\t{datetime.now()} {idx+1}/{num_subevents_with_superevent_modified_id} subevents with superevent modified ID processed", end=('\r' if (idx < num_subevents_with_superevent_modified_id - 1) else '\n'))
 
-    num_superevents_with_subevent_ids = len(superevent_id_vs_subevent_ids.keys())
+    num_superevents_with_subevent_ids = len(superevent_id_v_subevent_ids.keys())
 
     if (num_superevents_with_subevent_ids == 0):
         if (verbose):
@@ -673,7 +673,7 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
 
     if (verbose):
         print('\tMerging superevents into subevents:')
-    for idx, (superevent_id, subevent_ids) in enumerate(superevent_id_vs_subevent_ids.items()):
+    for idx, (superevent_id, subevent_ids) in enumerate(superevent_id_v_subevent_ids.items()):
         for subevent_id in subevent_ids:
             subevent_opportunities['items'][subevent_id]['superevent_item'] = superevent_opportunities['items'][superevent_id]
         del(superevent_opportunities['items'][superevent_id])
