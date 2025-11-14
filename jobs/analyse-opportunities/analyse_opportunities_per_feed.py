@@ -323,7 +323,7 @@ def analyse_opportunities_per_feed(**kwargs):
                 )
 
                 num_unmatched_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
-                num_unmatched_subevent_items = len([item['id'] for item in opportunities_pair[event_type_pair.index('subevent')]['items'].values() if 'superevent_item' not in item.keys()])
+                num_unmatched_subevent_items = len([True for item in opportunities_pair[event_type_pair.index('subevent')]['items'].values() if 'superevent_item' not in item.keys()])
                 num_matched_superevent_items = num_superevent_items - num_unmatched_superevent_items
                 num_matched_subevent_items = num_subevent_items - num_unmatched_subevent_items
 
@@ -337,11 +337,11 @@ def analyse_opportunities_per_feed(**kwargs):
                 if (    (num_matched_superevent_items > 0)
                     and (num_matched_subevent_items == 0)
                 ):
-                    print('ERROR: Matched superevents but unmatched subevents ... should not be possible')
+                    raise('Matched superevents but no matched subevents ... should not be possible')
                 elif (  (num_matched_superevent_items == 0)
                     and (num_matched_subevent_items > 0)
                 ):
-                    print('ERROR: Unmatched superevents but matched subevents ... should not be possible')
+                    raise('No matched superevents but matched subevents ... should not be possible')
                 elif (  (num_matched_superevent_items > 0)
                     and (num_matched_subevent_items > 0)
                 ):
