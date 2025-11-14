@@ -227,7 +227,7 @@ def analyse_opportunities_per_feed(**kwargs):
         'item_data_types_counts',
         'activities_counts',
         'organisers_counts',
-        'address_counts',
+        'addresses_counts',
         'coords_counts',
     ])
 
@@ -395,7 +395,7 @@ def analyse_opportunities_per_feed(**kwargs):
                         'item_data_types_counts': item_data_types_counts_pair[idx],
                         'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
                         'organisers_counts': get_values_counts(opportunities_pair[idx], 'organizer', 'name'),
-                        'address_counts': get_values_counts(opportunities_pair[idx], 'location'),
+                        'addresses_counts': get_values_counts(opportunities_pair[idx], 'location'),
                         'coords_counts': get_coords_counts(opportunities_pair[idx]), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
                     }
 
