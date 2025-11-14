@@ -221,6 +221,8 @@ def analyse_opportunities_per_feed(**kwargs):
         'num_items',
         'num_future_items',
         'num_future_week_items',
+        'num_matched_superevent_items',
+        'num_matched_subevent_items',
         'num_unmatched_superevent_items',
         'num_unmatched_subevent_items',
         'item_kinds_counts',
@@ -327,10 +329,10 @@ def analyse_opportunities_per_feed(**kwargs):
 
                 print(f'num_superevent_items: {num_superevent_items}')
                 print(f'num_subevent_items: {num_subevent_items}')
-                print(f'num_unmatched_superevent_items: {num_unmatched_superevent_items}')
-                print(f'num_unmatched_subevent_items: {num_unmatched_subevent_items}')
                 print(f'num_matched_superevent_items: {num_matched_superevent_items}')
                 print(f'num_matched_subevent_items: {num_matched_subevent_items}')
+                print(f'num_unmatched_superevent_items: {num_unmatched_superevent_items}')
+                print(f'num_unmatched_subevent_items: {num_unmatched_subevent_items}')
 
                 if (    (num_matched_superevent_items > 0)
                     and (num_matched_subevent_items == 0)
@@ -389,6 +391,8 @@ def analyse_opportunities_per_feed(**kwargs):
                         'num_items': len(opportunities_pair[idx]['items'].keys()),
                         'num_future_items': num_future_items,
                         'num_future_week_items': num_future_week_items,
+                        'num_matched_superevent_items': num_matched_superevent_items,
+                        'num_matched_subevent_items': num_matched_subevent_items,
                         'num_unmatched_superevent_items': num_unmatched_superevent_items,
                         'num_unmatched_subevent_items': num_unmatched_subevent_items,
                         'item_kinds_counts': item_kinds_counts_pair[idx],
