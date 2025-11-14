@@ -230,7 +230,7 @@ def analyse_opportunities_per_feed(**kwargs):
         'activities_counts',
         'organisers_counts',
         'addresses_counts',
-        'coords_counts',
+        'latlons_counts',
     ])
 
     filenames_sampleitems = {}
@@ -400,7 +400,7 @@ def analyse_opportunities_per_feed(**kwargs):
                         'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
                         'organisers_counts': get_values_counts(opportunities_pair[idx], 'organizer', 'name'),
                         'addresses_counts': get_values_counts(opportunities_pair[idx], 'location'),
-                        'coords_counts': get_coords_counts(opportunities_pair[idx]), #, filenames_with_infostamp_current[-1]), # TEMPORARY: For checking geographically localised high opportunity count spikes
+                        'latlons_counts': get_latlons_counts(opportunities_pair[idx]),
                     }
 
                 except Exception as error:
@@ -475,40 +475,23 @@ def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=
 
 # --------------------------------------------------------------------------------------------------
 
-NUM_DECIMAL_PLACES_COORDS = 6
-
-# TEMPORARY: For checking geographically localised high opportunity count spikes
-# coords_check = {}
-
-def get_coords_counts(opportunities): #, filename=None)
-    coords_counts = {}
-
-    # TEMPORARY: For checking geographically localised high opportunity count spikes
-    # global coords_check
+def get_latlons_counts(opportunities):
+    latlons_counts = {}
 
     for item in opportunities['items'].values():
-        item_coords = get_item_coords_from_geo(item)
-        if (item_coords):
-            item_coords = ','.join([str(item_coord) for item_coord in item_coords])
-            if (item_coords not in coords_counts.keys()):
-                coords_counts[item_coords] = 1
+        item_latlon = get_item_latlon(item)
+        if (item_latlon):
+            if (item_latlon not in latlons_counts.keys()):
+                latlons_counts[item_latlon] = 1
             else:
-                coords_counts[item_coords] += 1
-            # TEMPORARY: For checking geographically localised high opportunity count spikes
-            # if (    (filename is not None)
-            #     and (item_coords == '52.069694,-2.722774')
-            # ):
-            #     if (filename not in coords_check.keys()):
-            #         coords_check[filename] = 1
-            #     else:
-            #         coords_check[filename] += 1
+                latlons_counts[item_latlon] += 1
 
-    return coords_counts
+    return latlons_counts
 
 # --------------------------------------------------------------------------------------------------
 
-def get_item_coords_from_geo(data):
-    item_coords = []
+def get_item_latlon(data):
+    item_latlon = ''
 
     for key, val in data.items():
         if (    (key == 'geo')
@@ -516,16 +499,16 @@ def get_item_coords_from_geo(data):
             and ('latitude' in val.keys())
             and ('longitude' in val.keys())
         ):
-            item_coords = [
-                round(float(val['latitude']), NUM_DECIMAL_PLACES_COORDS),
-                round(float(val['longitude']), NUM_DECIMAL_PLACES_COORDS)
-            ]
+            item_latlon = ','.join([
+                str(round(float(val['latitude']), 6)),
+                str(round(float(val['longitude']), 6))
+            ])
         elif (isinstance(val, dict)):
-            item_coords = get_item_coords_from_geo(val)
-        if (item_coords):
+            item_latlon = get_item_latlon(val)
+        if (item_latlon):
             break
 
-    return item_coords
+    return item_latlon
 
 # --------------------------------------------------------------------------------------------------
 
