@@ -420,6 +420,64 @@ def analyse_opportunities_per_feed(**kwargs):
 
 # --------------------------------------------------------------------------------------------------
 
+def get_future_item_ids(opportunities):
+    future_item_ids = []
+    future_week_item_ids = []
+
+    todays_date = datetime.now(tz=tz.UTC).date()
+    next_weeks_date = todays_date + timedelta(days=7)
+
+    for item_id, item in opportunities['items'].items():
+        item_start_dates = get_item_start_dates(item)
+        future_item_start_dates = [
+            item_start_date
+            for item_start_date in item_start_dates
+            if item_start_date >= todays_date
+        ]
+        future_week_item_start_dates = [
+            item_start_date
+            for item_start_date in future_item_start_dates
+            if item_start_date <= next_weeks_date
+        ]
+        if (len(future_item_start_dates) > 0):
+            future_item_ids.append(item_id)
+        if (len(future_week_item_start_dates) > 0):
+            future_week_item_ids.append(item_id)
+
+    return future_item_ids, future_week_item_ids
+
+# --------------------------------------------------------------------------------------------------
+
+def get_item_start_dates(item):
+    item_start_dates = []
+
+    if ('data' in item.keys()):
+        item_start_datetimes = []
+
+        if ('startDate' in item['data'].keys()):
+            item_start_datetimes.append(item['data']['startDate'])
+        elif ('dateStart' in item['data'].keys()):
+            item_start_datetimes.append(item['data']['dateStart'])
+        elif (  ('subEvent' in item['data'].keys())
+            and (isinstance(item['data']['subEvent'], list))
+        ):
+            for subevent in item['data']['subEvent']:
+                if (isinstance(subevent, dict)):
+                    if ('startDate' in subevent.keys()):
+                        item_start_datetimes.append(subevent['startDate'])
+                    elif ('dateStart' in subevent.keys()):
+                        item_start_datetimes.append(subevent['dateStart'])
+
+        for item_start_datetime in item_start_datetimes:
+            try:
+                item_start_dates.append(parser.parse(item_start_datetime).astimezone(tz.UTC).date())
+            except:
+                pass
+
+    return item_start_dates
+
+# --------------------------------------------------------------------------------------------------
+
 def get_values_counts(opportunities, key_to_find, child_key_to_find=None):
     values_counts = {}
 
@@ -509,61 +567,3 @@ def get_item_latlon(data):
             break
 
     return item_latlon
-
-# --------------------------------------------------------------------------------------------------
-
-def get_future_item_ids(opportunities):
-    future_item_ids = []
-    future_week_item_ids = []
-
-    todays_date = datetime.now(tz=tz.UTC).date()
-    next_weeks_date = todays_date + timedelta(days=7)
-
-    for item_id, item in opportunities['items'].items():
-        item_start_dates = get_item_start_dates(item)
-        future_item_start_dates = [
-            item_start_date
-            for item_start_date in item_start_dates
-            if item_start_date >= todays_date
-        ]
-        future_week_item_start_dates = [
-            item_start_date
-            for item_start_date in future_item_start_dates
-            if item_start_date <= next_weeks_date
-        ]
-        if (len(future_item_start_dates) > 0):
-            future_item_ids.append(item_id)
-        if (len(future_week_item_start_dates) > 0):
-            future_week_item_ids.append(item_id)
-
-    return future_item_ids, future_week_item_ids
-
-# --------------------------------------------------------------------------------------------------
-
-def get_item_start_dates(item):
-    item_start_dates = []
-
-    if ('data' in item.keys()):
-        item_start_datetimes = []
-
-        if ('startDate' in item['data'].keys()):
-            item_start_datetimes.append(item['data']['startDate'])
-        elif ('dateStart' in item['data'].keys()):
-            item_start_datetimes.append(item['data']['dateStart'])
-        elif (  ('subEvent' in item['data'].keys())
-            and (isinstance(item['data']['subEvent'], list))
-        ):
-            for subevent in item['data']['subEvent']:
-                if (isinstance(subevent, dict)):
-                    if ('startDate' in subevent.keys()):
-                        item_start_datetimes.append(subevent['startDate'])
-                    elif ('dateStart' in subevent.keys()):
-                        item_start_datetimes.append(subevent['dateStart'])
-
-        for item_start_datetime in item_start_datetimes:
-            try:
-                item_start_dates.append(parser.parse(item_start_datetime).astimezone(tz.UTC).date())
-            except:
-                pass
-
-    return item_start_dates
