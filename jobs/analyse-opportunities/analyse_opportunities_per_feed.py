@@ -480,21 +480,14 @@ def get_start_dates(item):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_values_counts(opportunities, key_to_find, child_key_to_find=None):
+def get_values_counts(opportunities, sought_parent_keys, sought_child_keys=None):
     values_counts = {}
 
     for item in opportunities['items'].values():
-        values = get_value(item, key_to_find, child_key_to_find)
-        if (values is None):
-            continue
-        if (not isinstance(values, list)):
-            values = [values]
+        values = get_values(item, sought_parent_keys, sought_child_keys)
         for value in values:
-            # If it's a dictionary then convert it to a string (e.g. to return a whole dictionary of location info to capture addresses in various formats)
-            if (isinstance(value, dict)):
-                value = json.dumps(value)
-            elif (not isinstance(value, str)):
-                continue
+            if (not isinstance(value, str)):
+                value = str(value)
             value = value.strip()
             if (value not in values_counts.keys()):
                 values_counts[value] = 1
@@ -505,33 +498,38 @@ def get_values_counts(opportunities, key_to_find, child_key_to_find=None):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_value(data, key_to_find, child_key_to_find=None, continue_to_next_layer=True):
-    # This function accepts key_to_find as either a single string or a list of string variants e.g. ['type', '@type'],
-    # so if we receive a string then convert to a list for standard internal handling:
-    if (isinstance(key_to_find, str)):
-        key_to_find = [key_to_find]
+def get_values(data, sought_parent_keys, sought_child_keys=None, continue_to_next_layer=True):
+    values = []
+
+    # This function accepts sought_parent_keys and sought_child_keys as either a single key or a list of
+    # key variants e.g. ['type', '@type']. We normalise to a list for standardised handling:
+    if (not isinstance(sought_parent_keys, list)):
+        sought_parent_keys = [sought_parent_keys]
 
     if (isinstance(data, dict)):
         for key, val in data.items():
-            if (key in key_to_find):
-                if (child_key_to_find is None):
-                    return val
-                else:
-                    # If we are seeking a parent-child key pair and have found the parent key, then child_key_to_find becomes
-                    # key_to_find for the next layer search. We also only want to search the immediate next layer and not
-                    # beyond, hence the keyword setting here:
-                    return get_value(val, child_key_to_find, continue_to_next_layer=False)
-            elif (continue_to_next_layer):
-                value = get_value(val, key_to_find, child_key_to_find, continue_to_next_layer)
-                if (value is not None):
-                    return value
+            if (key in sought_parent_keys):
+                if (sought_child_keys is None):
+                    values.append(val)
+                elif (type(val) in [dict, list]):
+                    # If we are seeking a parent-child key pair and have found the parent key, then sought_child_keys becomes
+                    # sought_parent_keys for the next layer search. We also only want to search the immediate next layer
+                    # and not beyond, hence the keyword setting here:
+                    values = get_values(val, sought_child_keys, continue_to_next_layer=False)
+            elif (  (type(val) in [dict, list])
+                and (continue_to_next_layer)
+            ):
+                values = get_values(val, sought_parent_keys, sought_child_keys, continue_to_next_layer)
+            if (len(values) > 0):
+                break
+    elif (isinstance(data, list)):
+        values = [
+            value
+            for datum in data
+            for value in get_values(datum, sought_parent_keys, sought_child_keys, continue_to_next_layer)
+        ]
 
-    if (isinstance(data, list)):
-        values = [get_value(val, key_to_find, child_key_to_find, continue_to_next_layer) for val in data]
-        if (any(values)):
-            return values
-
-    return None
+    return values
 
 # --------------------------------------------------------------------------------------------------
 
