@@ -306,6 +306,8 @@ def analyse_opportunities_per_feed(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
+        num_matched_superevent_items = None
+        num_matched_subevent_items = None
         num_unmatched_superevent_items = None
         num_unmatched_subevent_items = None
         is_merged_with_partner = False
