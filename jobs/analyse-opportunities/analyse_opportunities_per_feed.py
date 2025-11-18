@@ -428,53 +428,53 @@ def get_future_item_ids(opportunities):
     next_weeks_date = todays_date + timedelta(days=7)
 
     for item_id, item in opportunities['items'].items():
-        item_start_dates = get_item_start_dates(item)
-        future_item_start_dates = [
-            item_start_date
-            for item_start_date in item_start_dates
-            if item_start_date >= todays_date
+        start_dates = get_start_dates(item)
+        future_start_dates = [
+            start_date
+            for start_date in start_dates
+            if start_date >= todays_date
         ]
-        future_week_item_start_dates = [
-            item_start_date
-            for item_start_date in future_item_start_dates
-            if item_start_date <= next_weeks_date
+        future_week_start_dates = [
+            start_date
+            for start_date in future_start_dates
+            if start_date <= next_weeks_date
         ]
-        if (len(future_item_start_dates) > 0):
+        if (len(future_start_dates) > 0):
             future_item_ids.append(item_id)
-        if (len(future_week_item_start_dates) > 0):
+        if (len(future_week_start_dates) > 0):
             future_week_item_ids.append(item_id)
 
     return future_item_ids, future_week_item_ids
 
 # --------------------------------------------------------------------------------------------------
 
-def get_item_start_dates(item):
-    item_start_dates = []
+def get_start_dates(item):
+    start_dates = []
 
     if ('data' in item.keys()):
-        item_start_datetimes = []
+        start_datetimes = []
 
         if ('startDate' in item['data'].keys()):
-            item_start_datetimes.append(item['data']['startDate'])
+            start_datetimes.append(item['data']['startDate'])
         elif ('dateStart' in item['data'].keys()):
-            item_start_datetimes.append(item['data']['dateStart'])
+            start_datetimes.append(item['data']['dateStart'])
         elif (  ('subEvent' in item['data'].keys())
             and (isinstance(item['data']['subEvent'], list))
         ):
             for subevent in item['data']['subEvent']:
                 if (isinstance(subevent, dict)):
                     if ('startDate' in subevent.keys()):
-                        item_start_datetimes.append(subevent['startDate'])
+                        start_datetimes.append(subevent['startDate'])
                     elif ('dateStart' in subevent.keys()):
-                        item_start_datetimes.append(subevent['dateStart'])
+                        start_datetimes.append(subevent['dateStart'])
 
-        for item_start_datetime in item_start_datetimes:
+        for start_datetime in start_datetimes:
             try:
-                item_start_dates.append(parser.parse(item_start_datetime).astimezone(tz.UTC).date())
+                start_dates.append(parser.parse(start_datetime).astimezone(tz.UTC).date())
             except:
                 pass
 
-    return item_start_dates
+    return start_dates
 
 # --------------------------------------------------------------------------------------------------
 
@@ -537,19 +537,19 @@ def get_latlons_counts(opportunities):
     latlons_counts = {}
 
     for item in opportunities['items'].values():
-        item_latlon = get_item_latlon(item)
-        if (item_latlon):
-            if (item_latlon not in latlons_counts.keys()):
-                latlons_counts[item_latlon] = 1
+        latlon = get_latlon(item)
+        if (latlon):
+            if (latlon not in latlons_counts.keys()):
+                latlons_counts[latlon] = 1
             else:
-                latlons_counts[item_latlon] += 1
+                latlons_counts[latlon] += 1
 
     return latlons_counts
 
 # --------------------------------------------------------------------------------------------------
 
-def get_item_latlon(data):
-    item_latlon = ''
+def get_latlon(data):
+    latlon = ''
 
     for key, val in data.items():
         if (    (key == 'geo')
@@ -557,13 +557,13 @@ def get_item_latlon(data):
             and ('latitude' in val.keys())
             and ('longitude' in val.keys())
         ):
-            item_latlon = ','.join([
+            latlon = ','.join([
                 str(round(float(val['latitude']), 6)),
                 str(round(float(val['longitude']), 6))
             ])
         elif (isinstance(val, dict)):
-            item_latlon = get_item_latlon(val)
-        if (item_latlon):
+            latlon = get_latlon(val)
+        if (latlon):
             break
 
-    return item_latlon
+    return latlon
