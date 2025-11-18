@@ -510,7 +510,8 @@ def get_values(data, sought_parent_keys, sought_child_keys=None, continue_to_nex
         for key, val in data.items():
             if (key in sought_parent_keys):
                 if (sought_child_keys is None):
-                    values.append(val)
+                    if (val is not None):
+                        values.append(val)
                 elif (type(val) in [dict, list]):
                     # If we are seeking a parent-child key pair and have found the parent key, then sought_child_keys becomes
                     # sought_parent_keys for the next layer search. We also only want to search the immediate next layer
@@ -557,10 +558,13 @@ def get_latlon(data):
             and ('latitude' in val.keys())
             and ('longitude' in val.keys())
         ):
-            latlon = ','.join([
-                str(round(float(val['latitude']), 6)),
-                str(round(float(val['longitude']), 6))
-            ])
+            try:
+                latlon = ','.join([
+                    str(round(float(val['latitude']), 6)),
+                    str(round(float(val['longitude']), 6))
+                ])
+            except:
+                pass
         elif (isinstance(val, dict)):
             latlon = get_latlon(val)
         if (latlon):
