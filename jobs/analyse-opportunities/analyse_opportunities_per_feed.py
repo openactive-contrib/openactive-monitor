@@ -292,10 +292,10 @@ def analyse_opportunities_per_feed(**kwargs):
             event_type = None
             if (opportunities is not None):
                 try:
-                    if (    (item_data_types_pair[opportunities_idx] is not None)
-                        and (len(item_data_types_pair[opportunities_idx].keys()) == 1)
+                    if (    (item_data_types_counts_pair[opportunities_idx] is not None)
+                        and (len(item_data_types_counts_pair[opportunities_idx].keys()) == 1)
                     ):
-                        event_type = get_event_type(list(item_data_types_pair[opportunities_idx].keys())[0])
+                        event_type = get_event_type(list(item_data_types_counts_pair[opportunities_idx].keys())[0])
                     else:
                         event_type = get_event_type(opportunities['feed']['type'])
                 except Exception as error:
