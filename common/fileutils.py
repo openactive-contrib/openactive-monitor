@@ -145,8 +145,12 @@ def get_filename_prestamp_pairs(filename_prestamps):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_filename_pairs(filename_prestamp_pairs, filenames):
+def get_filename_pairs():
     filename_pairs = []
+
+    filenames = get_filenames('opportunities')
+    filename_prestamps = get_filename_prestamps('opportunities', filenames)
+    filename_prestamp_pairs = get_filename_prestamp_pairs(filename_prestamps)
 
     for filename_prestamp_pair in filename_prestamp_pairs:
         filename_pair = []
@@ -158,6 +162,27 @@ def get_filename_pairs(filename_prestamp_pairs, filenames):
                 filename_pair.append(None)
         filename_pairs.append(filename_pair)
 
-    return filename_pairs
+    # If something unusual seems to be going on with the filename pairing, then uncomment the following
+    # and run to see exactly what is being paired:
 
-# --------------------------------------------------------------------------------------------------
+    # print('\nfilenames:')
+    # for filename in filenames:
+    #     print(filename)
+
+    # print('\nfilename_prestamps:')
+    # for filename_prestamp in filename_prestamps:
+    #     print(filename_prestamp)
+
+    # print('\nfilename_prestamp_pairs:')
+    # for filename_prestamp_pair in filename_prestamp_pairs:
+    #     print(filename_prestamp_pair[0])
+    #     print(filename_prestamp_pair[1])
+    #     print()
+
+    # print('filename_pairs:')
+    # for filename_pair in filename_pairs:
+    #     print(filename_pair[0])
+    #     print(filename_pair[1])
+    #     print()
+
+    return filename_pairs
