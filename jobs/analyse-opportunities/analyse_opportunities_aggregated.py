@@ -58,12 +58,12 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # For the 'This week' tab
 
-    total_num_opportunities_future_regular = df_analysis_data['num_items_future'].loc[df_analysis_data['is_regular']].sum()
-    total_num_opportunities_future_preview = df_analysis_data['num_items_future'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_opportunities_future_regular = df_analysis_data['num_future_items'].loc[df_analysis_data['is_regular']].sum()
+    total_num_opportunities_future_preview = df_analysis_data['num_future_items'].loc[~df_analysis_data['is_regular']].sum()
     total_num_opportunities_future = total_num_opportunities_future_regular + total_num_opportunities_future_preview
 
-    total_num_opportunities_future_week_regular = df_analysis_data['num_items_future_week'].loc[df_analysis_data['is_regular']].sum()
-    total_num_opportunities_future_week_preview = df_analysis_data['num_items_future_week'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_opportunities_future_week_regular = df_analysis_data['num_future_week_items'].loc[df_analysis_data['is_regular']].sum()
+    total_num_opportunities_future_week_preview = df_analysis_data['num_future_week_items'].loc[~df_analysis_data['is_regular']].sum()
     total_num_opportunities_future_week = total_num_opportunities_future_week_regular + total_num_opportunities_future_week_preview
 
     # --------------------------------------------------------------------------------------------------
@@ -91,12 +91,12 @@ def analyse_opportunities_aggregated(**kwargs):
     # Columns: ['address', 'count', 'percentage']
     df_total_address_counts, \
     total_num_address, \
-    total_num_opportunities_with_address = get_df_total_values_counts(df_analysis_data, 'address_counts', feeds_to_include='all')
+    total_num_opportunities_with_address = get_df_total_values_counts(df_analysis_data, 'addresses_counts', feeds_to_include='all')
 
     # Columns: ['coords', 'count', 'percentage']
     df_total_coords_counts, \
     total_num_coords, \
-    total_num_opportunities_with_coords = get_df_total_values_counts(df_analysis_data, 'coords_counts', feeds_to_include='all')
+    total_num_opportunities_with_coords = get_df_total_values_counts(df_analysis_data, 'latlons_counts', feeds_to_include='all')
     # Columns: ['coords', 'count', 'percentage', 'latitude', 'longitude']
     df_total_coords_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_coords_counts['coords'].apply(lambda coords: coords.split(',')).tolist())
     # Columns: ['latitude', 'longitude', 'count', 'percentage']
@@ -124,12 +124,12 @@ def analyse_opportunities_aggregated(**kwargs):
     # Columns: ['kind', 'count', 'percentage']
     df_total_kinds_counts, \
     total_num_kinds, \
-    total_num_opportunities_with_kinds = get_df_total_values_counts(df_analysis_data, 'kinds_counts', feeds_to_include='all')
+    total_num_opportunities_with_kinds = get_df_total_values_counts(df_analysis_data, 'item_kinds_counts', feeds_to_include='all')
 
     # Columns: ['type', 'count', 'percentage']
     df_total_types_counts, \
     total_num_types, \
-    total_num_opportunities_with_types = get_df_total_values_counts(df_analysis_data, 'types_counts', feeds_to_include='all')
+    total_num_opportunities_with_types = get_df_total_values_counts(df_analysis_data, 'item_data_types_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -260,7 +260,7 @@ def analyse_opportunities_aggregated(**kwargs):
 
         'total_num_opportunities_future_regular': total_num_opportunities_future_regular, # 2024-08-23 Not currently used in the dashboard
         'total_num_opportunities_future_preview': total_num_opportunities_future_preview, # 2024-08-23 Not currently used in the dashboard
-        'total_num_opportunities_future': total_num_opportunities_future, # 2024-08-23 Not currently used in the dashboard
+        'total_num_opportunities_future': total_num_opportunities_future,
 
         'total_num_opportunities_future_week_regular': total_num_opportunities_future_week_regular, # 2024-08-23 Not currently used in the dashboard
         'total_num_opportunities_future_week_preview': total_num_opportunities_future_week_preview, # 2024-08-23 Not currently used in the dashboard
@@ -278,9 +278,9 @@ def analyse_opportunities_aggregated(**kwargs):
         'total_num_address': total_num_address,
         'total_num_opportunities_with_address': total_num_opportunities_with_address,
 
-        # 'df_total_coords_counts': df_total_coords_counts, # 2024-08-23 Not currently used in the dashboard
-        # 'total_num_coords': total_num_coords, # 2024-08-23 Not currently used in the dashboard
-        # 'total_num_opportunities_with_coords': total_num_opportunities_with_coords, # 2024-08-23 Not currently used in the dashboard
+        'df_total_coords_counts': df_total_coords_counts, # 2024-08-23 Not currently used in the dashboard
+        'total_num_coords': total_num_coords, # 2024-08-23 Not currently used in the dashboard
+        'total_num_opportunities_with_coords': total_num_opportunities_with_coords, # 2024-08-23 Not currently used in the dashboard
 
         'gdf_total_regions_counts': gdf_total_regions_counts,
         'total_num_regions': total_num_regions,
@@ -346,17 +346,17 @@ def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include
         .sort_values(ascending=False) \
         .reset_index()
 
-    if (values_counts == 'kinds_counts'):
+    if (values_counts == 'item_kinds_counts'):
         df_total_values_counts.columns = ['kind', 'count']
-    elif (values_counts == 'types_counts'):
+    elif (values_counts == 'item_data_types_counts'):
         df_total_values_counts.columns = ['type', 'count']
     elif (values_counts == 'activities_counts'):
         df_total_values_counts.columns = ['activity', 'count']
     elif (values_counts == 'organisers_counts'):
         df_total_values_counts.columns = ['organiser', 'count']
-    elif (values_counts == 'address_counts'):
+    elif (values_counts == 'addresses_counts'):
         df_total_values_counts.columns = ['address', 'count']
-    elif (values_counts == 'coords_counts'):
+    elif (values_counts == 'latlons_counts'):
         df_total_values_counts.columns = ['coords', 'count']
 
     total_num_keys = df_total_values_counts.shape[0]
