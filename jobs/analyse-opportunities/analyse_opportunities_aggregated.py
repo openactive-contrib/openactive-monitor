@@ -235,32 +235,32 @@ def analyse_opportunities_aggregated(**kwargs):
     # --------------------------------------------------------------------------------------------------
 
     analysis = {
-        'num_publishers_regular': num_publishers_regular, # 2024-08-23 Not currently used in the dashboard
-        'num_publishers_preview': num_publishers_preview, # 2024-08-23 Not currently used in the dashboard
+        'num_publishers_regular': num_publishers_regular,
+        'num_publishers_preview': num_publishers_preview,
         'num_publishers': num_publishers,
 
-        'num_datasets_regular': num_datasets_regular, # 2024-08-23 Not currently used in the dashboard
-        'num_datasets_preview': num_datasets_preview, # 2024-08-23 Not currently used in the dashboard
+        'num_datasets_regular': num_datasets_regular,
+        'num_datasets_preview': num_datasets_preview,
         'num_datasets': num_datasets,
 
-        'num_feeds_regular': num_feeds_regular, # 2024-08-23 Not currently used in the dashboard
+        'num_feeds_regular': num_feeds_regular,
         'num_feeds_preview': num_feeds_preview,
         'num_feeds': num_feeds,
 
-        'num_feeds_with_analysed_data_regular': num_feeds_with_analysed_data_regular, # 2024-09-27 Not currently used in the dashboard
-        'num_feeds_with_analysed_data_preview': num_feeds_with_analysed_data_preview, # 2024-09-27 Not currently used in the dashboard
-        'num_feeds_with_analysed_data': num_feeds_with_analysed_data, # 2024-09-27 Not currently used in the dashboard
+        'num_feeds_with_analysed_data_regular': num_feeds_with_analysed_data_regular,
+        'num_feeds_with_analysed_data_preview': num_feeds_with_analysed_data_preview,
+        'num_feeds_with_analysed_data': num_feeds_with_analysed_data,
 
-        'total_num_items_regular': total_num_items_regular, # 2024-08-23 Not currently used in the dashboard
+        'total_num_items_regular': total_num_items_regular,
         'total_num_items_preview': total_num_items_preview,
         'total_num_items': total_num_items,
 
-        'total_num_future_items_regular': total_num_future_items_regular, # 2024-08-23 Not currently used in the dashboard
-        'total_num_future_items_preview': total_num_future_items_preview, # 2024-08-23 Not currently used in the dashboard
+        'total_num_future_items_regular': total_num_future_items_regular,
+        'total_num_future_items_preview': total_num_future_items_preview,
         'total_num_future_items': total_num_future_items,
 
-        'total_num_future_week_items_regular': total_num_future_week_items_regular, # 2024-08-23 Not currently used in the dashboard
-        'total_num_future_week_items_preview': total_num_future_week_items_preview, # 2024-08-23 Not currently used in the dashboard
+        'total_num_future_week_items_regular': total_num_future_week_items_regular,
+        'total_num_future_week_items_preview': total_num_future_week_items_preview,
         'total_num_future_week_items': total_num_future_week_items,
 
         'df_total_activities_counts': df_total_activities_counts,
@@ -275,9 +275,9 @@ def analyse_opportunities_aggregated(**kwargs):
         'total_num_addresses': total_num_addresses,
         'total_num_items_with_addresses': total_num_items_with_addresses,
 
-        'df_total_latlons_counts': df_total_latlons_counts, # 2024-08-23 Not currently used in the dashboard
-        'total_num_latlons': total_num_latlons, # 2024-08-23 Not currently used in the dashboard
-        'total_num_items_with_latlons': total_num_items_with_latlons, # 2024-08-23 Not currently used in the dashboard
+        'df_total_latlons_counts': df_total_latlons_counts,
+        'total_num_latlons': total_num_latlons,
+        'total_num_items_with_latlons': total_num_items_with_latlons,
 
         'gdf_total_regions_counts': gdf_total_regions_counts,
         'total_num_regions': total_num_regions,
@@ -295,7 +295,7 @@ def analyse_opportunities_aggregated(**kwargs):
         'total_num_item_data_types': total_num_item_data_types,
         'total_num_items_with_data_types': total_num_items_with_data_types,
 
-        # 'df_total_sad_counts': df_total_sad_counts, # 2024-08-23 Not currently used in the dashboard
+        'df_total_sad_counts': df_total_sad_counts,
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
         'df_total_sad_counts_unmatched': df_total_sad_counts_unmatched,
 
