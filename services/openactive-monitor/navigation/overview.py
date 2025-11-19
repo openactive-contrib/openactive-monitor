@@ -14,26 +14,26 @@ from millify import millify
 # 'num_datasets_regular', 'num_datasets_preview', 'num_datasets',
 # 'num_feeds_regular', 'num_feeds_preview', 'num_feeds',
 # 'num_feeds_with_analysed_data_regular', 'num_feeds_with_analysed_data_preview', 'num_feeds_with_analysed_data',
-# 'total_num_opportunities_regular', 'total_num_opportunities_preview', 'total_num_opportunities',
-# 'total_num_opportunities_future_regular', 'total_num_opportunities_future_preview', 'total_num_opportunities_future',
-# 'total_num_opportunities_future_week_regular', 'total_num_opportunities_future_week_preview', 'total_num_opportunities_future_week',
-# 'df_total_activities_counts', 'total_num_activities', 'total_num_opportunities_with_activities',
-# 'df_total_organisers_counts', 'total_num_organisers', 'total_num_opportunities_with_organisers',
-# 'gdf_total_regions_counts', 'total_num_regions', 'total_num_opportunities_with_regions',
-# 'gdf_total_lads_counts', 'total_num_lads', 'total_num_opportunities_with_lads',
-# 'df_total_kinds_counts', 'total_num_kinds', 'total_num_opportunities_with_kinds',
-# 'df_total_types_counts', 'total_num_types', 'total_num_opportunities_with_types',
-# 'df_total_address_counts', 'total_num_address', 'total_num_opportunities_with_address',
+# 'total_num_items_regular', 'total_num_items_preview', 'total_num_items',
+# 'total_num_items_future_regular', 'total_num_items_future_preview', 'total_num_items_future',
+# 'total_num_items_future_week_regular', 'total_num_items_future_week_preview', 'total_num_items_future_week',
+# 'df_total_activities_counts', 'total_num_activities', 'total_num_items_with_activities',
+# 'df_total_organisers_counts', 'total_num_organisers', 'total_num_items_with_organisers',
+# 'gdf_total_regions_counts', 'total_num_regions', 'total_num_items_with_regions',
+# 'gdf_total_lads_counts', 'total_num_lads', 'total_num_items_with_lads',
+# 'df_total_kinds_counts', 'total_num_kinds', 'total_num_items_with_kinds',
+# 'df_total_types_counts', 'total_num_types', 'total_num_items_with_types',
+# 'df_total_address_counts', 'total_num_address', 'total_num_items_with_address',
 # 'df_total_sad_counts_matched', 'df_total_sad_counts_unmatched',
-# 'total_num_activities_with_sad', 'total_num_activities_without_sad', 'total_num_opportunities_with_sad', 'total_num_opportunities_without_sad',
+# 'total_num_activities_with_sad', 'total_num_activities_without_sad', 'total_num_items_with_sad', 'total_num_items_without_sad',
 # 'num_sad', 'num_sad_matched', 'num_sad_unmatched',
 # 'percentage_sad_matched', 'percentage_sad_unmatched', 'df_se_sport_and_discipline_unmatched',
 # 'filenames_sampleitems'])
 
 #Combine SE data for display
 # Select desired columns and rename for consistency
-matched_df = st.session_state.analysis['df_total_sad_counts_matched'][['sport_and_discipline', 'activity', 'percentage_opportunities']].rename(
-    columns={'percentage_opportunities': '% of Opportunities'}
+matched_df = st.session_state.analysis['df_total_sad_counts_matched'][['sport_and_discipline', 'activity', 'percentage_items']].rename(
+    columns={'percentage_items': '% of Opportunities'}
 )
 unmatched_df = st.session_state.analysis['df_se_sport_and_discipline_unmatched'][['sport_and_discipline']].rename(
     columns={}
@@ -49,7 +49,7 @@ if ('buttons' not in st.session_state):
         #Note next figure based on feeds.pickle to tally with type counts
         'feeds': f"**{st.session_state.num_feeds:,}**\n\nData feeds",
         'activities': f"**{st.session_state.analysis['total_num_activities']:,}**\n\nActivities and facilities",
-        'opportunities': f"**{millify(st.session_state.analysis['total_num_opportunities_future'], precision=1)}**\n\nLive opportunities",
+        'opportunities': f"**{millify(st.session_state.analysis['total_num_items_future'], precision=1)}**\n\nLive opportunities",
         'kpis': f"Draft\n\nKPIs"
     }
     st.session_state.button_name_clicked = 'providers'
@@ -164,7 +164,7 @@ with cols[1]:
             st.markdown(" ")
             st.markdown("Because the feeds vary in level of detail they represent (e.g. a series of sessions or an individual session), the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
             st.markdown(" ")
-            st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.analysis['total_num_opportunities_future'], precision=1)} opportunities** to get active over the coming weeks.")
+            st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.analysis['total_num_items_future'], precision=1)} opportunities** to get active over the coming weeks.")
 
         with cols[1]:
             fig, ax = plt.subplots(1, 1, figsize=(3, 6))
@@ -196,7 +196,7 @@ with cols[1]:
     # }
 
     # current_month = datetime.now().strftime('%b %y')
-    # dated_counts[current_month] = st.session_state.analysis['total_num_opportunities']
+    # dated_counts[current_month] = st.session_state.analysis['total_num_items']
     # df = pd.DataFrame.from_dict(dated_counts, orient='index', columns=['Count'])
     # df.reset_index(inplace=True)
     # df.columns = ['Date', 'Count']
@@ -229,7 +229,7 @@ with cols[1]:
 
             #Removed for now - these should be future opportunities
             #st.write(f"Num. activities: {st.session_state.analysis['total_num_activities_with_sad']:,}")
-            #st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_sad']:,}")
+            #st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_sad']:,}")
 
             st.divider()
             st.write('Sports and Disciplines')
@@ -266,7 +266,7 @@ with cols[1]:
                     },
                 )
                 #st.write(f"Num. locations: {st.session_state.analysis['total_num_lads']:,}")
-                #st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_lads']:,}")
+                #st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_lads']:,}")
             with cols[1]:
                 fig, ax = plt.subplots(1, 1, figsize=(8, 8))
                 st.session_state.analysis['gdf_total_lads_counts'].plot(

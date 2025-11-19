@@ -47,21 +47,21 @@ def analyse_opportunities_aggregated(**kwargs):
         +   (df_analysis_data.loc[~df_analysis_data['is_regular'] & ~df_analysis_data['is_merged_with_partner']].shape[0])
     num_feeds_with_analysed_data = num_feeds_with_analysed_data_regular + num_feeds_with_analysed_data_preview
 
-    total_num_opportunities_regular = df_analysis_data['num_items'].loc[df_analysis_data['is_regular']].sum()
-    total_num_opportunities_preview = df_analysis_data['num_items'].loc[~df_analysis_data['is_regular']].sum()
-    total_num_opportunities = total_num_opportunities_regular + total_num_opportunities_preview
+    total_num_items_regular = df_analysis_data['num_items'].loc[df_analysis_data['is_regular']].sum()
+    total_num_items_preview = df_analysis_data['num_items'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_items = total_num_items_regular + total_num_items_preview
 
     # --------------------------------------------------------------------------------------------------
 
     # For the 'This week' tab
 
-    total_num_opportunities_future_regular = df_analysis_data['num_future_items'].loc[df_analysis_data['is_regular']].sum()
-    total_num_opportunities_future_preview = df_analysis_data['num_future_items'].loc[~df_analysis_data['is_regular']].sum()
-    total_num_opportunities_future = total_num_opportunities_future_regular + total_num_opportunities_future_preview
+    total_num_items_future_regular = df_analysis_data['num_future_items'].loc[df_analysis_data['is_regular']].sum()
+    total_num_items_future_preview = df_analysis_data['num_future_items'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_items_future = total_num_items_future_regular + total_num_items_future_preview
 
-    total_num_opportunities_future_week_regular = df_analysis_data['num_future_week_items'].loc[df_analysis_data['is_regular']].sum()
-    total_num_opportunities_future_week_preview = df_analysis_data['num_future_week_items'].loc[~df_analysis_data['is_regular']].sum()
-    total_num_opportunities_future_week = total_num_opportunities_future_week_regular + total_num_opportunities_future_week_preview
+    total_num_items_future_week_regular = df_analysis_data['num_future_week_items'].loc[df_analysis_data['is_regular']].sum()
+    total_num_items_future_week_preview = df_analysis_data['num_future_week_items'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_items_future_week = total_num_items_future_week_regular + total_num_items_future_week_preview
 
     # --------------------------------------------------------------------------------------------------
 
@@ -70,7 +70,7 @@ def analyse_opportunities_aggregated(**kwargs):
     # Columns: ['activity', 'count', 'percentage']
     df_total_activities_counts, \
     total_num_activities, \
-    total_num_opportunities_with_activities = get_df_total_values_counts(df_analysis_data, 'activities_counts', feeds_to_include='all')
+    total_num_items_with_activities = get_df_total_values_counts(df_analysis_data, 'activities_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -79,7 +79,7 @@ def analyse_opportunities_aggregated(**kwargs):
     # Columns: ['organiser', 'count', 'percentage']
     df_total_organisers_counts, \
     total_num_organisers, \
-    total_num_opportunities_with_organisers = get_df_total_values_counts(df_analysis_data, 'organisers_counts', feeds_to_include='all')
+    total_num_items_with_organisers = get_df_total_values_counts(df_analysis_data, 'organisers_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -88,12 +88,12 @@ def analyse_opportunities_aggregated(**kwargs):
     # Columns: ['address', 'count', 'percentage']
     df_total_address_counts, \
     total_num_address, \
-    total_num_opportunities_with_address = get_df_total_values_counts(df_analysis_data, 'addresses_counts', feeds_to_include='all')
+    total_num_items_with_address = get_df_total_values_counts(df_analysis_data, 'addresses_counts', feeds_to_include='all')
 
     # Columns: ['coords', 'count', 'percentage']
     df_total_coords_counts, \
     total_num_coords, \
-    total_num_opportunities_with_coords = get_df_total_values_counts(df_analysis_data, 'latlons_counts', feeds_to_include='all')
+    total_num_items_with_coords = get_df_total_values_counts(df_analysis_data, 'latlons_counts', feeds_to_include='all')
     # Columns: ['coords', 'count', 'percentage', 'latitude', 'longitude']
     df_total_coords_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_coords_counts['coords'].apply(lambda coords: coords.split(',')).tolist())
     # Columns: ['latitude', 'longitude', 'count', 'percentage']
@@ -107,12 +107,12 @@ def analyse_opportunities_aggregated(**kwargs):
     # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
     gdf_total_regions_counts, \
     total_num_regions, \
-    total_num_opportunities_with_regions = get_gdf_total_locations_counts(df_total_coords_counts, gdf_regions, 'eer18nm')
+    total_num_items_with_regions = get_gdf_total_locations_counts(df_total_coords_counts, gdf_regions, 'eer18nm')
 
     # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
     gdf_total_lads_counts, \
     total_num_lads, \
-    total_num_opportunities_with_lads = get_gdf_total_locations_counts(df_total_coords_counts, gdf_lads, 'LAD24NM')
+    total_num_items_with_lads = get_gdf_total_locations_counts(df_total_coords_counts, gdf_lads, 'LAD24NM')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -121,12 +121,12 @@ def analyse_opportunities_aggregated(**kwargs):
     # Columns: ['kind', 'count', 'percentage']
     df_total_kinds_counts, \
     total_num_kinds, \
-    total_num_opportunities_with_kinds = get_df_total_values_counts(df_analysis_data, 'item_kinds_counts', feeds_to_include='all')
+    total_num_items_with_kinds = get_df_total_values_counts(df_analysis_data, 'item_kinds_counts', feeds_to_include='all')
 
     # Columns: ['type', 'count', 'percentage']
     df_total_types_counts, \
     total_num_types, \
-    total_num_opportunities_with_types = get_df_total_values_counts(df_analysis_data, 'item_data_types_counts', feeds_to_include='all')
+    total_num_items_with_types = get_df_total_values_counts(df_analysis_data, 'item_data_types_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -191,35 +191,35 @@ def analyse_opportunities_aggregated(**kwargs):
         .reset_index()
 
     # Compact to single index columns for simplicity, also because Streamlit can't display MultiIndex columns:
-    # Columns: ['sport_and_discipline', 'activity', 'count_activities', 'count_opportunities']
+    # Columns: ['sport_and_discipline', 'activity', 'count_activities', 'count_items']
     df_total_sad_counts_matched.columns = [
         'sport_and_discipline',
         'activity',
         'count_activities',
-        'count_opportunities',
+        'count_items',
     ]
 
     # Columns: ['sport_and_discipline', 'activity', 'count']
     df_total_sad_counts_unmatched = df_total_sad_counts_unmatched[['sport_and_discipline', 'activity', 'count']]
     # Rename columns for consistency with df_total_sad_counts_matched, even though there's only one count here:
-    # Columns: ['sport_and_discipline', 'activity', 'count_opportunities']
+    # Columns: ['sport_and_discipline', 'activity', 'count_items']
     df_total_sad_counts_unmatched.columns = [
         'sport_and_discipline',
         'activity',
-        'count_opportunities',
+        'count_items',
     ]
 
     total_num_activities_with_sad = df_total_sad_counts_matched['count_activities'].sum()
     total_num_activities_without_sad = df_total_sad_counts_unmatched.shape[0]
-    total_num_opportunities_with_sad = df_total_sad_counts_matched['count_opportunities'].sum()
-    total_num_opportunities_without_sad = df_total_sad_counts_unmatched['count_opportunities'].sum()
+    total_num_items_with_sad = df_total_sad_counts_matched['count_items'].sum()
+    total_num_items_without_sad = df_total_sad_counts_unmatched['count_items'].sum()
 
-    # Columns: ['sport_and_discipline', 'activity', 'count_activities', 'count_opportunities', 'percentage_activities', 'percentage_opportunities']
+    # Columns: ['sport_and_discipline', 'activity', 'count_activities', 'count_items', 'percentage_activities', 'percentage_items']
     df_total_sad_counts_matched['percentage_activities'] = (df_total_sad_counts_matched['count_activities'] / total_num_activities_with_sad) * 100
-    df_total_sad_counts_matched['percentage_opportunities'] = (df_total_sad_counts_matched['count_opportunities'] / total_num_opportunities_with_sad) * 100
+    df_total_sad_counts_matched['percentage_items'] = (df_total_sad_counts_matched['count_items'] / total_num_items_with_sad) * 100
 
-    # Columns: ['sport_and_discipline', 'activity', 'count_opportunities', 'percentage_opportunities']
-    df_total_sad_counts_unmatched['percentage_opportunities'] = (df_total_sad_counts_unmatched['count_opportunities'] / total_num_opportunities_without_sad) * 100
+    # Columns: ['sport_and_discipline', 'activity', 'count_items', 'percentage_items']
+    df_total_sad_counts_unmatched['percentage_items'] = (df_total_sad_counts_unmatched['count_items'] / total_num_items_without_sad) * 100
 
     num_sad = df_se_sport_and_discipline['sport_and_discipline'].count()
     num_sad_matched = df_total_sad_counts_matched['sport_and_discipline'].count()
@@ -251,49 +251,49 @@ def analyse_opportunities_aggregated(**kwargs):
         'num_feeds_with_analysed_data_preview': num_feeds_with_analysed_data_preview, # 2024-09-27 Not currently used in the dashboard
         'num_feeds_with_analysed_data': num_feeds_with_analysed_data, # 2024-09-27 Not currently used in the dashboard
 
-        'total_num_opportunities_regular': total_num_opportunities_regular, # 2024-08-23 Not currently used in the dashboard
-        'total_num_opportunities_preview': total_num_opportunities_preview,
-        'total_num_opportunities': total_num_opportunities,
+        'total_num_items_regular': total_num_items_regular, # 2024-08-23 Not currently used in the dashboard
+        'total_num_items_preview': total_num_items_preview,
+        'total_num_items': total_num_items,
 
-        'total_num_opportunities_future_regular': total_num_opportunities_future_regular, # 2024-08-23 Not currently used in the dashboard
-        'total_num_opportunities_future_preview': total_num_opportunities_future_preview, # 2024-08-23 Not currently used in the dashboard
-        'total_num_opportunities_future': total_num_opportunities_future,
+        'total_num_items_future_regular': total_num_items_future_regular, # 2024-08-23 Not currently used in the dashboard
+        'total_num_items_future_preview': total_num_items_future_preview, # 2024-08-23 Not currently used in the dashboard
+        'total_num_items_future': total_num_items_future,
 
-        'total_num_opportunities_future_week_regular': total_num_opportunities_future_week_regular, # 2024-08-23 Not currently used in the dashboard
-        'total_num_opportunities_future_week_preview': total_num_opportunities_future_week_preview, # 2024-08-23 Not currently used in the dashboard
-        'total_num_opportunities_future_week': total_num_opportunities_future_week,
+        'total_num_items_future_week_regular': total_num_items_future_week_regular, # 2024-08-23 Not currently used in the dashboard
+        'total_num_items_future_week_preview': total_num_items_future_week_preview, # 2024-08-23 Not currently used in the dashboard
+        'total_num_items_future_week': total_num_items_future_week,
 
         'df_total_activities_counts': df_total_activities_counts,
         'total_num_activities': total_num_activities,
-        'total_num_opportunities_with_activities': total_num_opportunities_with_activities,
+        'total_num_items_with_activities': total_num_items_with_activities,
 
         'df_total_organisers_counts': df_total_organisers_counts,
         'total_num_organisers': total_num_organisers,
-        'total_num_opportunities_with_organisers': total_num_opportunities_with_organisers,
+        'total_num_items_with_organisers': total_num_items_with_organisers,
 
         'df_total_address_counts': df_total_address_counts,
         'total_num_address': total_num_address,
-        'total_num_opportunities_with_address': total_num_opportunities_with_address,
+        'total_num_items_with_address': total_num_items_with_address,
 
         'df_total_coords_counts': df_total_coords_counts, # 2024-08-23 Not currently used in the dashboard
         'total_num_coords': total_num_coords, # 2024-08-23 Not currently used in the dashboard
-        'total_num_opportunities_with_coords': total_num_opportunities_with_coords, # 2024-08-23 Not currently used in the dashboard
+        'total_num_items_with_coords': total_num_items_with_coords, # 2024-08-23 Not currently used in the dashboard
 
         'gdf_total_regions_counts': gdf_total_regions_counts,
         'total_num_regions': total_num_regions,
-        'total_num_opportunities_with_regions': total_num_opportunities_with_regions,
+        'total_num_items_with_regions': total_num_items_with_regions,
 
         'gdf_total_lads_counts': gdf_total_lads_counts,
         'total_num_lads': total_num_lads,
-        'total_num_opportunities_with_lads': total_num_opportunities_with_lads,
+        'total_num_items_with_lads': total_num_items_with_lads,
 
         'df_total_kinds_counts': df_total_kinds_counts,
         'total_num_kinds': total_num_kinds,
-        'total_num_opportunities_with_kinds': total_num_opportunities_with_kinds,
+        'total_num_items_with_kinds': total_num_items_with_kinds,
 
         'df_total_types_counts': df_total_types_counts,
         'total_num_types': total_num_types,
-        'total_num_opportunities_with_types': total_num_opportunities_with_types,
+        'total_num_items_with_types': total_num_items_with_types,
 
         # 'df_total_sad_counts': df_total_sad_counts, # 2024-08-23 Not currently used in the dashboard
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
@@ -301,8 +301,8 @@ def analyse_opportunities_aggregated(**kwargs):
 
         'total_num_activities_with_sad': total_num_activities_with_sad,
         'total_num_activities_without_sad': total_num_activities_without_sad,
-        'total_num_opportunities_with_sad': total_num_opportunities_with_sad,
-        'total_num_opportunities_without_sad': total_num_opportunities_without_sad,
+        'total_num_items_with_sad': total_num_items_with_sad,
+        'total_num_items_without_sad': total_num_items_without_sad,
 
         'num_sad': num_sad,
         'num_sad_matched': num_sad_matched,
@@ -317,11 +317,6 @@ def analyse_opportunities_aggregated(**kwargs):
 
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_AGGREGATED_FILENAME, 'wb') as file_out:
         pickle.dump(analysis, file_out)
-
-    # TEMPORARY: For checking geographically localised high opportunity count spikes
-    # global coords_check
-    # with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'coords_check.pickle', 'wb') as file_out:
-    #     pickle.dump(coords_check, file_out)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -355,11 +350,11 @@ def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include
         df_total_values_counts.columns = ['coords', 'count']
 
     total_num_keys = df_total_values_counts.shape[0]
-    total_num_opportunities_with_keys = df_total_values_counts['count'].sum()
+    total_num_items_with_keys = df_total_values_counts['count'].sum()
 
-    df_total_values_counts['percentage'] = (df_total_values_counts['count'] / total_num_opportunities_with_keys) * 100
+    df_total_values_counts['percentage'] = (df_total_values_counts['count'] / total_num_items_with_keys) * 100
 
-    return df_total_values_counts, total_num_keys, total_num_opportunities_with_keys
+    return df_total_values_counts, total_num_keys, total_num_items_with_keys
 
 # --------------------------------------------------------------------------------------------------
 
@@ -403,15 +398,15 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
     gdf_total_locations_counts['count'] = gdf_total_locations_counts['count'].astype(int)
 
     total_num_locations = gdf_total_locations_counts.shape[0]
-    total_num_opportunities_with_locations = gdf_total_locations_counts['count'].sum()
+    total_num_items_with_locations = gdf_total_locations_counts['count'].sum()
 
     # If gdf_locations is 'regions.geojson':
     #     Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
     # If gdf_locations is 'lads.geojson':
     #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
-    gdf_total_locations_counts['percentage'] = (gdf_total_locations_counts['count'] / total_num_opportunities_with_locations) * 100
+    gdf_total_locations_counts['percentage'] = (gdf_total_locations_counts['count'] / total_num_items_with_locations) * 100
 
     # print(f'gdf_total_locations_counts ({gdf_locations_name_column}):')
     # print(gdf_total_locations_counts)
 
-    return gdf_total_locations_counts, total_num_locations, total_num_opportunities_with_locations
+    return gdf_total_locations_counts, total_num_locations, total_num_items_with_locations

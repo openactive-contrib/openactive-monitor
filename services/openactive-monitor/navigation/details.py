@@ -145,7 +145,7 @@ with tabs[idx_tab]:
     with cols[1]:
         st.metric(
             'Live opportunities over the next 7 days',
-            f"{st.session_state.analysis['total_num_opportunities_future_week']:,}",
+            f"{st.session_state.analysis['total_num_items_future_week']:,}",
         )
 
     st.divider()
@@ -233,7 +233,7 @@ with tabs[idx_tab]:
             },
         )
         st.write(f"Num. activities: {st.session_state.analysis['total_num_activities']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_activities']:,}")
+        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_activities']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(10, 5))
         sns.barplot(
@@ -272,7 +272,7 @@ with tabs[idx_tab]:
             },
         )
         st.write(f"Num. organisers: {st.session_state.analysis['total_num_organisers']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_organisers']:,}")
+        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_organisers']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(10, 5))
         sns.barplot(
@@ -311,7 +311,7 @@ with tabs[idx_tab]:
             },
         )
         st.write(f"Num. locations: {st.session_state.analysis['total_num_regions']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_regions']:,}")
+        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_regions']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(8, 8))
         st.session_state.analysis['gdf_total_regions_counts'].plot(
@@ -345,7 +345,7 @@ with tabs[idx_tab]:
             },
         )
         st.write(f"Num. locations: {st.session_state.analysis['total_num_lads']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_lads']:,}")
+        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_lads']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(8, 8))
         st.session_state.analysis['gdf_total_lads_counts'].plot(
@@ -384,7 +384,7 @@ with tabs[idx_tab]:
             },
         )
         st.write(f"Num. kinds: {st.session_state.analysis['total_num_kinds']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_kinds']:,}")
+        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_kinds']:,}")
     with cols[1]:
         st.dataframe(
             st.session_state.analysis['df_total_types_counts'],
@@ -400,7 +400,7 @@ with tabs[idx_tab]:
             },
         )
         st.write(f"Num. types: {st.session_state.analysis['total_num_types']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_types']:,}")
+        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_types']:,}")
 
 # --------------------------------------------------------------------------------------------------
 
@@ -426,19 +426,19 @@ with tabs[idx_tab]:
                         width='small',
                     ),
                     'count_activities': 'Num. activities',
-                    'count_opportunities': 'Num. opportunities',
+                    'count_items': 'Num. opportunities',
                     'percentage_activities': st.column_config.NumberColumn(
                         '% activities',
                         format='%0.1f',
                     ),
-                    'percentage_opportunities': st.column_config.NumberColumn(
+                    'percentage_items': st.column_config.NumberColumn(
                         '% opportunities',
                         format='%0.1f',
                     ),
                 },
             )
             st.write(f"Num. activities: {st.session_state.analysis['total_num_activities_with_sad']:,}")
-            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_with_sad']:,}")
+            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_sad']:,}")
         with cols[1]:
             st.write(f"Unmatched SE categories: {st.session_state.analysis['num_sad_unmatched']} / {st.session_state.analysis['num_sad']} ({st.session_state.analysis['percentage_sad_unmatched']:.1f}%)")
             st.dataframe(
@@ -464,12 +464,12 @@ with tabs[idx_tab]:
         #     column_config={
         #         'sport_and_discipline': 'SE sport and discipline',
         #         'activity': 'OA activity',
-        #         'count_opportunities': 'Num. opportunities',
-        #         'percentage_opportunities': st.column_config.NumberColumn(
+        #         'count_items': 'Num. opportunities',
+        #         'percentage_items': st.column_config.NumberColumn(
         #             '% opportunities',
         #             format='%0.1f',
         #         ),
         #     },
         # )
         # st.write(f"Num. activities: {st.session_state.analysis['total_num_activities_without_sad']:,}")
-        # st.write(f"Num. opportunities: {st.session_state.analysis['total_num_opportunities_without_sad']:,}")
+        # st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_without_sad']:,}")
