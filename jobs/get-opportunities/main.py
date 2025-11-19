@@ -161,9 +161,7 @@ if (__name__ == '__main__'):
                     feeds = pickle.load(file_in)
             else:
                 with open(FEEDS_RELATIVE_FILEPATH + '/' + (PREVIEW_FEEDS_LATEST_FILENAME if preview else REGULAR_FEEDS_LATEST_FILENAME), 'rb') as file_in:
-                    # TODO: Change this to the following when get-feeds has been adjusted to output a list rather than a dictionary:
-                    # feeds = pickle.load(file_in)[0:MAX_NUM_FEEDS]
-                    feeds = pickle.load(file_in)['feeds'][0:MAX_NUM_FEEDS]
+                    feeds = pickle.load(file_in)[0:MAX_NUM_FEEDS]
                 for feed in feeds:
                     feed['time_started'] = None
                     feed['num_tries'] = 0

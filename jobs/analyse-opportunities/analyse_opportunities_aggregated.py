@@ -15,7 +15,7 @@ def analyse_opportunities_aggregated(**kwargs):
     # --------------------------------------------------------------------------------------------------
 
     with open(FEEDS_RELATIVE_FILEPATH + '/' + REGULAR_FEEDS_LATEST_FILENAME, 'rb') as file_in:
-        feeds = pickle.load(file_in)
+        feeds_regular = pickle.load(file_in)
 
     with open(FEEDS_RELATIVE_FILEPATH + '/' + PREVIEW_FEEDS_LATEST_FILENAME, 'rb') as file_in:
         feeds_preview = pickle.load(file_in)
@@ -35,8 +35,8 @@ def analyse_opportunities_aggregated(**kwargs):
     num_datasets_preview = df_analysis_data['dataset_url'].loc[~df_analysis_data['is_regular']].replace('', nan).nunique()
     num_datasets = df_analysis_data['dataset_url'].replace('', nan).nunique()
 
-    num_feeds_regular = feeds['num_feeds']
-    num_feeds_preview = feeds_preview['num_feeds']
+    num_feeds_regular = len(feeds_regular)
+    num_feeds_preview = len(feeds_preview)
     num_feeds = num_feeds_regular + num_feeds_preview
 
     num_feeds_with_analysed_data_regular = \

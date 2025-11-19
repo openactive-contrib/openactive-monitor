@@ -36,15 +36,7 @@ def run_get_feeds(**kwargs):
         FEEDS_FILENAME_SUFFIX
 
     with open(FEEDS_RELATIVE_FILEPATH + '/' + current_filename, 'wb') as file_out:
-        # TODO: Change this to the following when accommodated elsewhere, no further information is necessary:
-        # pickle.dump(feeds, file_out)
-        pickle.dump(
-            {
-                'feeds': feeds,
-                'num_feeds': len(feeds),
-            },
-            file_out
-        )
+        pickle.dump(feeds, file_out)
 
     filenames = get_filenames('feeds')
     current_filenames = get_current_filenames('feeds', current_filename_base, filenames)

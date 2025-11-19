@@ -65,7 +65,7 @@ if ('initialised' not in st.session_state):
             'Slot for FacilityUse': 'Slot',
         }
 
-        for feed in feeds['feeds']:
+        for feed in feeds:
             if feed.get('logoUrl'):
                 if (feed['logoUrl'] not in logo_urls):
                     logo_urls.append(feed['logoUrl'])
@@ -122,7 +122,7 @@ if ('initialised' not in st.session_state):
 
         st.session_state.logo_urls = logo_urls
         st.session_state.feed_type_counts = feed_type_counts
-        st.session_state.num_feeds = len(feeds['feeds'])
+        st.session_state.num_feeds = len(feeds)
 
     # --------------------------------------------------------------------------------------------------
 
