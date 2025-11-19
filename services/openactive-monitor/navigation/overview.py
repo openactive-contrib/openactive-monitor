@@ -23,7 +23,7 @@ from millify import millify
 # 'gdf_total_lads_counts', 'total_num_lads', 'total_num_items_with_lads',
 # 'df_total_item_kinds_counts', 'total_num_item_kinds', 'total_num_items_with_kinds',
 # 'df_total_item_data_types_counts', 'total_num_item_data_types', 'total_num_items_with_data_types',
-# 'df_total_address_counts', 'total_num_address', 'total_num_items_with_address',
+# 'df_total_addresses_counts', 'total_num_addresses', 'total_num_items_with_addresses',
 # 'df_total_sad_counts_matched', 'df_total_sad_counts_unmatched',
 # 'total_num_activities_with_sad', 'total_num_activities_without_sad', 'total_num_items_with_sad', 'total_num_items_without_sad',
 # 'num_sad', 'num_sad_matched', 'num_sad_unmatched',

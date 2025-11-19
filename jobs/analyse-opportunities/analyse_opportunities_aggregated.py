@@ -86,18 +86,18 @@ def analyse_opportunities_aggregated(**kwargs):
     # For the 'Locations' tab
 
     # Columns: ['address', 'count', 'percentage']
-    df_total_address_counts, \
-    total_num_address, \
-    total_num_items_with_address = get_df_total_values_counts(df_analysis_data, 'addresses_counts', feeds_to_include='all')
+    df_total_addresses_counts, \
+    total_num_addresses, \
+    total_num_items_with_addresses = get_df_total_values_counts(df_analysis_data, 'addresses_counts', feeds_to_include='all')
 
-    # Columns: ['coords', 'count', 'percentage']
-    df_total_coords_counts, \
-    total_num_coords, \
-    total_num_items_with_coords = get_df_total_values_counts(df_analysis_data, 'latlons_counts', feeds_to_include='all')
-    # Columns: ['coords', 'count', 'percentage', 'latitude', 'longitude']
-    df_total_coords_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_coords_counts['coords'].apply(lambda coords: coords.split(',')).tolist())
+    # Columns: ['latlon', 'count', 'percentage']
+    df_total_latlons_counts, \
+    total_num_latlons, \
+    total_num_items_with_latlons = get_df_total_values_counts(df_analysis_data, 'latlons_counts', feeds_to_include='all')
+    # Columns: ['latlon', 'count', 'percentage', 'latitude', 'longitude']
+    df_total_latlons_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_latlons_counts['latlon'].apply(lambda latlon: latlon.split(',')).tolist())
     # Columns: ['latitude', 'longitude', 'count', 'percentage']
-    df_total_coords_counts = df_total_coords_counts[['latitude', 'longitude', 'count', 'percentage']]
+    df_total_latlons_counts = df_total_latlons_counts[['latitude', 'longitude', 'count', 'percentage']]
 
     # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry']
     gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
@@ -107,12 +107,12 @@ def analyse_opportunities_aggregated(**kwargs):
     # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
     gdf_total_regions_counts, \
     total_num_regions, \
-    total_num_items_with_regions = get_gdf_total_locations_counts(df_total_coords_counts, gdf_regions, 'eer18nm')
+    total_num_items_with_regions = get_gdf_total_locations_counts(df_total_latlons_counts, gdf_regions, 'eer18nm')
 
     # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
     gdf_total_lads_counts, \
     total_num_lads, \
-    total_num_items_with_lads = get_gdf_total_locations_counts(df_total_coords_counts, gdf_lads, 'LAD24NM')
+    total_num_items_with_lads = get_gdf_total_locations_counts(df_total_latlons_counts, gdf_lads, 'LAD24NM')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -271,13 +271,13 @@ def analyse_opportunities_aggregated(**kwargs):
         'total_num_organisers': total_num_organisers,
         'total_num_items_with_organisers': total_num_items_with_organisers,
 
-        'df_total_address_counts': df_total_address_counts,
-        'total_num_address': total_num_address,
-        'total_num_items_with_address': total_num_items_with_address,
+        'df_total_addresses_counts': df_total_addresses_counts,
+        'total_num_addresses': total_num_addresses,
+        'total_num_items_with_addresses': total_num_items_with_addresses,
 
-        'df_total_coords_counts': df_total_coords_counts, # 2024-08-23 Not currently used in the dashboard
-        'total_num_coords': total_num_coords, # 2024-08-23 Not currently used in the dashboard
-        'total_num_items_with_coords': total_num_items_with_coords, # 2024-08-23 Not currently used in the dashboard
+        'df_total_latlons_counts': df_total_latlons_counts, # 2024-08-23 Not currently used in the dashboard
+        'total_num_latlons': total_num_latlons, # 2024-08-23 Not currently used in the dashboard
+        'total_num_items_with_latlons': total_num_items_with_latlons, # 2024-08-23 Not currently used in the dashboard
 
         'gdf_total_regions_counts': gdf_total_regions_counts,
         'total_num_regions': total_num_regions,
@@ -347,7 +347,7 @@ def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include
     elif (values_counts == 'addresses_counts'):
         df_total_values_counts.columns = ['address', 'count']
     elif (values_counts == 'latlons_counts'):
-        df_total_values_counts.columns = ['coords', 'count']
+        df_total_values_counts.columns = ['latlon', 'count']
 
     total_num_keys = df_total_values_counts.shape[0]
     total_num_items_with_keys = df_total_values_counts['count'].sum()
@@ -358,13 +358,13 @@ def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include
 
 # --------------------------------------------------------------------------------------------------
 
-def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_locations_name_column):
+def get_gdf_total_locations_counts(df_total_latlons_counts, gdf_locations, gdf_locations_name_column):
     # Columns: ['latitude', 'longitude', 'count', 'percentage', 'geometry']
-    gdf_total_coords_counts = gpd.GeoDataFrame(
-            df_total_coords_counts,
+    gdf_total_latlons_counts = gpd.GeoDataFrame(
+            df_total_latlons_counts,
             geometry=gpd.points_from_xy(
-                df_total_coords_counts['longitude'],
-                df_total_coords_counts['latitude'],
+                df_total_latlons_counts['longitude'],
+                df_total_latlons_counts['latitude'],
             ),
             crs='epsg:4326', # Set CRS to WGS84
         ) \
@@ -374,7 +374,7 @@ def get_gdf_total_locations_counts(df_total_coords_counts, gdf_locations, gdf_lo
     gdf_total_locations_counts = gpd.GeoDataFrame(
         gpd.sjoin(
             gdf_locations[['geometry', gdf_locations_name_column]],
-            gdf_total_coords_counts[['geometry', 'count']],
+            gdf_total_latlons_counts[['geometry', 'count']],
             how='right',
             predicate='intersects',
         ) \
