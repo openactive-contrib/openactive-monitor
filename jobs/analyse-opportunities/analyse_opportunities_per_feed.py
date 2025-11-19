@@ -7,12 +7,11 @@ import random
 import sys
 from datetime import datetime, timedelta
 from dateutil import parser, tz
-from os import listdir
-from os.path import isfile
 
 sys.path.append('../volume-1/common')
+from fileutils import get_filenames, get_filename_prestamps, get_filename_prestamp_pairs, get_filename_pairs
+from openactive_custom import get_item_kinds, get_item_data_types, get_event_type, get_merged_opportunities
 from settings import *
-from openactive_custom import get_partner_feed_url, get_item_kinds, get_item_data_types, get_event_type, get_merged_opportunities
 
 # --------------------------------------------------------------------------------------------------
 
@@ -26,123 +25,6 @@ from openactive_custom import get_partner_feed_url, get_item_kinds, get_item_dat
 
 # --------------------------------------------------------------------------------------------------
 
-# An opportunities filename is formed of a base, a converted URL, a stamp, and a suffix.
-# The base is like:
-#   'regular-ops' or 'preview-ops'
-# The converted URL is like:
-#   '--actihire-bookteq-com-api-open-active-facility-uses'
-# The stamp is like:
-#   '--timeFinish-2024-11-28-02-17-30-651905-UTC--timeTaken-0-374038--numItems-4059--numUrls-39--status-COMPLETE'
-# The suffix is like:
-#   '.pickle.gzip'
-class FilenameStamp:
-    # Files of the same filename pre-stamp are later grouped and alphabetically sorted to find the order
-    # in which they were made, via the filename stamp, so that earlier files can be deleted. It's important
-    # that 'timeFinish' is the first part of the filename stamp for this to work as intended. Other parts
-    # can appear in any order. The alternative would be to break down the stamp and seek the 'timeFinish'
-    # part when sorting, which is a bit more work and not necessary at the time of writing (2024-06-20):
-    parts = [
-        'timeFinish',
-        'timeTaken',
-        'numItems',
-        'numUrls',
-        'status',
-    ]
-
-    # This is important to know outside of this class for when the filename is broken into parts, in order
-    # to know how many of the parts form the stamp:
-    num_parts = len(parts)
-
-    def __init__(self, t1, t2, num_items, num_urls, status):
-        time_delta = t2 - t1
-        self.value = ''
-        for part in self.parts:
-            if (part == 'timeFinish'):
-                self.value += f"--{part}-{t2.year}-{t2.month:02}-{t2.day:02}-{t2.hour:02}-{t2.minute:02}-{t2.second:02}-{t2.microsecond:06}-UTC"
-            elif (part == 'timeTaken'):
-                self.value += f"--{part}-{time_delta.seconds}-{time_delta.microseconds}"
-            elif (part == 'numItems'):
-                self.value += f"--{part}-{num_items}"
-            elif (part == 'numUrls'):
-                self.value += f"--{part}-{num_urls}"
-            elif (part == 'status'):
-                self.value += f"--{part}-{status}"
-
-# --------------------------------------------------------------------------------------------------
-
-def get_filenames():
-    filenames = sorted([
-        i
-        for i in listdir(OPPORTUNITIES_RELATIVE_FILEPATH)
-        if (    (isfile(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + i))
-            and (i.startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE) or i.startswith(PREVIEW_OPPORTUNITIES_FILENAME_BASE))
-            and (i.endswith(OPPORTUNITIES_FILENAME_SUFFIX))
-            and (i not in OPPORTUNITIES_RELATIVE_FILEPATH_SKIP_FILENAMES)
-        )
-    ])
-
-    return filenames
-
-# --------------------------------------------------------------------------------------------------
-
-def get_current_filenames(filename_prestamp, filenames):
-    current_filenames = sorted([
-        filename
-        for filename in filenames
-        if ('--'.join(filename.split('--')[:-FilenameStamp.num_parts]) == filename_prestamp) # We can't simply use filename.startswith(filename_prestamp), as filename_prestamp might be a substring of a filename with a longer pre-stamp, which would then also be gathered e.g. consider 'facility-uses' and 'facility-uses-events' within the pre-stamp
-    ])
-
-    return current_filenames
-
-# --------------------------------------------------------------------------------------------------
-
-def get_filename_prestamps(filenames):
-    # Here we split on '--' which is used as the filename stamp delimiter, then remove the number of parts
-    # that we know exist in the filename stamp. If we are then left with multiple fragments from the split,
-    # that's because there were other instances of '--' in the filename pre-stamp that we don't want to
-    # lose, hence we rejoin these fragments with '--' again:
-
-    filename_prestamps = sorted(set([
-        '--'.join(filename.split('--')[:-FilenameStamp.num_parts])
-        for filename in filenames
-    ]))
-
-    return filename_prestamps
-
-# --------------------------------------------------------------------------------------------------
-
-def get_filename_prestamp_pairs(filename_prestamps):
-    filename_prestamp_pairs = []
-    found_filename_prestamps = []
-
-    for filename_prestamp in filename_prestamps:
-        if (filename_prestamp not in found_filename_prestamps):
-            partner_filename_prestamp = get_partner_feed_url(filename_prestamp, filename_prestamps)
-            filename_prestamp_pairs.append([filename_prestamp, partner_filename_prestamp])
-            if (partner_filename_prestamp is not None):
-                found_filename_prestamps.append(partner_filename_prestamp)
-
-    return filename_prestamp_pairs
-
-# --------------------------------------------------------------------------------------------------
-
-def get_filename_pairs(filename_prestamp_pairs, filenames):
-    filename_pairs = []
-
-    for filename_prestamp_pair in filename_prestamp_pairs:
-        filename_pair = []
-        for filename_prestamp in filename_prestamp_pair:
-            if (filename_prestamp is not None):
-                current_filenames = get_current_filenames(filename_prestamp, filenames)
-                filename_pair.append(current_filenames[-1])
-            else:
-                filename_pair.append(None)
-        filename_pairs.append(filename_pair)
-
-    return filename_pairs
-
-# --------------------------------------------------------------------------------------------------
-
 def analyse_opportunities_per_feed(**kwargs):
     verbose = kwargs.get('verbose', False)
 
@@ -150,8 +32,8 @@ def analyse_opportunities_per_feed(**kwargs):
 
     filename_pairs = []
     try:
-        filenames = get_filenames()
-        filename_prestamps = get_filename_prestamps(filenames)
+        filenames = get_filenames('opportunities')
+        filename_prestamps = get_filename_prestamps('opportunities', filenames)
         filename_prestamp_pairs = get_filename_prestamp_pairs(filename_prestamps)
         filename_pairs = get_filename_pairs(filename_prestamp_pairs, filenames)
         num_filename_pairs = len(filename_pairs)

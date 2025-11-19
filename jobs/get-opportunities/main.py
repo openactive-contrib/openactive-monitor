@@ -6,11 +6,11 @@ from datetime import datetime
 from google.cloud import pubsub_v1
 # from openactive import get_opportunities, get_bytesize
 from os import getenv, listdir, remove, rename
-from os.path import isfile
 
 sys.path.append('../volume-1/common')
-from settings import *
+from fileutils import FilenameStamp, get_filenames, get_current_filenames
 from openactive_custom import get_opportunities, get_bytesize
+from settings import *
 
 # --------------------------------------------------------------------------------------------------
 
@@ -19,76 +19,6 @@ LOG_MEMORY = True if (LOG_MEMORY == 'True') else False
 
 VERBOSE = getenv('VERBOSE', str(GET_OPPORTUNITIES_VERBOSE)).title()
 VERBOSE = True if (VERBOSE == 'True') else False
-
-# --------------------------------------------------------------------------------------------------
-
-# An opportunities filename is formed of a base, a converted URL, a stamp, and a suffix.
-# The base is like:
-#   'regular-ops' or 'preview-ops'
-# The converted URL is like:
-#   '--actihire-bookteq-com-api-open-active-facility-uses'
-# The stamp is like:
-#   '--timeFinish-2024-11-28-02-17-30-651905-UTC--timeTaken-0-374038--numItems-4059--numUrls-39--status-COMPLETE'
-# The suffix is like:
-#   '.pickle.gzip'
-class FilenameStamp:
-    # Files of the same filename pre-stamp are later grouped and alphabetically sorted to find the order
-    # in which they were made, via the filename stamp, so that earlier files can be deleted. It's important
-    # that 'timeFinish' is the first part of the filename stamp for this to work as intended. Other parts
-    # can appear in any order. The alternative would be to break down the stamp and seek the 'timeFinish'
-    # part when sorting, which is a bit more work and not necessary at the time of writing (2024-06-20):
-    parts = [
-        'timeFinish',
-        'timeTaken',
-        'numItems',
-        'numUrls',
-        'status',
-    ]
-
-    # This is important to know outside of this class for when the filename is broken into parts, in order
-    # to know how many of the parts form the stamp:
-    num_parts = len(parts)
-
-    def __init__(self, t1, t2, num_items, num_urls, status):
-        time_delta = t2 - t1
-        self.value = ''
-        for part in self.parts:
-            if (part == 'timeFinish'):
-                self.value += f"--{part}-{t2.year}-{t2.month:02}-{t2.day:02}-{t2.hour:02}-{t2.minute:02}-{t2.second:02}-{t2.microsecond:06}-UTC"
-            elif (part == 'timeTaken'):
-                self.value += f"--{part}-{time_delta.seconds}-{time_delta.microseconds}"
-            elif (part == 'numItems'):
-                self.value += f"--{part}-{num_items}"
-            elif (part == 'numUrls'):
-                self.value += f"--{part}-{num_urls}"
-            elif (part == 'status'):
-                self.value += f"--{part}-{status}"
-
-# --------------------------------------------------------------------------------------------------
-
-def get_filenames():
-    filenames = sorted([
-        i
-        for i in listdir(OPPORTUNITIES_RELATIVE_FILEPATH)
-        if (    (isfile(OPPORTUNITIES_RELATIVE_FILEPATH + '/' + i))
-            and (i.startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE) or i.startswith(PREVIEW_OPPORTUNITIES_FILENAME_BASE))
-            and (i.endswith(OPPORTUNITIES_FILENAME_SUFFIX))
-            and (i not in OPPORTUNITIES_RELATIVE_FILEPATH_SKIP_FILENAMES)
-        )
-    ])
-
-    return filenames
-
-# --------------------------------------------------------------------------------------------------
-
-def get_current_filenames(filename_prestamp, filenames):
-    current_filenames = sorted([
-        filename
-        for filename in filenames
-        if ('--'.join(filename.split('--')[:-FilenameStamp.num_parts]) == filename_prestamp) # We can't simply use filename.startswith(filename_prestamp), as filename_prestamp might be a substring of a filename with a longer pre-stamp, which would then also be gathered e.g. consider 'facility-uses' and 'facility-uses-events' within the pre-stamp
-    ])
-
-    return current_filenames
 
 # --------------------------------------------------------------------------------------------------
 
@@ -102,8 +32,8 @@ def run_get_opportunities(feed, **kwargs):
     current_filename_url = feed['url'].replace('https://', '').replace('http://', '').replace('www.', '').replace('.', '-').replace('/', '-').strip('-')
     current_filename_prestamp = current_filename_base + '--' + current_filename_url
 
-    filenames = get_filenames()
-    current_filenames = get_current_filenames(current_filename_prestamp, filenames)
+    filenames = get_filenames('opportunities')
+    current_filenames = get_current_filenames('opportunities', current_filename_prestamp, filenames)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -135,7 +65,7 @@ def run_get_opportunities(feed, **kwargs):
 
         current_filename = \
             current_filename_prestamp + \
-            FilenameStamp(t1, t2, len(opportunities['items'].keys()), len(opportunities['urls']), opportunities['status']).value + \
+            FilenameStamp('opportunities', t1, t2, {'numItems': len(opportunities['items'].keys()), 'numUrls': len(opportunities['urls']), 'status': opportunities['status']}).value + \
             OPPORTUNITIES_FILENAME_SUFFIX
 
         # We have seen that gzip sometimes doesn't write files correctly, as an attempted read of such a file
@@ -186,8 +116,8 @@ def run_get_opportunities(feed, **kwargs):
     # be so if file removal was inhibited on the previous run or if the maximum number of files to keep
     # has changed since the previous run:
 
-    filenames = get_filenames()
-    current_filenames = get_current_filenames(current_filename_prestamp, filenames)
+    filenames = get_filenames('opportunities')
+    current_filenames = get_current_filenames('opportunities', current_filename_prestamp, filenames)
 
     if (len(current_filenames) > MAX_NUM_OPPORTUNITIES_FILES):
         for filename in current_filenames[:-MAX_NUM_OPPORTUNITIES_FILES]:
