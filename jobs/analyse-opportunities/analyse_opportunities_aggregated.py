@@ -55,13 +55,13 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # For the 'This week' tab
 
-    total_num_items_future_regular = df_analysis_data['num_future_items'].loc[df_analysis_data['is_regular']].sum()
-    total_num_items_future_preview = df_analysis_data['num_future_items'].loc[~df_analysis_data['is_regular']].sum()
-    total_num_items_future = total_num_items_future_regular + total_num_items_future_preview
+    total_num_future_items_regular = df_analysis_data['num_future_items'].loc[df_analysis_data['is_regular']].sum()
+    total_num_future_items_preview = df_analysis_data['num_future_items'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_future_items = total_num_future_items_regular + total_num_future_items_preview
 
-    total_num_items_future_week_regular = df_analysis_data['num_future_week_items'].loc[df_analysis_data['is_regular']].sum()
-    total_num_items_future_week_preview = df_analysis_data['num_future_week_items'].loc[~df_analysis_data['is_regular']].sum()
-    total_num_items_future_week = total_num_items_future_week_regular + total_num_items_future_week_preview
+    total_num_future_week_items_regular = df_analysis_data['num_future_week_items'].loc[df_analysis_data['is_regular']].sum()
+    total_num_future_week_items_preview = df_analysis_data['num_future_week_items'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_future_week_items = total_num_future_week_items_regular + total_num_future_week_items_preview
 
     # --------------------------------------------------------------------------------------------------
 
@@ -255,13 +255,13 @@ def analyse_opportunities_aggregated(**kwargs):
         'total_num_items_preview': total_num_items_preview,
         'total_num_items': total_num_items,
 
-        'total_num_items_future_regular': total_num_items_future_regular, # 2024-08-23 Not currently used in the dashboard
-        'total_num_items_future_preview': total_num_items_future_preview, # 2024-08-23 Not currently used in the dashboard
-        'total_num_items_future': total_num_items_future,
+        'total_num_future_items_regular': total_num_future_items_regular, # 2024-08-23 Not currently used in the dashboard
+        'total_num_future_items_preview': total_num_future_items_preview, # 2024-08-23 Not currently used in the dashboard
+        'total_num_future_items': total_num_future_items,
 
-        'total_num_items_future_week_regular': total_num_items_future_week_regular, # 2024-08-23 Not currently used in the dashboard
-        'total_num_items_future_week_preview': total_num_items_future_week_preview, # 2024-08-23 Not currently used in the dashboard
-        'total_num_items_future_week': total_num_items_future_week,
+        'total_num_future_week_items_regular': total_num_future_week_items_regular, # 2024-08-23 Not currently used in the dashboard
+        'total_num_future_week_items_preview': total_num_future_week_items_preview, # 2024-08-23 Not currently used in the dashboard
+        'total_num_future_week_items': total_num_future_week_items,
 
         'df_total_activities_counts': df_total_activities_counts,
         'total_num_activities': total_num_activities,

@@ -15,8 +15,8 @@ from millify import millify
 # 'num_feeds_regular', 'num_feeds_preview', 'num_feeds',
 # 'num_feeds_with_analysed_data_regular', 'num_feeds_with_analysed_data_preview', 'num_feeds_with_analysed_data',
 # 'total_num_items_regular', 'total_num_items_preview', 'total_num_items',
-# 'total_num_items_future_regular', 'total_num_items_future_preview', 'total_num_items_future',
-# 'total_num_items_future_week_regular', 'total_num_items_future_week_preview', 'total_num_items_future_week',
+# 'total_num_future_items_regular', 'total_num_future_items_preview', 'total_num_future_items',
+# 'total_num_future_week_items_regular', 'total_num_future_week_items_preview', 'total_num_future_week_items',
 # 'df_total_activities_counts', 'total_num_activities', 'total_num_items_with_activities',
 # 'df_total_organisers_counts', 'total_num_organisers', 'total_num_items_with_organisers',
 # 'gdf_total_regions_counts', 'total_num_regions', 'total_num_items_with_regions',
@@ -49,7 +49,7 @@ if ('buttons' not in st.session_state):
         #Note next figure based on feeds.pickle to tally with type counts
         'feeds': f"**{st.session_state.num_feeds:,}**\n\nData feeds",
         'activities': f"**{st.session_state.analysis['total_num_activities']:,}**\n\nActivities and facilities",
-        'opportunities': f"**{millify(st.session_state.analysis['total_num_items_future'], precision=1)}**\n\nLive opportunities",
+        'opportunities': f"**{millify(st.session_state.analysis['total_num_future_items'], precision=1)}**\n\nLive opportunities",
         'kpis': f"Draft\n\nKPIs"
     }
     st.session_state.button_name_clicked = 'providers'
@@ -164,7 +164,7 @@ with cols[1]:
             st.markdown(" ")
             st.markdown("Because the feeds vary in level of detail they represent (e.g. a series of sessions or an individual session), the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
             st.markdown(" ")
-            st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.analysis['total_num_items_future'], precision=1)} opportunities** to get active over the coming weeks.")
+            st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.analysis['total_num_future_items'], precision=1)} opportunities** to get active over the coming weeks.")
 
         with cols[1]:
             fig, ax = plt.subplots(1, 1, figsize=(3, 6))

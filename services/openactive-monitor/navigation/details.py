@@ -145,7 +145,7 @@ with tabs[idx_tab]:
     with cols[1]:
         st.metric(
             'Live opportunities over the next 7 days',
-            f"{st.session_state.analysis['total_num_items_future_week']:,}",
+            f"{st.session_state.analysis['total_num_future_week_items']:,}",
         )
 
     st.divider()
