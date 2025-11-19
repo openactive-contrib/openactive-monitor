@@ -68,7 +68,7 @@ def parse_date(date_string):
 def set_sampleitems():
     st.session_state.sampleitems = []
 
-    # analysis['filenames_sampleitems'] is a set of nested dictionaries:
+    # st.session_state.filenames_sampleitems is a set of nested dictionaries:
     # {
     #     'filename1': {
     #         'filename1_item1_idx': {filename1_item1},
@@ -85,7 +85,7 @@ def set_sampleitems():
 
     # Each element in this list is itself a list of sample items from a specific feed:
     random_feed_sampleitems = random.sample(
-        [list(val.values()) for val in st.session_state.analysis['filenames_sampleitems'].values()],
+        [list(val.values()) for val in st.session_state.filenames_sampleitems.values()],
         min(st.session_state.num_feeds_with_sampleitems,
             st.session_state.max_num_random_feeds_with_sampleitems
         )

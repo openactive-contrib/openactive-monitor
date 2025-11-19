@@ -23,9 +23,6 @@ def analyse_opportunities_aggregated(**kwargs):
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_PER_FEED_FILENAME, 'rb') as file_in:
          df_analysis_data = pickle.load(file_in)
 
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'rb') as file_in:
-         filenames_sampleitems = pickle.load(file_in)
-
     # --------------------------------------------------------------------------------------------------
 
     # For the 'Overview' tab
@@ -314,8 +311,6 @@ def analyse_opportunities_aggregated(**kwargs):
         'percentage_sad_unmatched': percentage_sad_unmatched,
 
         'df_se_sport_and_discipline_unmatched': df_se_sport_and_discipline_unmatched,
-
-        'filenames_sampleitems': filenames_sampleitems,
     }
 
     # --------------------------------------------------------------------------------------------------

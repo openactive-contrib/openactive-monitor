@@ -133,10 +133,16 @@ if ('initialised' not in st.session_state):
         except:
             st.session_state.error = True
             st.error('Error retrieving analysis')
+        try:
+            with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'rb') as file_in:
+                st.session_state.filenames_sampleitems = pickle.load(file_in)
+                st.session_state.num_feeds_with_sampleitems = len(st.session_state.filenames_sampleitems)
+        except:
+            st.session_state.error = True
+            st.error('Error retrieving samples')
 
     if (not st.session_state.error):
         # For the 'This week' tab
-        st.session_state.num_feeds_with_sampleitems = len(st.session_state.analysis['filenames_sampleitems'])
         st.session_state.max_num_random_feeds_with_sampleitems = 5
 
         # For the 'Activities' tab
