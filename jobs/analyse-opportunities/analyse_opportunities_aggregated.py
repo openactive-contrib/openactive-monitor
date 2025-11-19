@@ -118,15 +118,15 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # For the 'Labels' tab
 
-    # Columns: ['kind', 'count', 'percentage']
-    df_total_kinds_counts, \
-    total_num_kinds, \
+    # Columns: ['item_kind', 'count', 'percentage']
+    df_total_item_kinds_counts, \
+    total_num_item_kinds, \
     total_num_items_with_kinds = get_df_total_values_counts(df_analysis_data, 'item_kinds_counts', feeds_to_include='all')
 
-    # Columns: ['type', 'count', 'percentage']
-    df_total_types_counts, \
-    total_num_types, \
-    total_num_items_with_types = get_df_total_values_counts(df_analysis_data, 'item_data_types_counts', feeds_to_include='all')
+    # Columns: ['item_data_type', 'count', 'percentage']
+    df_total_item_data_types_counts, \
+    total_num_item_data_types, \
+    total_num_items_with_data_types = get_df_total_values_counts(df_analysis_data, 'item_data_types_counts', feeds_to_include='all')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -287,13 +287,13 @@ def analyse_opportunities_aggregated(**kwargs):
         'total_num_lads': total_num_lads,
         'total_num_items_with_lads': total_num_items_with_lads,
 
-        'df_total_kinds_counts': df_total_kinds_counts,
-        'total_num_kinds': total_num_kinds,
+        'df_total_item_kinds_counts': df_total_item_kinds_counts,
+        'total_num_item_kinds': total_num_item_kinds,
         'total_num_items_with_kinds': total_num_items_with_kinds,
 
-        'df_total_types_counts': df_total_types_counts,
-        'total_num_types': total_num_types,
-        'total_num_items_with_types': total_num_items_with_types,
+        'df_total_item_data_types_counts': df_total_item_data_types_counts,
+        'total_num_item_data_types': total_num_item_data_types,
+        'total_num_items_with_data_types': total_num_items_with_data_types,
 
         # 'df_total_sad_counts': df_total_sad_counts, # 2024-08-23 Not currently used in the dashboard
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
@@ -337,9 +337,9 @@ def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include
         .reset_index()
 
     if (values_counts == 'item_kinds_counts'):
-        df_total_values_counts.columns = ['kind', 'count']
+        df_total_values_counts.columns = ['item_kind', 'count']
     elif (values_counts == 'item_data_types_counts'):
-        df_total_values_counts.columns = ['type', 'count']
+        df_total_values_counts.columns = ['item_data_type', 'count']
     elif (values_counts == 'activities_counts'):
         df_total_values_counts.columns = ['activity', 'count']
     elif (values_counts == 'organisers_counts'):

@@ -371,11 +371,11 @@ with tabs[idx_tab]:
     cols = st.columns(2)
     with cols[0]:
         st.dataframe(
-            st.session_state.analysis['df_total_kinds_counts'],
+            st.session_state.analysis['df_total_item_kinds_counts'],
             use_container_width=True,
             hide_index=True,
             column_config={
-                'kind': 'OA kind',
+                'item_kind': 'OA item kind',
                 'count': 'Num. opportunities',
                 'percentage': st.column_config.NumberColumn(
                     '% opportunities',
@@ -383,15 +383,15 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. kinds: {st.session_state.analysis['total_num_kinds']:,}")
+        st.write(f"Num. item kinds: {st.session_state.analysis['total_num_item_kinds']:,}")
         st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_kinds']:,}")
     with cols[1]:
         st.dataframe(
-            st.session_state.analysis['df_total_types_counts'],
+            st.session_state.analysis['df_total_item_data_types_counts'],
             use_container_width=True,
             hide_index=True,
             column_config={
-                'type': 'OA type',
+                'item_data_type': 'OA item data type',
                 'count': 'Num. opportunities',
                 'percentage': st.column_config.NumberColumn(
                     '% opportunities',
@@ -399,8 +399,8 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. types: {st.session_state.analysis['total_num_types']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_types']:,}")
+        st.write(f"Num. item data types: {st.session_state.analysis['total_num_item_data_types']:,}")
+        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_data_types']:,}")
 
 # --------------------------------------------------------------------------------------------------
 
