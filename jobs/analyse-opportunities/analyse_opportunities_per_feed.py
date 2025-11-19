@@ -336,7 +336,9 @@ def get_values_counts(opportunities, sought_parent_keys, sought_child_keys=None)
     for item in opportunities['items'].values():
         values = get_values(item, sought_parent_keys, sought_child_keys)
         for value in values:
-            if (not isinstance(value, str)):
+            if (isinstance(value, dict)):
+                value = json.dumps(value)
+            elif (not isinstance(value, str)):
                 value = str(value)
             value = value.strip()
             if (value not in values_counts.keys()):
