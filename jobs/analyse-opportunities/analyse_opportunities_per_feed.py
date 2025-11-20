@@ -51,7 +51,7 @@ def analyse_opportunities_per_feed(**kwargs):
 
     # List the items we want to collect for each feed. These column headers need to be specified here in
     # advance of row insertion into the DataFrame:
-    df_analysis_data = pd.DataFrame(columns=[
+    separate_analysis = pd.DataFrame(columns=[
         'file_name',
         'file_name_partner',
         'event_type',
@@ -223,7 +223,7 @@ def analyse_opportunities_per_feed(**kwargs):
                             for item_id in random.sample(future_week_item_ids, min(2, num_future_week_items))
                         }
 
-                    df_analysis_data.loc[len(df_analysis_data)] = {
+                    separate_analysis.loc[len(separate_analysis)] = {
                         'file_name': filename_pair[idx],
                         'file_name_partner': filename_pair[1-idx],
                         'event_type': event_type_pair[idx],
@@ -247,8 +247,8 @@ def analyse_opportunities_per_feed(**kwargs):
                         'num_matched_subevent_items': num_matched_subevent_items,
                         'num_unmatched_superevent_items': num_unmatched_superevent_items,
                         'num_unmatched_subevent_items': num_unmatched_subevent_items,
-                        'item_kinds_counts': item_kinds_counts_pair[idx],
-                        'item_data_types_counts': item_data_types_counts_pair[idx],
+                        'item_kinds_counts': item_kinds_counts_pair[idx], # TODO: Consider what this means in the context of merging, as we drop the superevent opportunities dictionary
+                        'item_data_types_counts': item_data_types_counts_pair[idx], # TODO: Consider what this means in the context of merging, as we drop the superevent opportunities dictionary
                         'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
                         'organisers_counts': get_values_counts(opportunities_pair[idx], 'organizer', 'name'),
                         'addresses_counts': get_values_counts(opportunities_pair[idx], 'location'),
@@ -265,7 +265,7 @@ def analyse_opportunities_per_feed(**kwargs):
     # --------------------------------------------------------------------------------------------------
 
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_PER_FEED_FILENAME, 'wb') as file_out:
-        pickle.dump(df_analysis_data, file_out)
+        pickle.dump(separate_analysis, file_out)
 
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:
         pickle.dump(filenames_sampleitems, file_out)

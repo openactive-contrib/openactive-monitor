@@ -21,51 +21,51 @@ def analyse_opportunities_aggregated(**kwargs):
         feeds_preview = pickle.load(file_in)
 
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_PER_FEED_FILENAME, 'rb') as file_in:
-         df_analysis_data = pickle.load(file_in)
+        separate_analysis = pickle.load(file_in)
 
     # --------------------------------------------------------------------------------------------------
 
     # For the 'Overview' tab
 
-    num_publishers_regular = df_analysis_data['publisher_name'].loc[df_analysis_data['is_regular']].replace('', nan).nunique()
-    num_publishers_preview = df_analysis_data['publisher_name'].loc[~df_analysis_data['is_regular']].replace('', nan).nunique()
-    num_publishers = df_analysis_data['publisher_name'].replace('', nan).nunique()
+    num_publishers_regular = separate_analysis['publisher_name'].loc[separate_analysis['is_regular']].replace('', nan).nunique()
+    num_publishers_preview = separate_analysis['publisher_name'].loc[~separate_analysis['is_regular']].replace('', nan).nunique()
+    num_publishers = separate_analysis['publisher_name'].replace('', nan).nunique()
 
-    num_datasets_regular = df_analysis_data['dataset_url'].loc[df_analysis_data['is_regular']].replace('', nan).nunique()
-    num_datasets_preview = df_analysis_data['dataset_url'].loc[~df_analysis_data['is_regular']].replace('', nan).nunique()
-    num_datasets = df_analysis_data['dataset_url'].replace('', nan).nunique()
+    num_datasets_regular = separate_analysis['dataset_url'].loc[separate_analysis['is_regular']].replace('', nan).nunique()
+    num_datasets_preview = separate_analysis['dataset_url'].loc[~separate_analysis['is_regular']].replace('', nan).nunique()
+    num_datasets = separate_analysis['dataset_url'].replace('', nan).nunique()
 
     num_feeds_regular = len(feeds_regular)
     num_feeds_preview = len(feeds_preview)
     num_feeds = num_feeds_regular + num_feeds_preview
 
     num_feeds_with_analysed_data_regular = \
-            (df_analysis_data.loc[df_analysis_data['is_regular'] & df_analysis_data['is_merged_with_partner']].shape[0] * 2) \
-        +   (df_analysis_data.loc[df_analysis_data['is_regular'] & ~df_analysis_data['is_merged_with_partner']].shape[0])
+            (separate_analysis.loc[separate_analysis['is_regular'] & separate_analysis['is_merged_with_partner']].shape[0] * 2) \
+        +   (separate_analysis.loc[separate_analysis['is_regular'] & ~separate_analysis['is_merged_with_partner']].shape[0])
     num_feeds_with_analysed_data_preview = \
-            (df_analysis_data.loc[~df_analysis_data['is_regular'] & df_analysis_data['is_merged_with_partner']].shape[0] * 2) \
-        +   (df_analysis_data.loc[~df_analysis_data['is_regular'] & ~df_analysis_data['is_merged_with_partner']].shape[0])
+            (separate_analysis.loc[~separate_analysis['is_regular'] & separate_analysis['is_merged_with_partner']].shape[0] * 2) \
+        +   (separate_analysis.loc[~separate_analysis['is_regular'] & ~separate_analysis['is_merged_with_partner']].shape[0])
     num_feeds_with_analysed_data = num_feeds_with_analysed_data_regular + num_feeds_with_analysed_data_preview
 
-    total_num_items_regular = df_analysis_data['num_items'].loc[df_analysis_data['is_regular']].sum()
-    total_num_items_preview = df_analysis_data['num_items'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_items_regular = separate_analysis['num_items'].loc[separate_analysis['is_regular']].sum()
+    total_num_items_preview = separate_analysis['num_items'].loc[~separate_analysis['is_regular']].sum()
     total_num_items = total_num_items_regular + total_num_items_preview
 
     # --------------------------------------------------------------------------------------------------
 
-    total_num_future_items_regular = df_analysis_data['num_future_items'].loc[df_analysis_data['is_regular']].sum()
-    total_num_future_items_preview = df_analysis_data['num_future_items'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_future_items_regular = separate_analysis['num_future_items'].loc[separate_analysis['is_regular']].sum()
+    total_num_future_items_preview = separate_analysis['num_future_items'].loc[~separate_analysis['is_regular']].sum()
     total_num_future_items = total_num_future_items_regular + total_num_future_items_preview
 
-    total_num_future_week_items_regular = df_analysis_data['num_future_week_items'].loc[df_analysis_data['is_regular']].sum()
-    total_num_future_week_items_preview = df_analysis_data['num_future_week_items'].loc[~df_analysis_data['is_regular']].sum()
+    total_num_future_week_items_regular = separate_analysis['num_future_week_items'].loc[separate_analysis['is_regular']].sum()
+    total_num_future_week_items_preview = separate_analysis['num_future_week_items'].loc[~separate_analysis['is_regular']].sum()
     total_num_future_week_items = total_num_future_week_items_regular + total_num_future_week_items_preview
 
     # --------------------------------------------------------------------------------------------------
 
     df_total_item_kinds_counts, \
     total_num_item_kinds, \
-    total_num_items_with_kinds = get_df_total_values_counts(df_analysis_data, 'item_kinds_counts', feeds_to_include='all')
+    total_num_items_with_kinds = get_df_total_values_counts(separate_analysis, 'item_kinds_counts', feeds_to_include='all')
 
     df_total_item_kinds_counts.rename(columns={'value': 'item_kind'}, inplace=True)
 
@@ -73,7 +73,7 @@ def analyse_opportunities_aggregated(**kwargs):
 
     df_total_item_data_types_counts, \
     total_num_item_data_types, \
-    total_num_items_with_data_types = get_df_total_values_counts(df_analysis_data, 'item_data_types_counts', feeds_to_include='all')
+    total_num_items_with_data_types = get_df_total_values_counts(separate_analysis, 'item_data_types_counts', feeds_to_include='all')
 
     df_total_item_data_types_counts.rename(columns={'value': 'item_data_type'}, inplace=True)
 
@@ -81,7 +81,7 @@ def analyse_opportunities_aggregated(**kwargs):
 
     df_total_activities_counts, \
     total_num_activities, \
-    total_num_items_with_activities = get_df_total_values_counts(df_analysis_data, 'activities_counts', feeds_to_include='all')
+    total_num_items_with_activities = get_df_total_values_counts(separate_analysis, 'activities_counts', feeds_to_include='all')
 
     df_total_activities_counts.rename(columns={'value': 'activity'}, inplace=True)
 
@@ -89,7 +89,7 @@ def analyse_opportunities_aggregated(**kwargs):
 
     df_total_organisers_counts, \
     total_num_organisers, \
-    total_num_items_with_organisers = get_df_total_values_counts(df_analysis_data, 'organisers_counts', feeds_to_include='all')
+    total_num_items_with_organisers = get_df_total_values_counts(separate_analysis, 'organisers_counts', feeds_to_include='all')
 
     df_total_organisers_counts.rename(columns={'value': 'organiser'}, inplace=True)
 
@@ -97,7 +97,7 @@ def analyse_opportunities_aggregated(**kwargs):
 
     df_total_addresses_counts, \
     total_num_addresses, \
-    total_num_items_with_addresses = get_df_total_values_counts(df_analysis_data, 'addresses_counts', feeds_to_include='all')
+    total_num_items_with_addresses = get_df_total_values_counts(separate_analysis, 'addresses_counts', feeds_to_include='all')
 
     df_total_addresses_counts.rename(columns={'value': 'address'}, inplace=True)
 
@@ -105,7 +105,7 @@ def analyse_opportunities_aggregated(**kwargs):
 
     df_total_latlons_counts, \
     total_num_latlons, \
-    total_num_items_with_latlons = get_df_total_values_counts(df_analysis_data, 'latlons_counts', feeds_to_include='all')
+    total_num_items_with_latlons = get_df_total_values_counts(separate_analysis, 'latlons_counts', feeds_to_include='all')
 
     df_total_latlons_counts.rename(columns={'value': 'latlon'}, inplace=True)
 
@@ -324,13 +324,13 @@ def analyse_opportunities_aggregated(**kwargs):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include='all'):
+def get_df_total_values_counts(separate_analysis, values_counts, feeds_to_include='all'):
     if (feeds_to_include == 'all'):
-        df_total_values_counts = df_analysis_data
+        df_total_values_counts = separate_analysis
     elif (feeds_to_include == 'regular'):
-        df_total_values_counts = df_analysis_data.loc[df_analysis_data['is_regular']]
+        df_total_values_counts = separate_analysis.loc[separate_analysis['is_regular']]
     elif (feeds_to_include == 'preview'):
-        df_total_values_counts = df_analysis_data.loc[~df_analysis_data['is_regular']]
+        df_total_values_counts = separate_analysis.loc[~separate_analysis['is_regular']]
 
     df_total_values_counts = \
         df_total_values_counts[values_counts] \
