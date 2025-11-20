@@ -9,7 +9,7 @@ from settings import *
 
 # --------------------------------------------------------------------------------------------------
 
-def analyse_opportunities_aggregated(**kwargs):
+def analyse_aggregate_opportunities(**kwargs):
     verbose = kwargs.get('verbose', False)
 
     # --------------------------------------------------------------------------------------------------

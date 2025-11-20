@@ -15,8 +15,8 @@ VERBOSE = True if (VERBOSE == 'True') else False
 
 if (__name__ == '__main__'):
     try:
-        analyse_opportunities_per_feed(verbose=VERBOSE)
-        analyse_opportunities_aggregated(verbose=VERBOSE)
+        analyse_separate_opportunities(verbose=VERBOSE)
+        analyse_aggregate_opportunities(verbose=VERBOSE)
     except Exception as error:
         print('ERROR:', error)
 
