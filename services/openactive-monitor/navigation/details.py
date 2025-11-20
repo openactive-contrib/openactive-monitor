@@ -145,7 +145,7 @@ with tabs[idx_tab]:
     with cols[1]:
         st.metric(
             'Live opportunities over the next 7 days',
-            f"{st.session_state.analysis['total_num_future_week_items']:,}",
+            f"{st.session_state.aggregate_analysis['total_num_future_week_items']:,}",
         )
 
     st.divider()
@@ -220,7 +220,7 @@ with tabs[idx_tab]:
     cols = st.columns([1, 2])
     with cols[0]:
         st.dataframe(
-            st.session_state.analysis['df_total_activities_counts'],
+            st.session_state.aggregate_analysis['df_total_activities_counts'],
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -232,12 +232,12 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. activities: {st.session_state.analysis['total_num_activities']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_activities']:,}")
+        st.write(f"Num. activities: {st.session_state.aggregate_analysis['total_num_activities']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_activities']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(10, 5))
         sns.barplot(
-            st.session_state.analysis['df_total_activities_counts'][:st.session_state.num_activities_top],
+            st.session_state.aggregate_analysis['df_total_activities_counts'][:st.session_state.num_activities_top],
             x='count',
             y='activity',
             ax=ax,
@@ -259,7 +259,7 @@ with tabs[idx_tab]:
     cols = st.columns([1, 2])
     with cols[0]:
         st.dataframe(
-            st.session_state.analysis['df_total_organisers_counts'],
+            st.session_state.aggregate_analysis['df_total_organisers_counts'],
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -271,12 +271,12 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. organisers: {st.session_state.analysis['total_num_organisers']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_organisers']:,}")
+        st.write(f"Num. organisers: {st.session_state.aggregate_analysis['total_num_organisers']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_organisers']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(10, 5))
         sns.barplot(
-            st.session_state.analysis['df_total_organisers_counts'][:st.session_state.num_activities_top],
+            st.session_state.aggregate_analysis['df_total_organisers_counts'][:st.session_state.num_activities_top],
             x='count',
             y='organiser',
             ax=ax,
@@ -298,7 +298,7 @@ with tabs[idx_tab]:
     cols = st.columns(3)
     with cols[0]:
         st.dataframe(
-            st.session_state.analysis['gdf_total_regions_counts'][['eer18nm', 'count', 'percentage']],
+            st.session_state.aggregate_analysis['gdf_total_regions_counts'][['eer18nm', 'count', 'percentage']],
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -310,11 +310,11 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. locations: {st.session_state.analysis['total_num_regions']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_regions']:,}")
+        st.write(f"Num. locations: {st.session_state.aggregate_analysis['total_num_regions']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_regions']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-        st.session_state.analysis['gdf_total_regions_counts'].plot(
+        st.session_state.aggregate_analysis['gdf_total_regions_counts'].plot(
             column='percentage',
             # cmap='YlOrRd',
             cmap='inferno_r',
@@ -332,7 +332,7 @@ with tabs[idx_tab]:
     cols = st.columns(3)
     with cols[0]:
         st.dataframe(
-            st.session_state.analysis['gdf_total_lads_counts'][['LAD24NM', 'count', 'percentage']],
+            st.session_state.aggregate_analysis['gdf_total_lads_counts'][['LAD24NM', 'count', 'percentage']],
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -344,11 +344,11 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. locations: {st.session_state.analysis['total_num_lads']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_lads']:,}")
+        st.write(f"Num. locations: {st.session_state.aggregate_analysis['total_num_lads']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_lads']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-        st.session_state.analysis['gdf_total_lads_counts'].plot(
+        st.session_state.aggregate_analysis['gdf_total_lads_counts'].plot(
             column='percentage',
             # cmap='YlOrRd',
             cmap='inferno_r',
@@ -371,7 +371,7 @@ with tabs[idx_tab]:
     cols = st.columns(2)
     with cols[0]:
         st.dataframe(
-            st.session_state.analysis['df_total_item_kinds_counts'],
+            st.session_state.aggregate_analysis['df_total_item_kinds_counts'],
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -383,11 +383,11 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. item kinds: {st.session_state.analysis['total_num_item_kinds']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_kinds']:,}")
+        st.write(f"Num. item kinds: {st.session_state.aggregate_analysis['total_num_item_kinds']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_kinds']:,}")
     with cols[1]:
         st.dataframe(
-            st.session_state.analysis['df_total_item_data_types_counts'],
+            st.session_state.aggregate_analysis['df_total_item_data_types_counts'],
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -399,8 +399,8 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. item data types: {st.session_state.analysis['total_num_item_data_types']:,}")
-        st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_data_types']:,}")
+        st.write(f"Num. item data types: {st.session_state.aggregate_analysis['total_num_item_data_types']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_data_types']:,}")
 
 # --------------------------------------------------------------------------------------------------
 
@@ -410,13 +410,13 @@ with tabs[idx_tab]:
     st.header('Key Performance Indicators')
 
     st.subheader('Growth of OpenActive')
-    st.subheader(f"{st.session_state.analysis['percentage_sad_matched']:.1f}% of Sport England recognised Sports and Disciplines appear in OpenActive data feeds")
+    st.subheader(f"{st.session_state.aggregate_analysis['percentage_sad_matched']:.1f}% of Sport England recognised Sports and Disciplines appear in OpenActive data feeds")
     with st.expander('A higher value means more of the sports and disciplines recognised by Sport England are discoverable through the OpenActive ecosystem. Click here for more details.'):
         cols = st.columns([2, 1])
         with cols[0]:
-            st.write(f"Matched SE categories: {st.session_state.analysis['num_sad_matched']} / {st.session_state.analysis['num_sad']} ({st.session_state.analysis['percentage_sad_matched']:.1f}%)")
+            st.write(f"Matched SE categories: {st.session_state.aggregate_analysis['num_sad_matched']} / {st.session_state.aggregate_analysis['num_sad']} ({st.session_state.aggregate_analysis['percentage_sad_matched']:.1f}%)")
             st.dataframe(
-                st.session_state.analysis['df_total_sad_counts_matched'],
+                st.session_state.aggregate_analysis['df_total_sad_counts_matched'],
                 use_container_width=True,
                 hide_index=True,
                 column_config={
@@ -437,12 +437,12 @@ with tabs[idx_tab]:
                     ),
                 },
             )
-            st.write(f"Num. activities: {st.session_state.analysis['total_num_activities_with_sad']:,}")
-            st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_with_sad']:,}")
+            st.write(f"Num. activities: {st.session_state.aggregate_analysis['total_num_activities_with_sad']:,}")
+            st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_sad']:,}")
         with cols[1]:
-            st.write(f"Unmatched SE categories: {st.session_state.analysis['num_sad_unmatched']} / {st.session_state.analysis['num_sad']} ({st.session_state.analysis['percentage_sad_unmatched']:.1f}%)")
+            st.write(f"Unmatched SE categories: {st.session_state.aggregate_analysis['num_sad_unmatched']} / {st.session_state.aggregate_analysis['num_sad']} ({st.session_state.aggregate_analysis['percentage_sad_unmatched']:.1f}%)")
             st.dataframe(
-                st.session_state.analysis['df_se_sport_and_discipline_unmatched'][['sport', 'discipline']],
+                st.session_state.aggregate_analysis['df_se_sport_and_discipline_unmatched'][['sport', 'discipline']],
                 use_container_width=True,
                 hide_index=True,
                 column_config={
@@ -459,7 +459,7 @@ with tabs[idx_tab]:
 
         # st.write('Unmatched OA activities')
         # st.dataframe(
-        #     st.session_state.analysis['df_total_sad_counts_unmatched'],
+        #     st.session_state.aggregate_analysis['df_total_sad_counts_unmatched'],
         #     hide_index=True,
         #     column_config={
         #         'sport_and_discipline': 'SE sport and discipline',
@@ -471,5 +471,5 @@ with tabs[idx_tab]:
         #         ),
         #     },
         # )
-        # st.write(f"Num. activities: {st.session_state.analysis['total_num_activities_without_sad']:,}")
-        # st.write(f"Num. opportunities: {st.session_state.analysis['total_num_items_without_sad']:,}")
+        # st.write(f"Num. activities: {st.session_state.aggregate_analysis['total_num_activities_without_sad']:,}")
+        # st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_without_sad']:,}")

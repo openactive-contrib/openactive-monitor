@@ -129,17 +129,17 @@ if ('initialised' not in st.session_state):
     if (not st.session_state.error):
         try:
             with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_AGGREGATED_FILENAME, 'rb') as file_in:
-                st.session_state.analysis = pickle.load(file_in)
+                st.session_state.aggregate_analysis = pickle.load(file_in)
         except:
             st.session_state.error = True
-            st.error('Error retrieving analysis')
+            st.error('Error retrieving aggregate analysis')
         try:
             with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'rb') as file_in:
                 st.session_state.filenames_sampleitems = pickle.load(file_in)
                 st.session_state.num_feeds_with_sampleitems = len(st.session_state.filenames_sampleitems)
         except:
             st.session_state.error = True
-            st.error('Error retrieving samples')
+            st.error('Error retrieving sample items')
 
     if (not st.session_state.error):
         # For the 'This week' tab

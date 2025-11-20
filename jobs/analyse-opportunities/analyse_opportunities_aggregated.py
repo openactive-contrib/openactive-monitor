@@ -238,7 +238,7 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    analysis = {
+    aggregate_analysis = {
         'num_publishers_regular': num_publishers_regular,
         'num_publishers_preview': num_publishers_preview,
         'num_publishers': num_publishers,
@@ -320,7 +320,7 @@ def analyse_opportunities_aggregated(**kwargs):
     # --------------------------------------------------------------------------------------------------
 
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_AGGREGATED_FILENAME, 'wb') as file_out:
-        pickle.dump(analysis, file_out)
+        pickle.dump(aggregate_analysis, file_out)
 
 # --------------------------------------------------------------------------------------------------
 
