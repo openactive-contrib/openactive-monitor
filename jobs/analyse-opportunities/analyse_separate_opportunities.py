@@ -264,7 +264,7 @@ def analyse_separate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_PER_FEED_FILENAME, 'wb') as file_out:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SEPARATE_ANALYSIS_FILENAME, 'wb') as file_out:
         pickle.dump(separate_analysis, file_out)
 
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:

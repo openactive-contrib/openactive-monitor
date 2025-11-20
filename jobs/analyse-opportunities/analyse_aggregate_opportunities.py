@@ -20,7 +20,7 @@ def analyse_aggregate_opportunities(**kwargs):
     with open(FEEDS_RELATIVE_FILEPATH + '/' + PREVIEW_FEEDS_LATEST_FILENAME, 'rb') as file_in:
         feeds_preview = pickle.load(file_in)
 
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_PER_FEED_FILENAME, 'rb') as file_in:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SEPARATE_ANALYSIS_FILENAME, 'rb') as file_in:
         separate_analysis = pickle.load(file_in)
 
     # --------------------------------------------------------------------------------------------------
@@ -319,7 +319,7 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_AGGREGATED_FILENAME, 'wb') as file_out:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + AGGREGATE_ANALYSIS_FILENAME, 'wb') as file_out:
         pickle.dump(aggregate_analysis, file_out)
 
 # --------------------------------------------------------------------------------------------------

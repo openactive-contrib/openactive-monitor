@@ -23,8 +23,8 @@ REGULAR_FEEDS_FILENAME_BASE = 'regular-feeds'
 PREVIEW_FEEDS_FILENAME_BASE = 'preview-feeds'
 FEEDS_FILENAME_SUFFIX = '.pickle'
 
-REGULAR_FEEDS_LATEST_FILENAME = 'feeds.pickle' # TODO: Change to 'regular-feeds-latest.pickle' when accommodated elsewhere
-PREVIEW_FEEDS_LATEST_FILENAME = 'feeds-preview.pickle' # TODO: Change to 'preview-feeds-latest.pickle' when accommodated elsewhere
+REGULAR_FEEDS_LATEST_FILENAME = 'regular-feeds.pickle'
+PREVIEW_FEEDS_LATEST_FILENAME = 'preview-feeds.pickle'
 REGULAR_FEEDS_HISTORY_FILENAME = 'regular-feeds-history.csv'
 PREVIEW_FEEDS_HISTORY_FILENAME = 'preview-feeds-history.csv'
 FEEDS_RELATIVE_FILEPATH_SKIP_FILENAMES = [
@@ -57,9 +57,9 @@ OPPORTUNITIES_RELATIVE_FILEPATH_SKIP_FILENAMES = [
 
 # Files in ANALYSIS_RELATIVE_FILEPATH
 
-ANALYSIS_PER_FEED_FILENAME = 'analysis-data.pickle' # TODO: Change to 'analysis-per-feed.pickle' when accommodated elsewhere
-ANALYSIS_AGGREGATED_FILENAME = 'analysis.pickle' # TODO: Change to 'analysis-aggregated.pickle' when accommodated elsewhere
-SAMPLE_ITEMS_FILENAME = 'sample_data.pickle'
+SEPARATE_ANALYSIS_FILENAME = 'separate-analysis.pickle'
+AGGREGATE_ANALYSIS_FILENAME = 'aggregate-analysis.pickle'
+SAMPLE_ITEMS_FILENAME = 'sample-items.pickle'
 
 GEO_REGIONS_FILENAME = 'regions.geojson'
 GEO_LADS_FILENAME = 'lads.geojson'

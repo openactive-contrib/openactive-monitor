@@ -128,7 +128,7 @@ if ('initialised' not in st.session_state):
 
     if (not st.session_state.error):
         try:
-            with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ANALYSIS_AGGREGATED_FILENAME, 'rb') as file_in:
+            with open(ANALYSIS_RELATIVE_FILEPATH + '/' + AGGREGATE_ANALYSIS_FILENAME, 'rb') as file_in:
                 st.session_state.aggregate_analysis = pickle.load(file_in)
         except:
             st.session_state.error = True
