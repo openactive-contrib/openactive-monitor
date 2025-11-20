@@ -53,8 +53,6 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    # For the 'This week' tab
-
     total_num_future_items_regular = df_analysis_data['num_future_items'].loc[df_analysis_data['is_regular']].sum()
     total_num_future_items_preview = df_analysis_data['num_future_items'].loc[~df_analysis_data['is_regular']].sum()
     total_num_future_items = total_num_future_items_regular + total_num_future_items_preview
@@ -65,7 +63,19 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    # For the 'Activities' tab
+    # Columns: ['item_kind', 'count', 'percentage']
+    df_total_item_kinds_counts, \
+    total_num_item_kinds, \
+    total_num_items_with_kinds = get_df_total_values_counts(df_analysis_data, 'item_kinds_counts', feeds_to_include='all')
+
+    # --------------------------------------------------------------------------------------------------
+
+    # Columns: ['item_data_type', 'count', 'percentage']
+    df_total_item_data_types_counts, \
+    total_num_item_data_types, \
+    total_num_items_with_data_types = get_df_total_values_counts(df_analysis_data, 'item_data_types_counts', feeds_to_include='all')
+
+    # --------------------------------------------------------------------------------------------------
 
     # Columns: ['activity', 'count', 'percentage']
     df_total_activities_counts, \
@@ -74,8 +84,6 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    # For the 'Organisers' tab
-
     # Columns: ['organiser', 'count', 'percentage']
     df_total_organisers_counts, \
     total_num_organisers, \
@@ -83,24 +91,29 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    # For the 'Locations' tab
-
     # Columns: ['address', 'count', 'percentage']
     df_total_addresses_counts, \
     total_num_addresses, \
     total_num_items_with_addresses = get_df_total_values_counts(df_analysis_data, 'addresses_counts', feeds_to_include='all')
 
+    # --------------------------------------------------------------------------------------------------
+
     # Columns: ['latlon', 'count', 'percentage']
     df_total_latlons_counts, \
     total_num_latlons, \
     total_num_items_with_latlons = get_df_total_values_counts(df_analysis_data, 'latlons_counts', feeds_to_include='all')
+
     # Columns: ['latlon', 'count', 'percentage', 'latitude', 'longitude']
     df_total_latlons_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_latlons_counts['latlon'].apply(lambda latlon: latlon.split(',')).tolist())
+
     # Columns: ['latitude', 'longitude', 'count', 'percentage']
     df_total_latlons_counts = df_total_latlons_counts[['latitude', 'longitude', 'count', 'percentage']]
 
+    # --------------------------------------------------------------------------------------------------
+
     # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry']
     gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
+
     # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
     gdf_lads = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
 
@@ -116,24 +129,9 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    # For the 'Labels' tab
-
-    # Columns: ['item_kind', 'count', 'percentage']
-    df_total_item_kinds_counts, \
-    total_num_item_kinds, \
-    total_num_items_with_kinds = get_df_total_values_counts(df_analysis_data, 'item_kinds_counts', feeds_to_include='all')
-
-    # Columns: ['item_data_type', 'count', 'percentage']
-    df_total_item_data_types_counts, \
-    total_num_item_data_types, \
-    total_num_items_with_data_types = get_df_total_values_counts(df_analysis_data, 'item_data_types_counts', feeds_to_include='all')
-
-    # --------------------------------------------------------------------------------------------------
-
-    # For the 'KPIs' tab
-
     # Columns: ['sport', 'discipline', 'sport_and_discipline']
     df_se_sport_and_discipline = pd.read_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + SE_SPORT_AND_DISCIPLINE_FILENAME)
+
     # Columns: ['activity', 'sport_and_discipline']
     df_oa_se_mapping = pd.read_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + OA_SE_MAPPING_FILENAME)
 
@@ -349,12 +347,12 @@ def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include
     elif (values_counts == 'latlons_counts'):
         df_total_values_counts.columns = ['latlon', 'count']
 
-    total_num_keys = df_total_values_counts.shape[0]
-    total_num_items_with_keys = df_total_values_counts['count'].sum()
+    total_num_values = df_total_values_counts.shape[0]
+    total_num_items_with_values = df_total_values_counts['count'].sum()
 
-    df_total_values_counts['percentage'] = (df_total_values_counts['count'] / total_num_items_with_keys) * 100
+    df_total_values_counts['percentage'] = (df_total_values_counts['count'] / total_num_items_with_values) * 100
 
-    return df_total_values_counts, total_num_keys, total_num_items_with_keys
+    return df_total_values_counts, total_num_values, total_num_items_with_values
 
 # --------------------------------------------------------------------------------------------------
 
