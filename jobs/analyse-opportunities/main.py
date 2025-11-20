@@ -1,6 +1,6 @@
 import sys
-from analyse_opportunities_per_feed import analyse_opportunities_per_feed
-from analyse_opportunities_aggregated import analyse_opportunities_aggregated
+from analyse_separate_opportunities import analyse_separate_opportunities
+from analyse_aggregate_opportunities import analyse_aggregate_opportunities
 from os import getenv
 
 sys.path.append('../volume-1/common')
