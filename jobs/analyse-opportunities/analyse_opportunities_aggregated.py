@@ -63,45 +63,51 @@ def analyse_opportunities_aggregated(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    # Columns: ['item_kind', 'count', 'percentage']
     df_total_item_kinds_counts, \
     total_num_item_kinds, \
     total_num_items_with_kinds = get_df_total_values_counts(df_analysis_data, 'item_kinds_counts', feeds_to_include='all')
 
+    df_total_item_kinds_counts.rename(columns={'value': 'item_kind'}, inplace=True)
+
     # --------------------------------------------------------------------------------------------------
 
-    # Columns: ['item_data_type', 'count', 'percentage']
     df_total_item_data_types_counts, \
     total_num_item_data_types, \
     total_num_items_with_data_types = get_df_total_values_counts(df_analysis_data, 'item_data_types_counts', feeds_to_include='all')
 
+    df_total_item_data_types_counts.rename(columns={'value': 'item_data_type'}, inplace=True)
+
     # --------------------------------------------------------------------------------------------------
 
-    # Columns: ['activity', 'count', 'percentage']
     df_total_activities_counts, \
     total_num_activities, \
     total_num_items_with_activities = get_df_total_values_counts(df_analysis_data, 'activities_counts', feeds_to_include='all')
 
+    df_total_activities_counts.rename(columns={'value': 'activity'}, inplace=True)
+
     # --------------------------------------------------------------------------------------------------
 
-    # Columns: ['organiser', 'count', 'percentage']
     df_total_organisers_counts, \
     total_num_organisers, \
     total_num_items_with_organisers = get_df_total_values_counts(df_analysis_data, 'organisers_counts', feeds_to_include='all')
 
+    df_total_organisers_counts.rename(columns={'value': 'organiser'}, inplace=True)
+
     # --------------------------------------------------------------------------------------------------
 
-    # Columns: ['address', 'count', 'percentage']
     df_total_addresses_counts, \
     total_num_addresses, \
     total_num_items_with_addresses = get_df_total_values_counts(df_analysis_data, 'addresses_counts', feeds_to_include='all')
 
+    df_total_addresses_counts.rename(columns={'value': 'address'}, inplace=True)
+
     # --------------------------------------------------------------------------------------------------
 
-    # Columns: ['latlon', 'count', 'percentage']
     df_total_latlons_counts, \
     total_num_latlons, \
     total_num_items_with_latlons = get_df_total_values_counts(df_analysis_data, 'latlons_counts', feeds_to_include='all')
+
+    df_total_latlons_counts.rename(columns={'value': 'latlon'}, inplace=True)
 
     # Columns: ['latlon', 'count', 'percentage', 'latitude', 'longitude']
     df_total_latlons_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_latlons_counts['latlon'].apply(lambda latlon: latlon.split(',')).tolist())
@@ -334,23 +340,15 @@ def get_df_total_values_counts(df_analysis_data, values_counts, feeds_to_include
         .sort_values(ascending=False) \
         .reset_index()
 
-    if (values_counts == 'item_kinds_counts'):
-        df_total_values_counts.columns = ['item_kind', 'count']
-    elif (values_counts == 'item_data_types_counts'):
-        df_total_values_counts.columns = ['item_data_type', 'count']
-    elif (values_counts == 'activities_counts'):
-        df_total_values_counts.columns = ['activity', 'count']
-    elif (values_counts == 'organisers_counts'):
-        df_total_values_counts.columns = ['organiser', 'count']
-    elif (values_counts == 'addresses_counts'):
-        df_total_values_counts.columns = ['address', 'count']
-    elif (values_counts == 'latlons_counts'):
-        df_total_values_counts.columns = ['latlon', 'count']
+    df_total_values_counts.columns = ['value', 'count']
 
     total_num_values = df_total_values_counts.shape[0]
     total_num_items_with_values = df_total_values_counts['count'].sum()
 
     df_total_values_counts['percentage'] = (df_total_values_counts['count'] / total_num_items_with_values) * 100
+
+    # The columns of df_total_values_counts are now:
+    # ['value', 'count', 'percentage']
 
     return df_total_values_counts, total_num_values, total_num_items_with_values
 
