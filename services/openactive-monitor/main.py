@@ -66,9 +66,9 @@ if ('initialised' not in st.session_state):
         }
 
         for feed in feeds:
-            if feed.get('logoUrl'):
-                if (feed['logoUrl'] not in logo_urls):
-                    logo_urls.append(feed['logoUrl'])
+            if feed.get('logo_url'):
+                if (feed['logo_url'] not in logo_urls):
+                    logo_urls.append(feed['logo_url'])
             if feed.get('type'):
                 feed_type = feed_type_map.get(feed['type'], feed['type'])
                 feed_type_counts[feed_type] = feed_type_counts.get(feed_type, 0) + 1

@@ -32,7 +32,7 @@ def run_get_feeds(**kwargs):
     current_filename_base = PREVIEW_FEEDS_FILENAME_BASE if preview else REGULAR_FEEDS_FILENAME_BASE
     current_filename = \
         current_filename_base + \
-        FilenameStamp('feeds', t1, t2, {'numFeeds': len(feeds), 'numDatasets': len(set([feed['datasetUrl'] for feed in feeds]))}).value + \
+        FilenameStamp('feeds', t1, t2, {'numFeeds': len(feeds), 'numDatasets': len(set([feed['dataset_url'] for feed in feeds]))}).value + \
         FEEDS_FILENAME_SUFFIX
 
     with open(FEEDS_RELATIVE_FILEPATH + '/' + current_filename, 'wb') as file_out:
