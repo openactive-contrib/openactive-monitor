@@ -223,6 +223,8 @@ def analyse_separate_opportunities(**kwargs):
                             for item_id in random.sample(future_week_item_ids, min(2, num_future_week_items))
                         }
 
+                    # TODO: The counts obtained here are regardless of whether or not they're for future dates. Should cater for this depending on how the data are to be displayed and interpreted:
+
                     separate_analysis.loc[len(separate_analysis)] = {
                         'file_name': filename_pair[idx],
                         'file_name_partner': filename_pair[1-idx],
@@ -239,7 +241,7 @@ def analyse_separate_opportunities(**kwargs):
                         'status': opportunities_pair[idx]['status'],
                         'is_regular': filename_pair[idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
                         'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited.
-                        'num_urls': len(opportunities_pair[idx]['urls']),
+                        'num_urls': opportunities_pair[idx]['num_urls'],
                         'num_items': len(opportunities_pair[idx]['items'].keys()),
                         'num_future_items': num_future_items,
                         'num_future_week_items': num_future_week_items,

@@ -65,7 +65,7 @@ def run_get_opportunities(feed, **kwargs):
 
         current_filename = \
             current_filename_prestamp + \
-            FilenameStamp('opportunities', t1, t2, {'numItems': len(opportunities['items'].keys()), 'numUrls': len(opportunities['urls']), 'status': opportunities['status']}).value + \
+            FilenameStamp('opportunities', t1, t2, {'numItems': len(opportunities['items'].keys()), 'numUrls': opportunities['num_urls'], 'status': opportunities['status']}).value + \
             OPPORTUNITIES_FILENAME_SUFFIX
 
         # We have seen that gzip sometimes doesn't write files correctly, as an attempted read of such a file
