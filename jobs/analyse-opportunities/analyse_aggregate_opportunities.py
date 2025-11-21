@@ -67,6 +67,7 @@ def analyse_aggregate_opportunities(**kwargs):
     total_num_item_kinds, \
     total_num_items_with_kinds = get_df_total_values_counts(separate_analysis, 'item_kinds_counts', feeds_to_include='all')
 
+    # Columns: ['item_kind', 'count', 'percentage']
     df_total_item_kinds_counts.rename(columns={'value': 'item_kind'}, inplace=True)
 
     # --------------------------------------------------------------------------------------------------
@@ -75,6 +76,7 @@ def analyse_aggregate_opportunities(**kwargs):
     total_num_item_data_types, \
     total_num_items_with_data_types = get_df_total_values_counts(separate_analysis, 'item_data_types_counts', feeds_to_include='all')
 
+    # Columns: ['item_data_type', 'count', 'percentage']
     df_total_item_data_types_counts.rename(columns={'value': 'item_data_type'}, inplace=True)
 
     # --------------------------------------------------------------------------------------------------
@@ -83,6 +85,7 @@ def analyse_aggregate_opportunities(**kwargs):
     total_num_activities, \
     total_num_items_with_activities = get_df_total_values_counts(separate_analysis, 'activities_counts', feeds_to_include='all')
 
+    # Columns: ['activity', 'count', 'percentage']
     df_total_activities_counts.rename(columns={'value': 'activity'}, inplace=True)
 
     # --------------------------------------------------------------------------------------------------
@@ -91,6 +94,7 @@ def analyse_aggregate_opportunities(**kwargs):
     total_num_organisers, \
     total_num_items_with_organisers = get_df_total_values_counts(separate_analysis, 'organisers_counts', feeds_to_include='all')
 
+    # Columns: ['organiser', 'count', 'percentage']
     df_total_organisers_counts.rename(columns={'value': 'organiser'}, inplace=True)
 
     # --------------------------------------------------------------------------------------------------
@@ -99,6 +103,7 @@ def analyse_aggregate_opportunities(**kwargs):
     total_num_addresses, \
     total_num_items_with_addresses = get_df_total_values_counts(separate_analysis, 'addresses_counts', feeds_to_include='all')
 
+    # Columns: ['address', 'count', 'percentage']
     df_total_addresses_counts.rename(columns={'value': 'address'}, inplace=True)
 
     # --------------------------------------------------------------------------------------------------
@@ -107,26 +112,47 @@ def analyse_aggregate_opportunities(**kwargs):
     total_num_latlons, \
     total_num_items_with_latlons = get_df_total_values_counts(separate_analysis, 'latlons_counts', feeds_to_include='all')
 
+    # Columns: ['latlon', 'count', 'percentage']
     df_total_latlons_counts.rename(columns={'value': 'latlon'}, inplace=True)
 
     # Columns: ['latlon', 'count', 'percentage', 'latitude', 'longitude']
-    df_total_latlons_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_latlons_counts['latlon'].apply(lambda latlon: latlon.split(',')).tolist())
+    df_total_latlons_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_latlons_counts['latlon'].apply(lambda latlon: [float(coord) for coord in latlon.split(',')]).tolist())
 
     # Columns: ['latitude', 'longitude', 'count', 'percentage']
     df_total_latlons_counts = df_total_latlons_counts[['latitude', 'longitude', 'count', 'percentage']]
 
     # --------------------------------------------------------------------------------------------------
 
-    # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry']
-    gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
+    # The first few rows of gdf_regions are like:
+    #    OBJECTID  eer18cd    eer18nm                   bng_e   bng_n   long       lat        GlobalID                              geometry
+    # 0  1         E15000001  North East                417313  600358  -1.728900  55.297031  fbbc6e4d-8fd6-4719-a21d-49b62ff3af9b  MULTIPOLYGON (((397943.500 657534.102, 401095....
+    # 1  2         E15000002  North West                350015  506280  -2.772370  54.449451  89a00d05-0013-4ac5-9db3-035c06600433  MULTIPOLYGON (((363823.401 578129.102, 364213....
+    # 2  3         E15000003  Yorkshire and The Humber  446903  448736  -1.287120  53.932640  ccc57252-deb9-48dd-85b0-d31e38682574  MULTIPOLYGON (((479351.004 518706.501, 481340....
+    # 3  4         E15000004  East Midlands             477660  322635  -0.849670  52.795719  68dfd43b-2798-4f85-a7db-bcc09b13b44c  POLYGON ((516022.702 412210.895, 515854.099 41...
+    # 4  5         E15000005  West Midlands             386294  295477  -2.203580  52.556969  faba9cae-a323-43f9-9142-59832d9518c8  POLYGON ((409402.997 365710.796, 412633.099 36...
+    # 12 rows total
 
-    # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry']
-    gdf_lads = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
+    gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
 
     # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
     gdf_total_regions_counts, \
     total_num_regions, \
     total_num_items_with_regions = get_gdf_total_locations_counts(df_total_latlons_counts, gdf_regions, 'eer18nm')
+
+    # --------------------------------------------------------------------------------------------------
+
+    # LADs = Local Area Districts, which are much smaller than regions, hence the higher row count.
+
+    # The first few rows of gdf_lads are like:
+    #    FID  LAD24CD    LAD24NM               LAD24NMW  BNG_E   BNG_N   LONG      LAT       GlobalID                              geometry
+    # 0  1    E06000001  Hartlepool                      447161  531473  -1.27017  54.67613  3f58aa35-9ea6-4001-a80f-8aab0e41313f  POLYGON ((448964.105 536757.184, 448986.025 53...
+    # 1  2    E06000002  Middlesbrough                   451141  516887  -1.21099  54.54467  c5bc1c3e-111f-46db-8e41-362fbbc78d30  POLYGON ((451894.299 521145.303, 453997.697 51...
+    # 2  3    E06000003  Redcar and Cleveland            464330  519596  -1.00656  54.56752  29afa1cb-8719-44c2-9906-38bc7bae2981  POLYGON ((478232.947 518788.802, 477689.303 51...
+    # 3  4    E06000004  Stockton-on-Tees                444940  518179  -1.30664  54.55687  8ebb86c0-86bb-466e-ae7e-a832eeb755ff  POLYGON ((452243.536 526335.188, 451711.300 52...
+    # 4  5    E06000005  Darlington                      428029  515648  -1.56835  54.53534  bf2173db-02e1-4b58-9617-e775100f58ec  POLYGON ((436388.002 522354.197, 437351.702 52...
+    # 361 rows total
+
+    gdf_lads = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
 
     # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
     gdf_total_lads_counts, \
@@ -355,23 +381,41 @@ def get_df_total_values_counts(separate_analysis, values_counts, feeds_to_includ
 # --------------------------------------------------------------------------------------------------
 
 def get_gdf_total_locations_counts(df_total_latlons_counts, gdf_locations, gdf_locations_name_column):
+    # A 'geometry' column contains a set of POINT coordinate objects, the contents of which depends on
+    # exactly what Coordinate Reference System (CRS) is in use. In the following, we at first define such
+    # a column as lonlat pairs (not latlon pairs!) before immediately converting to the CRS of an existing
+    # input file i.e. the regions or Local Area Districts (LADs) file. These happen to be in terms of easting
+    # and northing, which have units of metres. Say we start with the following latlon pair:
+    #   51.09163 -0.749606
+    # This then gets converted to the following lonlat POINT object:
+    #   POINT (-0.74961 51.09163)
+    # Which then gets converted to the following easting northing POINT object:
+    #   POINT (487662.910 133223.698)
+    # There are a number of online tools to check these conversions if needed.
+
     # Columns: ['latitude', 'longitude', 'count', 'percentage', 'geometry']
     gdf_total_latlons_counts = gpd.GeoDataFrame(
-            df_total_latlons_counts,
-            geometry=gpd.points_from_xy(
-                df_total_latlons_counts['longitude'],
-                df_total_latlons_counts['latitude'],
-            ),
-            crs='epsg:4326', # Set CRS to WGS84
-        ) \
-        .to_crs(gdf_locations.crs)
+        df_total_latlons_counts,
+        geometry=gpd.points_from_xy(
+            df_total_latlons_counts['longitude'],
+            df_total_latlons_counts['latitude'],
+        ),
+        crs='epsg:4326', # Set Coordinate Reference System (CRS) to World Geodetic System 1984 (WGS84). See https://epsg.io/4326.
+    ) \
+    .to_crs(gdf_locations.crs)
+
+    # --------------------------------------------------------------------------------------------------
+
+    # Match the geometry POINT objects within gdf_total_latlons_counts to the geometry POLYGON and MULTIPOLYGON
+    # objects within gdf_locations i.e. find the matching location (region or LAD) for each given POINT.
+    # Group the counts by location and sum to get total counts for each location:
 
     # Columns: [<gdf_locations_name_column>, 'count']
     gdf_total_locations_counts = gpd.GeoDataFrame(
         gpd.sjoin(
-            gdf_locations[['geometry', gdf_locations_name_column]],
-            gdf_total_latlons_counts[['geometry', 'count']],
-            how='right',
+            gdf_total_latlons_counts[['geometry', 'count']], # Left dataframe
+            gdf_locations[['geometry', gdf_locations_name_column]], # Right dataframe
+            how='left', # Use keys (i.e. rows) from left dataframe, and retain only left dataframe geometry column
             predicate='intersects',
         ) \
         .groupby(gdf_locations_name_column)['count'] \
@@ -379,9 +423,14 @@ def get_gdf_total_locations_counts(df_total_latlons_counts, gdf_locations, gdf_l
     ) \
     .reset_index()
 
-    # If gdf_locations is 'regions.geojson':
+    # --------------------------------------------------------------------------------------------------
+
+    # Merge the count values just obtained into the given location info dataframe. We use this as a basis
+    # for the output of this function as the geometry info is needed for the front-end map display:
+
+    # If gdf_locations is for regions:
     #     Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count']
-    # If gdf_locations is 'lads.geojson':
+    # If gdf_locations is for LADs:
     #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count']
     gdf_total_locations_counts = \
         gdf_locations \
@@ -391,18 +440,18 @@ def get_gdf_total_locations_counts(df_total_latlons_counts, gdf_locations, gdf_l
 
     # If we had any NaN count rows during the last manipulation, then the count column would have been
     # converted to float, so re-type back to int:
+
     gdf_total_locations_counts['count'] = gdf_total_locations_counts['count'].astype(int)
+
+    # --------------------------------------------------------------------------------------------------
 
     total_num_locations = gdf_total_locations_counts.shape[0]
     total_num_items_with_locations = gdf_total_locations_counts['count'].sum()
 
-    # If gdf_locations is 'regions.geojson':
+    # If gdf_locations is for regions:
     #     Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
-    # If gdf_locations is 'lads.geojson':
+    # If gdf_locations is for LADs:
     #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
     gdf_total_locations_counts['percentage'] = (gdf_total_locations_counts['count'] / total_num_items_with_locations) * 100
-
-    # print(f'gdf_total_locations_counts ({gdf_locations_name_column}):')
-    # print(gdf_total_locations_counts)
 
     return gdf_total_locations_counts, total_num_locations, total_num_items_with_locations
