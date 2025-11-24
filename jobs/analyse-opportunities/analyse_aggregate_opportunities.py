@@ -25,8 +25,6 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    # For the 'Overview' tab
-
     num_publishers_regular = separate_analysis['publisher_name'].loc[separate_analysis['is_regular']].replace('', nan).nunique()
     num_publishers_preview = separate_analysis['publisher_name'].loc[~separate_analysis['is_regular']].replace('', nan).nunique()
     num_publishers = separate_analysis['publisher_name'].replace('', nan).nunique()
@@ -141,7 +139,7 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    # LADs = Local Area Districts, which are much smaller than regions, hence the higher row count.
+    # LADs = Local Authority Districts, which are much smaller than regions, hence the higher row count.
 
     # The first few rows of gdf_lads are like:
     #    FID  LAD24CD    LAD24NM               LAD24NMW  BNG_E   BNG_N   LONG      LAT       GlobalID                              geometry
@@ -293,6 +291,14 @@ def analyse_aggregate_opportunities(**kwargs):
         'total_num_future_week_items_preview': total_num_future_week_items_preview,
         'total_num_future_week_items': total_num_future_week_items,
 
+        'df_total_item_kinds_counts': df_total_item_kinds_counts,
+        'total_num_item_kinds': total_num_item_kinds,
+        'total_num_items_with_kinds': total_num_items_with_kinds,
+
+        'df_total_item_data_types_counts': df_total_item_data_types_counts,
+        'total_num_item_data_types': total_num_item_data_types,
+        'total_num_items_with_data_types': total_num_items_with_data_types,
+
         'df_total_activities_counts': df_total_activities_counts,
         'total_num_activities': total_num_activities,
         'total_num_items_with_activities': total_num_items_with_activities,
@@ -316,14 +322,6 @@ def analyse_aggregate_opportunities(**kwargs):
         'gdf_total_lads_counts': gdf_total_lads_counts,
         'total_num_lads': total_num_lads,
         'total_num_items_with_lads': total_num_items_with_lads,
-
-        'df_total_item_kinds_counts': df_total_item_kinds_counts,
-        'total_num_item_kinds': total_num_item_kinds,
-        'total_num_items_with_kinds': total_num_items_with_kinds,
-
-        'df_total_item_data_types_counts': df_total_item_data_types_counts,
-        'total_num_item_data_types': total_num_item_data_types,
-        'total_num_items_with_data_types': total_num_items_with_data_types,
 
         'df_total_sad_counts': df_total_sad_counts,
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
@@ -384,8 +382,8 @@ def get_gdf_total_locations_counts(df_total_latlons_counts, gdf_locations, gdf_l
     # A 'geometry' column contains a set of POINT coordinate objects, the contents of which depends on
     # exactly what Coordinate Reference System (CRS) is in use. In the following, we at first define such
     # a column as lonlat pairs (not latlon pairs!) before immediately converting to the CRS of an existing
-    # input file i.e. the regions or Local Area Districts (LADs) file. These happen to be in terms of easting
-    # and northing, which have units of metres. Say we start with the following latlon pair:
+    # input file i.e. the regions or Local Authority Districts (LADs) file. These happen to be in terms
+    # of easting and northing, which have units of metres. Say we start with the following latlon pair:
     #   51.09163 -0.749606
     # This then gets converted to the following lonlat POINT object:
     #   POINT (-0.74961 51.09163)
