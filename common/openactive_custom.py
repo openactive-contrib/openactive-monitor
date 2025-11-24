@@ -356,15 +356,24 @@ def get_opportunities(arg, **kwargs):
         # Note that we allow for extra keys in the incoming opportunities dictionary which aren't in the template,
         # in case the user has added custom fields. These don't affect the processing herein, and so aren't
         # restricted:
-        if (    (any([((key not in arg.keys()) or (type(arg[key]) != type(opportunities_template[key]))) for key in opportunities_template.keys()]))
-            or  (len(arg['first_url_origin']) == 0)
-            or  (len(arg['next_url']) == 0)
-        ):
-            set_message('Invalid input, opportunities must be a dictionary with the expected content', 'warning')
-            if (log_memory):
-                return None, 0
-            else:
-                return None
+        # if (    (any([((key not in arg.keys()) or (type(arg[key]) != type(opportunities_template[key]))) for key in opportunities_template.keys()]))
+        #     or  (len(arg['first_url_origin']) == 0)
+        #     or  (len(arg['next_url']) == 0)
+        # ):
+        #     set_message('Invalid input, opportunities must be a dictionary with the expected content', 'warning')
+        #     if (log_memory):
+        #         return None, 0
+        #     else:
+        #         return None
+        if ('urls' in arg.keys()):
+            arg['num_urls'] = len(arg['urls'])
+            del(arg['urls'])
+        if ('firstUrlOrigin' in arg.keys()):
+            arg['first_url_origin'] = arg['firstUrlOrigin']
+            del(arg['firstUrlOrigin'])
+        if ('nextUrl' in arg.keys()):
+            arg['next_url'] = arg['nextUrl']
+            del(arg['nextUrl'])
         opportunities = arg
         opportunities['status'] = opportunities_template['status']
     else:
