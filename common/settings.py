@@ -2,10 +2,12 @@
 # project, and the volume must have been mounted via the terminal at the mount-path '/volume-1'. This
 # was done for each job and service as follows (note that the volume and its mount-path were given
 # the same name, which didn't have to be so):
+#
 #   $ gcloud beta run jobs update <JOB NAME> \
 #   --region europe-west2 \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
 #   --add-volume-mount volume=volume-1,mount-path=/volume-1
+#
 #   $ gcloud beta run services update <SERVICE NAME> \
 #   --region europe-west2 \
 #   --add-volume name=volume-1,type=cloud-storage,bucket=openactive-monitor_cloudbuild \
@@ -61,10 +63,10 @@ SEPARATE_ANALYSIS_FILENAME = 'separate-analysis.pickle'
 AGGREGATE_ANALYSIS_FILENAME = 'aggregate-analysis.pickle'
 SAMPLE_ITEMS_FILENAME = 'sample-items.pickle'
 
-GEO_REGIONS_FILENAME = 'regions.geojson'
-GEO_LADS_FILENAME = 'lads.geojson'
-SE_SPORT_AND_DISCIPLINE_FILENAME = 'SE-sport-and-discipline.csv'
-OA_SE_MAPPING_FILENAME = 'OA-SE-mapping.csv'
+GEO_REGIONS_FILENAME = '000-location-regions.geojson'
+GEO_LADS_FILENAME = '000-location-lads.geojson'
+SE_SPORT_AND_DISCIPLINE_FILENAME = '000-SE-sport-and-discipline.csv'
+OA_SE_MAPPING_FILENAME = '000-OA-SE-mapping.csv'
 
 # --------------------------------------------------------------------------------------------------
 
