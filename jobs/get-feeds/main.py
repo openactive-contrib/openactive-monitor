@@ -29,6 +29,11 @@ def run_get_feeds(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    for feed in feeds:
+        feed['id'] = feed['url'].replace('https://', '').replace('http://', '').replace('www.', '').replace('.', '-').replace('/', '-').strip('-')
+
+    # --------------------------------------------------------------------------------------------------
+
     current_filename_base = PREVIEW_FEEDS_FILENAME_BASE if preview else REGULAR_FEEDS_FILENAME_BASE
     current_filename = \
         current_filename_base + \

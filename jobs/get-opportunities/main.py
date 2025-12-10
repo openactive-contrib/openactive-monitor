@@ -29,7 +29,7 @@ def run_get_opportunities(feed, **kwargs):
     # --------------------------------------------------------------------------------------------------
 
     current_filename_base = PREVIEW_OPPORTUNITIES_FILENAME_BASE if preview else REGULAR_OPPORTUNITIES_FILENAME_BASE
-    current_filename_url = feed['url'].replace('https://', '').replace('http://', '').replace('www.', '').replace('.', '-').replace('/', '-').strip('-')
+    current_filename_url = feed['id']
     current_filename_prestamp = current_filename_base + '--' + current_filename_url
 
     filenames = get_filenames('opportunities')
