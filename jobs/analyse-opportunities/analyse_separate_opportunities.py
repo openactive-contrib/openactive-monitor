@@ -373,7 +373,9 @@ def get_values(data, sought_parent_keys, sought_child_keys=None, continue_to_nex
         for key, val in data.items():
             if (key in sought_parent_keys):
                 if (sought_child_keys is None):
-                    if (val is not None):
+                    if (    (val)
+                        and (val is not None)
+                    ):
                         values.append(val)
                 elif (type(val) in [dict, list]):
                     # If we are seeking a parent-child key pair and have found the parent key, then sought_child_keys becomes
