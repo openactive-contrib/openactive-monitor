@@ -79,7 +79,7 @@ def analyse_separate_opportunities(**kwargs):
         'item_data_types_counts',
         'activities_counts',
         'organisers_counts',
-        'addresses_counts',
+        'postcodes_counts',
         'latlons_counts',
     ])
 
@@ -253,7 +253,7 @@ def analyse_separate_opportunities(**kwargs):
                         'item_data_types_counts': item_data_types_counts_pair[idx], # TODO: Consider what this means in the context of merging, as we drop the superevent opportunities dictionary
                         'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
                         'organisers_counts': get_values_counts(opportunities_pair[idx], 'organizer', 'name'),
-                        'addresses_counts': get_values_counts(opportunities_pair[idx], 'location'),
+                        'postcodes_counts': get_values_counts(opportunities_pair[idx], 'address', 'postalCode'),
                         'latlons_counts': get_latlons_counts(opportunities_pair[idx]),
                     }
 

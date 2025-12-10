@@ -97,12 +97,12 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    df_total_addresses_counts, \
-    total_num_addresses, \
-    total_num_items_with_addresses = get_df_total_values_counts(separate_analysis, 'addresses_counts', feeds_to_include='all')
+    df_total_postcodes_counts, \
+    total_num_postcodes, \
+    total_num_items_with_postcodes = get_df_total_values_counts(separate_analysis, 'postcodes_counts', feeds_to_include='all')
 
-    # Columns: ['address', 'count', 'percentage']
-    df_total_addresses_counts.rename(columns={'value': 'address'}, inplace=True)
+    # Columns: ['postcode', 'count', 'percentage']
+    df_total_postcodes_counts.rename(columns={'value': 'postcode'}, inplace=True)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -307,9 +307,9 @@ def analyse_aggregate_opportunities(**kwargs):
         'total_num_organisers': total_num_organisers,
         'total_num_items_with_organisers': total_num_items_with_organisers,
 
-        'df_total_addresses_counts': df_total_addresses_counts,
-        'total_num_addresses': total_num_addresses,
-        'total_num_items_with_addresses': total_num_items_with_addresses,
+        'df_total_postcodes_counts': df_total_postcodes_counts,
+        'total_num_postcodes': total_num_postcodes,
+        'total_num_items_with_postcodes': total_num_items_with_postcodes,
 
         'df_total_latlons_counts': df_total_latlons_counts,
         'total_num_latlons': total_num_latlons,
