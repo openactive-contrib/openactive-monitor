@@ -33,9 +33,23 @@ def analyse_aggregate_opportunities(**kwargs):
     num_datasets_preview = separate_analysis['dataset_url'].loc[~separate_analysis['is_regular']].replace('', nan).nunique()
     num_datasets = separate_analysis['dataset_url'].replace('', nan).nunique()
 
+    # The numbers of feeds here are the numbers of feeds retrieved from the latest crawl of datasets. Not
+    # all of these feeds will be available or serving data, they are simply the known end-points that MAY
+    # be available and serving data. As such, these numbers are the upper limits of what's currently live
+    # in the ecosystem:
+
     num_feeds_regular = len(feeds_regular)
     num_feeds_preview = len(feeds_preview)
     num_feeds = num_feeds_regular + num_feeds_preview
+
+    # The numbers of feeds here are the numbers of feeds that have been available and serving data, and
+    # which therefore led to an opportunities file. These numbers should therefore equate to the numbers
+    # of opportunities files in the associated storage volume. However, this includes files that may be
+    # present from earlier than the latest crawl of feeds, which appear as and when previously available
+    # feeds become unavailable, either temporarily or permanently. Such older files are intentionally kept
+    # to use as a basis for as and when their associated feeds become live again. Even though such files
+    # are not entirely up-to-date, they may still contain future items and still contribute to the analysis,
+    # hence their inclusion in these counts:
 
     num_feeds_with_analysed_data_regular = \
             (separate_analysis.loc[separate_analysis['is_regular'] & separate_analysis['is_merged_with_partner']].shape[0] * 2) \
@@ -44,6 +58,8 @@ def analyse_aggregate_opportunities(**kwargs):
             (separate_analysis.loc[~separate_analysis['is_regular'] & separate_analysis['is_merged_with_partner']].shape[0] * 2) \
         +   (separate_analysis.loc[~separate_analysis['is_regular'] & ~separate_analysis['is_merged_with_partner']].shape[0])
     num_feeds_with_analysed_data = num_feeds_with_analysed_data_regular + num_feeds_with_analysed_data_preview
+
+    # TODO: Get counts of feeds with future items. This will be the most relevant count to best represent the live ecosystem.
 
     total_num_items_regular = separate_analysis['num_items'].loc[separate_analysis['is_regular']].sum()
     total_num_items_preview = separate_analysis['num_items'].loc[~separate_analysis['is_regular']].sum()

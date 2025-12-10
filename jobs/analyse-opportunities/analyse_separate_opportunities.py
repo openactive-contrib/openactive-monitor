@@ -211,6 +211,15 @@ def analyse_separate_opportunities(**kwargs):
         for idx in range(2):
             if (opportunities_pair[idx] is not None):
                 try:
+                    # Note that a future item is one for which there is at least one future start date. A given item could
+                    # have more than one future start date in certain cases e.g. a superevent item with embedded future
+                    # subevents, but such items are still classed as one future item. These numbers ultimately contribute
+                    # to the future opportunities count on the front-end with this style of analysis i.e. we are in effect
+                    # defining a future opportunity as an item with at least one future start date. A future opportunity
+                    # could instead be defined as an occurrence of a future start date, in which case the analysis would
+                    # need to be adjusted to suit. The embedded style to which this applies is not the dominant form of
+                    # feed type, and so adjusting to accommodate this point may not alter the final numbers by a significant
+                    # fraction, but there will be some effect.
                     future_item_ids, \
                     future_week_item_ids = get_future_item_ids(opportunities_pair[idx])
 
@@ -223,7 +232,7 @@ def analyse_separate_opportunities(**kwargs):
                             for item_id in random.sample(future_week_item_ids, min(2, num_future_week_items))
                         }
 
-                    # TODO: The counts obtained here are regardless of whether or not they're for future dates. Should cater for this depending on how the data are to be displayed and interpreted:
+                    # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
 
                     separate_analysis.loc[len(separate_analysis)] = {
                         'file_name': filename_pair[idx],
@@ -240,7 +249,7 @@ def analyse_separate_opportunities(**kwargs):
                         'publisher_name': opportunities_pair[idx]['feed']['publisher_name'],
                         'status': opportunities_pair[idx]['status'],
                         'is_regular': filename_pair[idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
-                        'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited.
+                        'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited, including simply due to no item id matches being found.
                         'num_urls': opportunities_pair[idx]['num_urls'],
                         'num_items': len(opportunities_pair[idx]['items'].keys()),
                         'num_future_items': num_future_items,
@@ -249,9 +258,9 @@ def analyse_separate_opportunities(**kwargs):
                         'num_matched_subevent_items': num_matched_subevent_items,
                         'num_unmatched_superevent_items': num_unmatched_superevent_items,
                         'num_unmatched_subevent_items': num_unmatched_subevent_items,
-                        'item_kinds_counts': item_kinds_counts_pair[idx], # TODO: Consider what this means in the context of merging, as we drop the superevent opportunities dictionary
-                        'item_data_types_counts': item_data_types_counts_pair[idx], # TODO: Consider what this means in the context of merging, as we drop the superevent opportunities dictionary
-                        'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use
+                        'item_kinds_counts': item_kinds_counts_pair[idx],
+                        'item_data_types_counts': item_data_types_counts_pair[idx],
+                        'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
                         'organisers_counts': get_values_counts(opportunities_pair[idx], 'organizer', 'name'),
                         'postcodes_counts': get_values_counts(opportunities_pair[idx], 'address', 'postalCode'),
                         'latlons_counts': get_latlons_counts(opportunities_pair[idx]),
