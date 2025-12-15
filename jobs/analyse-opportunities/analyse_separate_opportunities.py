@@ -341,11 +341,7 @@ def get_start_dates(item):
     if ('data' in item.keys()):
         start_datetimes = []
 
-        if ('startDate' in item['data'].keys()):
-            start_datetimes.append(item['data']['startDate'])
-        elif ('dateStart' in item['data'].keys()):
-            start_datetimes.append(item['data']['dateStart'])
-        elif (  ('subEvent' in item['data'].keys())
+        if (  ('subEvent' in item['data'].keys())
             and (isinstance(item['data']['subEvent'], list))
         ):
             for subevent in item['data']['subEvent']:
@@ -354,6 +350,10 @@ def get_start_dates(item):
                         start_datetimes.append(subevent['startDate'])
                     elif ('dateStart' in subevent.keys()):
                         start_datetimes.append(subevent['dateStart'])
+        elif ('startDate' in item['data'].keys()):
+            start_datetimes.append(item['data']['startDate'])
+        elif ('dateStart' in item['data'].keys()):
+            start_datetimes.append(item['data']['dateStart'])
 
         for start_datetime in start_datetimes:
             try:
