@@ -52,10 +52,7 @@ def analyse_separate_opportunities(**kwargs):
     # List the items we want to collect for each feed. These column headers need to be specified here in
     # advance of row insertion into the DataFrame:
     separate_analysis = pd.DataFrame(columns=[
-        'file_name',
-        'file_name_partner',
-        'event_type',
-        'event_type_partner',
+        'feed_id',
         'feed_name',
         'feed_type',
         'feed_url',
@@ -64,9 +61,17 @@ def analyse_separate_opportunities(**kwargs):
         'license_url',
         'logo_url',
         'publisher_name',
+
+        'file_name',
+        'file_name_partner',
+
+        'event_type',
+        'event_type_partner',
+
         'status',
         'is_regular',
         'is_merged_with_partner',
+
         'num_urls',
         'num_items',
         'num_future_items',
@@ -75,10 +80,11 @@ def analyse_separate_opportunities(**kwargs):
         'num_matched_subevent_items',
         'num_unmatched_superevent_items',
         'num_unmatched_subevent_items',
+
         'item_kinds_counts',
         'item_data_types_counts',
-        'activities_counts',
         'organisers_counts',
+        'activities_counts',
         'postcodes_counts',
         'latlons_counts',
     ])
@@ -205,9 +211,9 @@ def analyse_separate_opportunities(**kwargs):
                 )
 
                 if (superevent_id_v_subevent_ids is not None):
-                    # Merge superevent items into associated subevent items, and remove the superevent item from its original
-                    # opportunities dictionary. Both superevent and subevent opportunities dictionaries are therefore changed
-                    # by this procedure.
+                    # Merge superevent items into associated subevent items under a new key called 'superevent_item', and
+                    # remove the superevent item from its original opportunities dictionary. Both superevent and subevent
+                    # opportunities dictionaries are therefore changed by this procedure.
                     for superevent_id, subevent_ids in superevent_id_v_subevent_ids.items():
                         for subevent_id in subevent_ids:
                             opportunities_pair[event_type_pair.index('subevent')]['items'][subevent_id]['superevent_item'] = opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id]
@@ -247,66 +253,73 @@ def analyse_separate_opportunities(**kwargs):
 
         print('Running counts and adding entry to dataframe ...')
 
-        for idx in range(2):
-            if (opportunities_pair[idx] is not None):
-                try:
-                    # Note that a future item is one for which there is at least one future start date. A given item could
-                    # have more than one future start date in certain cases e.g. a superevent item with embedded future
-                    # subevents, but such items are still classed as one future item. These numbers ultimately contribute
-                    # to the future opportunities count on the front-end with this style of analysis i.e. we are in effect
-                    # defining a future opportunity as an item with at least one future start date. A future opportunity
-                    # could instead be defined as an occurrence of a future start date, in which case the analysis would
-                    # need to be adjusted to suit. The embedded style to which this applies is not the dominant form of
-                    # feed type, and so adjusting to accommodate this point may not alter the final numbers by a significant
-                    # fraction, but there will be some effect.
-                    future_item_ids, \
-                    future_week_item_ids = get_future_item_ids(opportunities_pair[idx])
+        for idx, opportunities in enumerate(opportunities_pair):
+            if (opportunities is None):
+                continue
 
-                    num_future_items = len(future_item_ids)
-                    num_future_week_items = len(future_week_item_ids)
+            try:
+                # Note that a future item is one for which there is at least one future start date. A given item could
+                # have more than one future start date in certain cases e.g. a superevent item with embedded future
+                # subevents, but such items are still classed as one future item. These numbers ultimately contribute
+                # to the future opportunities count on the front-end with this style of analysis i.e. we are in effect
+                # defining a future opportunity as an item with at least one future start date. A future opportunity
+                # could instead be defined as an occurrence of a future start date, in which case the analysis would
+                # need to be adjusted to suit. The embedded style to which this applies is not the dominant form of
+                # feed type, and so adjusting to accommodate this point may not alter the final numbers by a significant
+                # fraction, but there will be some effect.
+                future_item_ids, \
+                future_week_item_ids = get_future_item_ids(opportunities)
 
-                    if (num_future_week_items > 0):
-                        filenames_sampleitems[filename_pair[idx]] = {
-                            item_id: opportunities_pair[idx]['items'][item_id]
-                            for item_id in random.sample(future_week_item_ids, min(2, num_future_week_items))
-                        }
+                num_future_items = len(future_item_ids)
+                num_future_week_items = len(future_week_item_ids)
 
-                    # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
-
-                    separate_analysis.loc[len(separate_analysis)] = {
-                        'file_name': filename_pair[idx],
-                        'file_name_partner': filename_pair[1-idx],
-                        'event_type': event_type_pair[idx],
-                        'event_type_partner': event_type_pair[1-idx],
-                        'feed_name': opportunities_pair[idx]['feed']['name'],
-                        'feed_type': opportunities_pair[idx]['feed']['type'],
-                        'feed_url': opportunities_pair[idx]['feed']['url'],
-                        'dataset_url': opportunities_pair[idx]['feed']['dataset_url'],
-                        'discussion_url': opportunities_pair[idx]['feed']['discussion_url'],
-                        'license_url': opportunities_pair[idx]['feed']['license_url'],
-                        'logo_url': opportunities_pair[idx]['feed']['logo_url'],
-                        'publisher_name': opportunities_pair[idx]['feed']['publisher_name'],
-                        'status': opportunities_pair[idx]['status'],
-                        'is_regular': filename_pair[idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
-                        'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited, including simply due to no item id matches being found.
-                        'num_urls': opportunities_pair[idx]['num_urls'],
-                        'num_items': len(opportunities_pair[idx]['items'].keys()),
-                        'num_future_items': num_future_items,
-                        'num_future_week_items': num_future_week_items,
-                        'num_matched_superevent_items': num_matched_superevent_items,
-                        'num_matched_subevent_items': num_matched_subevent_items,
-                        'num_unmatched_superevent_items': num_unmatched_superevent_items,
-                        'num_unmatched_subevent_items': num_unmatched_subevent_items,
-                        'item_kinds_counts': item_kinds_counts_pair[idx],
-                        'item_data_types_counts': item_data_types_counts_pair[idx],
-                        'activities_counts': get_values_counts(opportunities_pair[idx], ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
-                        'organisers_counts': get_values_counts(opportunities_pair[idx], 'organizer', 'name'),
-                        'postcodes_counts': get_values_counts(opportunities_pair[idx], 'address', 'postalCode'),
-                        'latlons_counts': get_latlons_counts(opportunities_pair[idx]),
+                if (num_future_week_items > 0):
+                    filenames_sampleitems[filename_pair[idx]] = {
+                        item_id: opportunities['items'][item_id]
+                        for item_id in random.sample(future_week_item_ids, min(2, num_future_week_items))
                     }
 
-                except Exception as error:
-                    print('ERROR:', error)
+                separate_analysis.loc[len(separate_analysis)] = {
+                    'feed_id': opportunities['feed']['id'],
+                    'feed_name': opportunities['feed']['name'],
+                    'feed_type': opportunities['feed']['type'],
+                    'feed_url': opportunities['feed']['url'],
+                    'dataset_url': opportunities['feed']['dataset_url'],
+                    'discussion_url': opportunities['feed']['discussion_url'],
+                    'license_url': opportunities['feed']['license_url'],
+                    'logo_url': opportunities['feed']['logo_url'],
+                    'publisher_name': opportunities['feed']['publisher_name'],
+
+                    'file_name': filename_pair[idx],
+                    'file_name_partner': filename_pair[1-idx],
+
+                    'event_type': event_type_pair[idx],
+                    'event_type_partner': event_type_pair[1-idx],
+
+                    'status': opportunities['status'],
+                    'is_regular': filename_pair[idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
+                    'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited, including simply due to no item id matches being found.
+
+                    'num_urls': opportunities['num_urls'],
+                    'num_items': len(opportunities['items'].keys()),
+                    'num_future_items': num_future_items,
+                    'num_future_week_items': num_future_week_items,
+                    'num_matched_superevent_items': num_matched_superevent_items,
+                    'num_matched_subevent_items': num_matched_subevent_items,
+                    'num_unmatched_superevent_items': num_unmatched_superevent_items,
+                    'num_unmatched_subevent_items': num_unmatched_subevent_items,
+
+                    # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
+                    'item_kinds_counts': item_kinds_counts_pair[idx],
+                    'item_data_types_counts': item_data_types_counts_pair[idx],
+                    'organisers_counts': get_values_counts(opportunities, 'organizer', 'name'),
+                    'activities_counts': get_values_counts(opportunities, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
+                    'postcodes_counts': get_values_counts(opportunities, 'address', 'postalCode'),
+                    'latlons_counts': get_latlons_counts(opportunities),
+                }
+
+            except Exception as error:
+                print('ERROR:', error)
 
         # --------------------------------------------------------------------------------------------------
 
