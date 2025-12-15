@@ -324,7 +324,7 @@ def get_future_item_ids(opportunities):
         future_week_start_dates = [
             start_date
             for start_date in future_start_dates
-            if start_date <= next_weeks_date
+            if start_date < next_weeks_date
         ]
         if (len(future_start_dates) > 0):
             future_item_ids.append(item_id)
