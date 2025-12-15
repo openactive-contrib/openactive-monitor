@@ -167,7 +167,7 @@ def analyse_separate_opportunities(**kwargs):
 
         print(f'File-1')
         print(f'  Name: {filename_pair[0]}')
-        print(f'  Loaded: {opportunities[0] is not None}')
+        print(f'  Loaded: {opportunities_pair[0] is not None}')
         print(f'  Feed type: {feed_type_pair[0]}')
         print(f'  Item kinds: {item_kinds_counts_pair[0]}')
         print(f'  Item data types: {item_data_types_counts_pair[0]}')
@@ -175,7 +175,7 @@ def analyse_separate_opportunities(**kwargs):
 
         print(f'File-2')
         print(f'  Name: {filename_pair[1]}')
-        print(f'  Loaded: {opportunities[1] is not None}')
+        print(f'  Loaded: {opportunities_pair[1] is not None}')
         print(f'  Feed type: {feed_type_pair[1]}')
         print(f'  Item kinds: {item_kinds_counts_pair[1]}')
         print(f'  Item data types: {item_data_types_counts_pair[1]}')
