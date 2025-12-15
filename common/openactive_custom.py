@@ -559,7 +559,7 @@ def get_event_type(label):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_merged_opportunities(superevent_opportunities, subevent_opportunities, **kwargs):
+def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportunities, **kwargs):
     verbose = kwargs.get('verbose', False)
 
     if (verbose):
@@ -585,7 +585,7 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
             and (num_subevents == 0)
         ):
             print('\tNo superevents and no subevents - merging not possible')
-        return superevent_opportunities, subevent_opportunities
+        return None
 
     # --------------------------------------------------------------------------------------------------
 
@@ -633,7 +633,7 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
     if (num_subevents_with_superevent_modified_id == 0):
         if (verbose):
             print('\t\tNo subevents with superevent modified ID - merging not possible')
-        return superevent_opportunities, subevent_opportunities
+        return None
 
     # --------------------------------------------------------------------------------------------------
 
@@ -664,28 +664,11 @@ def get_merged_opportunities(superevent_opportunities, subevent_opportunities, *
     if (num_superevents_with_subevent_ids == 0):
         if (verbose):
             print('\t\tNo superevents with subevent IDs - merging not possible')
-        return superevent_opportunities, subevent_opportunities
+        return None
 
     # --------------------------------------------------------------------------------------------------
 
-    # Now merge superevent items into associated subevent items, and remove the superevent item from its
-    # original opportunities dictionary. Both superevent and subevent opportunities dictionaries are therefore
-    # changed by this procedure.
-
-    if (verbose):
-        print('\tMerging superevents into subevents:')
-    for idx, (superevent_id, subevent_ids) in enumerate(superevent_id_v_subevent_ids.items()):
-        for subevent_id in subevent_ids:
-            subevent_opportunities['items'][subevent_id]['superevent_item'] = superevent_opportunities['items'][superevent_id]
-        del(superevent_opportunities['items'][superevent_id])
-        if (    (verbose)
-            and ((num_superevents_with_subevent_ids <= 10) or ((idx + 1) % 10 == 0) or (idx == num_superevents_with_subevent_ids - 1))
-        ):
-            print(f"\t\t{datetime.now()} {idx+1}/{num_superevents_with_subevent_ids} superevents with subevent IDs processed", end=('\r' if (idx < num_superevents_with_subevent_ids - 1) else '\n'))
-
-    # --------------------------------------------------------------------------------------------------
-
-    return superevent_opportunities, subevent_opportunities
+    return superevent_id_v_subevent_ids
 
 # --------------------------------------------------------------------------------------------------
 

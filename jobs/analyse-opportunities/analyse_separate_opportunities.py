@@ -10,7 +10,7 @@ from dateutil import parser, tz
 
 sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
-from openactive_custom import get_item_kinds, get_item_data_types, get_event_type, get_merged_opportunities
+from openactive_custom import get_item_kinds, get_item_data_types, get_event_type, get_superevent_id_v_subevent_ids
 from settings import *
 
 # --------------------------------------------------------------------------------------------------
@@ -192,11 +192,19 @@ def analyse_separate_opportunities(**kwargs):
                 num_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
                 num_subevent_items = len(opportunities_pair[event_type_pair.index('subevent')]['items'].keys())
 
-                opportunities_pair[event_type_pair.index('superevent')], \
-                opportunities_pair[event_type_pair.index('subevent')] = get_merged_opportunities(
+                superevent_id_v_subevent_ids = get_superevent_id_v_subevent_ids(
                     opportunities_pair[event_type_pair.index('superevent')],
                     opportunities_pair[event_type_pair.index('subevent')]
                 )
+
+                if (superevent_id_v_subevent_ids is not None):
+                    # Merge superevent items into associated subevent items, and remove the superevent item from its original
+                    # opportunities dictionary. Both superevent and subevent opportunities dictionaries are therefore changed
+                    # by this procedure.
+                    for superevent_id, subevent_ids in superevent_id_v_subevent_ids.items():
+                        for subevent_id in subevent_ids:
+                            opportunities_pair[event_type_pair.index('subevent')]['items'][subevent_id]['superevent_item'] = opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id]
+                        del(opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id])
 
                 num_unmatched_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
                 num_unmatched_subevent_items = len([True for item in opportunities_pair[event_type_pair.index('subevent')]['items'].values() if 'superevent_item' not in item.keys()])
