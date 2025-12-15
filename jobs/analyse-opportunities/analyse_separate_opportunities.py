@@ -89,8 +89,7 @@ def analyse_separate_opportunities(**kwargs):
 
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
 
-        print(f'Feed pair: {filename_pair_idx+1}/{num_filename_pairs}')
-        print(f'Filenames: {filename_pair}')
+        print(f'File pair: {filename_pair_idx + 1}/{num_filename_pairs}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -105,8 +104,6 @@ def analyse_separate_opportunities(**kwargs):
                     print('ERROR:', error)
             opportunities_pair.append(opportunities)
 
-        print(f'Loaded: {[opportunities is not None for opportunities in opportunities_pair]}')
-
         # --------------------------------------------------------------------------------------------------
 
         feed_type_pair = []
@@ -118,8 +115,6 @@ def analyse_separate_opportunities(**kwargs):
                 except Exception as error:
                     print('ERROR:', error)
             feed_type_pair.append(feed_type)
-
-        print(f'Feed types: {feed_type_pair}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -133,8 +128,6 @@ def analyse_separate_opportunities(**kwargs):
                     print('ERROR:', error)
             item_kinds_counts_pair.append(item_kinds_counts)
 
-        print(f'Item kinds: {item_kinds_counts_pair}')
-
         # --------------------------------------------------------------------------------------------------
 
         item_data_types_counts_pair = []
@@ -147,26 +140,40 @@ def analyse_separate_opportunities(**kwargs):
                     print('ERROR:', error)
             item_data_types_counts_pair.append(item_data_types_counts)
 
-        print(f'Item data types: {item_data_types_counts_pair}')
-
         # --------------------------------------------------------------------------------------------------
 
         event_type_pair = []
-        for opportunities_idx, opportunities in enumerate(opportunities_pair):
+        for idx, opportunities in enumerate(opportunities_pair):
             event_type = None
             if (opportunities is not None):
                 try:
-                    if (    (item_data_types_counts_pair[opportunities_idx] is not None)
-                        and (len(item_data_types_counts_pair[opportunities_idx].keys()) == 1)
+                    if (    (item_data_types_counts_pair[idx] is not None)
+                        and (len(item_data_types_counts_pair[idx].keys()) == 1)
                     ):
-                        event_type = get_event_type(list(item_data_types_counts_pair[opportunities_idx].keys())[0])
+                        event_type = get_event_type(list(item_data_types_counts_pair[idx].keys())[0])
                     else:
-                        event_type = get_event_type(feed_type_pair[opportunities_idx])
+                        event_type = get_event_type(feed_type_pair[idx])
                 except Exception as error:
                     print('ERROR:', error)
             event_type_pair.append(event_type)
 
-        print(f'Event types: {event_type_pair}')
+        # --------------------------------------------------------------------------------------------------
+
+        print(f'File-1')
+        print(f'  Name: {filename_pair[0]}')
+        print(f'  Loaded: {opportunities[0] is not None}')
+        print(f'  Feed type: {feed_type_pair[0]}')
+        print(f'  Item kinds: {item_kinds_counts_pair[0]}')
+        print(f'  Item data types: {item_data_types_counts_pair[0]}')
+        print(f'  Event type: {event_type_pair[0]}')
+
+        print(f'File-2')
+        print(f'  Name: {filename_pair[1]}')
+        print(f'  Loaded: {opportunities[1] is not None}')
+        print(f'  Feed type: {feed_type_pair[1]}')
+        print(f'  Item kinds: {item_kinds_counts_pair[1]}')
+        print(f'  Item data types: {item_data_types_counts_pair[1]}')
+        print(f'  Event type: {event_type_pair[1]}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -234,7 +241,7 @@ def analyse_separate_opportunities(**kwargs):
             except Exception as error:
                 print('ERROR:', error)
 
-        print(f'Merged: {is_merged_with_partner}')
+        print(f'Feeds merged: {is_merged_with_partner}')
 
         # --------------------------------------------------------------------------------------------------
 
