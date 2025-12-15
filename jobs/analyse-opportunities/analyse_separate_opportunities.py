@@ -109,6 +109,20 @@ def analyse_separate_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
+        feed_type_pair = []
+        for opportunities in opportunities_pair:
+            feed_type = None
+            if (opportunities is not None):
+                try:
+                    feed_type = opportunities['feed']['type']
+                except Exception as error:
+                    print('ERROR:', error)
+            feed_type_pair.append(feed_type)
+
+        print(f'Feed types: {feed_type_pair}')
+
+        # --------------------------------------------------------------------------------------------------
+
         item_kinds_counts_pair = []
         for opportunities in opportunities_pair:
             item_kinds_counts = None
@@ -147,7 +161,7 @@ def analyse_separate_opportunities(**kwargs):
                     ):
                         event_type = get_event_type(list(item_data_types_counts_pair[opportunities_idx].keys())[0])
                     else:
-                        event_type = get_event_type(opportunities['feed']['type'])
+                        event_type = get_event_type(feed_type_pair[opportunities_idx])
                 except Exception as error:
                     print('ERROR:', error)
             event_type_pair.append(event_type)
@@ -155,6 +169,16 @@ def analyse_separate_opportunities(**kwargs):
         print(f'Event types: {event_type_pair}')
 
         # --------------------------------------------------------------------------------------------------
+
+        # Merging doesn't happen if we don't have a pair of feeds.
+        # Merging doesn't happen if the event type for each feed has not been unambiguously identified.
+        # Merging doesn't happen if there are no matched item indices.
+
+        # If merging does happen, then superevent items are inserted into related subevent items, and the superevent
+        # opportunities object is completely removed from play.
+
+        # If merging doesn't happen, then both opportunities files (if present) go on for independent item
+        # content counting.
 
         num_matched_superevent_items = None
         num_matched_subevent_items = None
