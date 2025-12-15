@@ -166,20 +166,20 @@ def analyse_separate_opportunities(**kwargs):
         # --------------------------------------------------------------------------------------------------
 
         print(f'File-1')
-        print(f'  Name: {filename_pair[0]}')
-        print(f'  Loaded: {opportunities_pair[0] is not None}')
-        print(f'  Feed type: {feed_type_pair[0]}')
-        print(f'  Item kinds: {item_kinds_counts_pair[0]}')
-        print(f'  Item data types: {item_data_types_counts_pair[0]}')
-        print(f'  Event type: {event_type_pair[0]}')
+        print(f'\tName: {filename_pair[0]}')
+        print(f'\tLoaded: {opportunities_pair[0] is not None}')
+        print(f'\tFeed type: {feed_type_pair[0]}')
+        print(f'\tItem kinds: {item_kinds_counts_pair[0]}')
+        print(f'\tItem data types: {item_data_types_counts_pair[0]}')
+        print(f'\tEvent type: {event_type_pair[0]}')
 
         print(f'File-2')
-        print(f'  Name: {filename_pair[1]}')
-        print(f'  Loaded: {opportunities_pair[1] is not None}')
-        print(f'  Feed type: {feed_type_pair[1]}')
-        print(f'  Item kinds: {item_kinds_counts_pair[1]}')
-        print(f'  Item data types: {item_data_types_counts_pair[1]}')
-        print(f'  Event type: {event_type_pair[1]}')
+        print(f'\tName: {filename_pair[1]}')
+        print(f'\tLoaded: {opportunities_pair[1] is not None}')
+        print(f'\tFeed type: {feed_type_pair[1]}')
+        print(f'\tItem kinds: {item_kinds_counts_pair[1]}')
+        print(f'\tItem data types: {item_data_types_counts_pair[1]}')
+        print(f'\tEvent type: {event_type_pair[1]}')
 
         # --------------------------------------------------------------------------------------------------
 
