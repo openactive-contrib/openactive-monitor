@@ -183,15 +183,21 @@ def analyse_separate_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
-        # Merging doesn't happen if we don't have a pair of feeds.
-        # Merging doesn't happen if the event type for each feed has not been unambiguously identified.
-        # Merging doesn't happen if there are no matched item indices.
+        # Merging happens if:
+        #   we have a pair of feeds ...
+        #   the event type (superevent/subevent) for each feed has been unambiguously identified ...
+        #   the subevent items refer to existing superevent items.
 
         # If merging does happen, then superevent items are inserted into related subevent items, and the superevent
-        # opportunities object is completely removed from play.
+        # opportunities object is completely removed from play. We therefore discard any potential counts from
+        # superevent items that weren't associated with subevent items.
 
-        # If merging doesn't happen, then both opportunities files (if present) go on for independent item
-        # content counting.
+        # If merging doesn't happen (due to the above conditions not being fulfilled, and usually because of
+        # at least one of the feeds having no items), then both opportunities files (if present) go on for
+        # independent item content counting. Nothing is discarded. This retention of all such items may not
+        # in fact be desirable, and yield superfluous counts of e.g. activities. However, this should be a
+        # relative minority. If concerned, then check for cases where we do indeed have both opportunities
+        # objects in an unmerged pair, and discard at least the superevent object before running counts.
 
         num_matched_superevent_items = None
         num_matched_subevent_items = None
