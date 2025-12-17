@@ -8,29 +8,8 @@ from millify import millify
 
 # --------------------------------------------------------------------------------------------------
 
-#print(st.session_state.aggregate_analysis.keys())
-#For reference in presenting numbers
-#dict_keys(['num_publishers_regular', 'num_publishers_preview', 'num_publishers',
-# 'num_datasets_regular', 'num_datasets_preview', 'num_datasets',
-# 'num_feeds_regular', 'num_feeds_preview', 'num_feeds',
-# 'num_feeds_with_analysed_data_regular', 'num_feeds_with_analysed_data_preview', 'num_feeds_with_analysed_data',
-# 'total_num_items_regular', 'total_num_items_preview', 'total_num_items',
-# 'total_num_future_items_regular', 'total_num_future_items_preview', 'total_num_future_items',
-# 'total_num_future_week_items_regular', 'total_num_future_week_items_preview', 'total_num_future_week_items',
-# 'df_total_activities_counts', 'total_num_activities', 'total_num_items_with_activities',
-# 'df_total_organisers_counts', 'total_num_organisers', 'total_num_items_with_organisers',
-# 'gdf_total_regions_counts', 'total_num_regions', 'total_num_items_with_regions',
-# 'gdf_total_lads_counts', 'total_num_lads', 'total_num_items_with_lads',
-# 'df_total_item_kinds_counts', 'total_num_item_kinds', 'total_num_items_with_kinds',
-# 'df_total_item_data_types_counts', 'total_num_item_data_types', 'total_num_items_with_data_types',
-# 'df_total_postcodes_counts', 'total_num_postcodes', 'total_num_items_with_postcodes',
-# 'df_total_sad_counts_matched', 'df_total_sad_counts_unmatched',
-# 'total_num_activities_with_sad', 'total_num_activities_without_sad', 'total_num_items_with_sad', 'total_num_items_without_sad',
-# 'num_sad', 'num_sad_matched', 'num_sad_unmatched',
-# 'percentage_sad_matched', 'percentage_sad_unmatched', 'df_se_sport_and_discipline_unmatched',
-# 'filenames_sampleitems'])
+# Combine SE data for display
 
-#Combine SE data for display
 # Select desired columns and rename for consistency
 matched_df = st.session_state.aggregate_analysis['df_total_sad_counts_matched'][['sport_and_discipline', 'activity', 'percentage_items']].rename(
     columns={'percentage_items': '% of Opportunities'}
