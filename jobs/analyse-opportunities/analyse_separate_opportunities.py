@@ -163,6 +163,20 @@ def analyse_separate_opportunities(**kwargs):
                     print('ERROR:', error)
             event_type_pair.append(event_type)
 
+        is_superevent_subevent_pair = ('superevent' in event_type_pair) and ('subevent' in event_type_pair)
+
+        # --------------------------------------------------------------------------------------------------
+
+        superevent_id_v_subevent_ids = None
+        if (is_superevent_subevent_pair):
+            try:
+                superevent_id_v_subevent_ids = get_superevent_id_v_subevent_ids(
+                    opportunities_pair[event_type_pair.index('superevent')],
+                    opportunities_pair[event_type_pair.index('subevent')]
+                )
+            except Exception as error:
+                print('ERROR:', error)
+
         # --------------------------------------------------------------------------------------------------
 
         print(f'File-1')
@@ -204,26 +218,18 @@ def analyse_separate_opportunities(**kwargs):
         num_unmatched_superevent_items = None
         num_unmatched_subevent_items = None
         is_merged_with_partner = False
-        if (    ('superevent' in event_type_pair)
-            and ('subevent' in event_type_pair)
-        ):
+        if (superevent_id_v_subevent_ids is not None):
             try:
                 num_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
                 num_subevent_items = len(opportunities_pair[event_type_pair.index('subevent')]['items'].keys())
 
-                superevent_id_v_subevent_ids = get_superevent_id_v_subevent_ids(
-                    opportunities_pair[event_type_pair.index('superevent')],
-                    opportunities_pair[event_type_pair.index('subevent')]
-                )
-
-                if (superevent_id_v_subevent_ids is not None):
-                    # Merge superevent items into associated subevent items under a new key called 'superevent_item', and
-                    # remove the superevent item from its original opportunities dictionary. Both superevent and subevent
-                    # opportunities dictionaries are therefore changed by this procedure.
-                    for superevent_id, subevent_ids in superevent_id_v_subevent_ids.items():
-                        for subevent_id in subevent_ids:
-                            opportunities_pair[event_type_pair.index('subevent')]['items'][subevent_id]['superevent_item'] = opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id]
-                        del(opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id])
+                # Merge superevent items into associated subevent items under a new key called 'superevent_item', and
+                # remove the superevent item from its original opportunities dictionary. Both superevent and subevent
+                # opportunities dictionaries are therefore changed by this procedure.
+                for superevent_id, subevent_ids in superevent_id_v_subevent_ids.items():
+                    for subevent_id in subevent_ids:
+                        opportunities_pair[event_type_pair.index('subevent')]['items'][subevent_id]['superevent_item'] = opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id]
+                    del(opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id])
 
                 num_unmatched_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
                 num_unmatched_subevent_items = len([True for item in opportunities_pair[event_type_pair.index('subevent')]['items'].values() if 'superevent_item' not in item.keys()])
