@@ -280,10 +280,10 @@ def analyse_separate_opportunities(**kwargs):
                     }
 
                 separate_analysis.loc[len(separate_analysis)] = {
-                    'feed_id': opportunities['feed']['id'],
-                    'feed_name': opportunities['feed']['name'],
-                    'feed_type': opportunities['feed']['type'],
-                    'feed_url': opportunities['feed']['url'],
+                    'id': opportunities['feed']['id'],
+                    'name': opportunities['feed']['name'],
+                    'type': opportunities['feed']['type'],
+                    'url': opportunities['feed']['url'],
                     'dataset_url': opportunities['feed']['dataset_url'],
                     'discussion_url': opportunities['feed']['discussion_url'],
                     'license_url': opportunities['feed']['license_url'],
