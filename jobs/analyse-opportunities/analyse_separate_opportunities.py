@@ -149,16 +149,16 @@ def analyse_separate_opportunities(**kwargs):
         # --------------------------------------------------------------------------------------------------
 
         event_type_pair = []
-        for idx, opportunities in enumerate(opportunities_pair):
+        for opportunity_idx, opportunities in enumerate(opportunities_pair):
             event_type = None
             if (opportunities is not None):
                 try:
-                    if (    (item_data_types_counts_pair[idx] is not None)
-                        and (len(item_data_types_counts_pair[idx].keys()) == 1)
+                    if (    (item_data_types_counts_pair[opportunity_idx] is not None)
+                        and (len(item_data_types_counts_pair[opportunity_idx].keys()) == 1)
                     ):
-                        event_type = get_event_type(list(item_data_types_counts_pair[idx].keys())[0])
+                        event_type = get_event_type(list(item_data_types_counts_pair[opportunity_idx].keys())[0])
                     else:
-                        event_type = get_event_type(feed_type_pair[idx])
+                        event_type = get_event_type(feed_type_pair[opportunity_idx])
                 except Exception as error:
                     print('ERROR:', error)
             event_type_pair.append(event_type)
@@ -253,7 +253,7 @@ def analyse_separate_opportunities(**kwargs):
 
         print('Running counts and adding entry to dataframe ...')
 
-        for idx, opportunities in enumerate(opportunities_pair):
+        for opportunity_idx, opportunities in enumerate(opportunities_pair):
             if (opportunities is None):
                 continue
 
@@ -274,7 +274,7 @@ def analyse_separate_opportunities(**kwargs):
                 num_future_week_items = len(future_week_item_ids)
 
                 if (num_future_week_items > 0):
-                    filenames_sampleitems[filename_pair[idx]] = {
+                    filenames_sampleitems[filename_pair[opportunity_idx]] = {
                         item_id: opportunities['items'][item_id]
                         for item_id in random.sample(future_week_item_ids, min(2, num_future_week_items))
                     }
@@ -290,14 +290,14 @@ def analyse_separate_opportunities(**kwargs):
                     'logo_url': opportunities['feed']['logo_url'],
                     'publisher_name': opportunities['feed']['publisher_name'],
 
-                    'file_name': filename_pair[idx],
-                    'file_name_partner': filename_pair[1-idx],
+                    'file_name': filename_pair[opportunity_idx],
+                    'file_name_partner': filename_pair[1-opportunity_idx],
 
-                    'event_type': event_type_pair[idx],
-                    'event_type_partner': event_type_pair[1-idx],
+                    'event_type': event_type_pair[opportunity_idx],
+                    'event_type_partner': event_type_pair[1-opportunity_idx],
 
                     'status': opportunities['status'],
-                    'is_regular': filename_pair[idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
+                    'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
                     'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited, including simply due to no item id matches being found.
 
                     'num_urls': opportunities['num_urls'],
@@ -310,8 +310,8 @@ def analyse_separate_opportunities(**kwargs):
                     'num_unmatched_subevent_items': num_unmatched_subevent_items,
 
                     # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
-                    'item_kinds_counts': item_kinds_counts_pair[idx],
-                    'item_data_types_counts': item_data_types_counts_pair[idx],
+                    'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
+                    'item_data_types_counts': item_data_types_counts_pair[opportunity_idx],
                     'organisers_counts': get_values_counts(opportunities, 'organizer', 'name'),
                     'activities_counts': get_values_counts(opportunities, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
                     'postcodes_counts': get_values_counts(opportunities, 'address', 'postalCode'),
@@ -369,7 +369,7 @@ def get_start_dates(item):
     if ('data' in item.keys()):
         start_datetimes = []
 
-        if (  ('subEvent' in item['data'].keys())
+        if (    ('subEvent' in item['data'].keys())
             and (isinstance(item['data']['subEvent'], list))
         ):
             for subevent in item['data']['subEvent']:
