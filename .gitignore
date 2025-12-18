@@ -1,15 +1,25 @@
+# Data
+volume-1/data-analysis/*
+!volume-1/data-analysis/000*
+volume-1/data-feeds/*
+!volume-1/data-feeds/dummy.txt
+volume-1/data-opportunities/*
+!volume-1/data-opportunities/dummy.txt
+
 # Dependencies
+__pycache__/
 node_modules/
 virt/
 .venv
 
-# Private
-# "volume-1" is for soft-links to the actual "volume-1/" directory made for local testing
-volume-1/
-volume-1
+# Jupyter
+.ipynb_checkpoints/
+
+# Mac Finder
+.DS_Store
 
 # Tests
 test*/
 
-# Mac Finder
-.DS_Store
+# VSCode
+*.code-workspace
