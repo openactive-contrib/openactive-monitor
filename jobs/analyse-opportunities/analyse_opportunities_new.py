@@ -288,23 +288,16 @@ def analyse_opportunities(**kwargs):
 
                 # Identifiers
 
-                # We convert IDs to strings if they aren't already, to ensure consistency of matching. If, for example,
-                # an ID was originally an integer, then it could be automatically converted to a float by a dataframe
-                # operation at some point, which in that case happens when there is at least one NaN value in the same
-                # column which hasn't been set to Int64. If we then try to match the original integer version to the
-                # float version, there could be issues. So just standardise to strings at the start and we avoid such
-                # potential problems:
-
                 items['feed_id'].append(feeds['id'][-1])
                 items['item_id'].append(item['id'])
-                items['data_id'].append(strip(item_data.get('id', None) or item_data.get('@id', None)))
+                items['data_id'].append(item_data.get('id', None) or item_data.get('@id', None))
 
                 # An item ID in a given feed should be unique within that feed, but the same item ID may be found in
                 # different feeds. We therefore make an absolutely unique item ID here for use in the full set of items
                 # from across all feeds, using the combination of feed ID and item ID as it is within the feed. This
                 # may be a bit long, but it should be absolutely unique:
 
-                items['id'].append('-'.join([items['feed_id'][-1], str(items['item_id'][-1])]))
+                items['id'].append('-'.join([items['feed_id'][-1], str(items['item_id'][-1]).strip()]))
 
                 # parent_feed_id = None
                 # parent_matching_id = None
@@ -347,7 +340,7 @@ def analyse_opportunities(**kwargs):
 
                 organisers = get_values(item_data, 'organizer', 'name') # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index
                 try:
-                    items['organiser'].append(organisers[0].strip())
+                    items['organiser'].append(strip(organisers[0]))
                 except:
                     items['organiser'].append(None)
 
@@ -385,7 +378,7 @@ def analyse_opportunities(**kwargs):
 
                 locations = get_values(item_data, 'location') # If we get multiple values back (not expected but possible), then below we use the first only i.e. zeroth index
                 try:
-                    items['postcode'].append(locations[0]['address']['postalCode'].strip())
+                    items['postcode'].append(strip(locations[0]['address']['postalCode']))
                 except:
                     items['postcode'].append(None)
                 try:
