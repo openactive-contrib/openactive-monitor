@@ -351,7 +351,7 @@ def get_future_item_ids(opportunities):
     future_item_ids = []
     future_week_item_ids = []
 
-    todays_date = datetime.now(tz=tz.UTC).date()
+    todays_date = datetime.now().date()
     next_weeks_date = todays_date + timedelta(days=7)
 
     for item_id, item in opportunities['items'].items():
@@ -397,7 +397,9 @@ def get_start_dates(item):
 
         for start_datetime in start_datetimes:
             try:
-                start_dates.append(parser.parse(start_datetime).astimezone(tz.UTC).date())
+                # Don't use .astimezone(tz.UTC) here - if there is a date but no time then it defaults to midnight,
+                # so giving e.g. '2025-06-18' would then be converted to '2025-06-17' by the tz.UTC conversion:
+                start_dates.append(parser.parse(start_datetime).date())
             except:
                 pass
 
