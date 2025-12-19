@@ -84,8 +84,6 @@ def analyse_opportunities(**kwargs):
         'feed_id': [], # STR
         'item_id': [], # STR
         'data_id': [], # STR
-        # 'parent_feed_id': [], # STR
-        # 'parent_matching_id': [], # STR
         'partner_feed_id': [], # STR
         'partner_item_ids': [], # [STR]
 
@@ -298,26 +296,6 @@ def analyse_opportunities(**kwargs):
                 # may be a bit long, but it should be absolutely unique:
 
                 items['id'].append('-'.join([items['feed_id'][-1], str(items['item_id'][-1]).strip()]))
-
-                # parent_feed_id = None
-                # parent_matching_id = None
-                # for key in ['superEvent', 'facilityUse']:
-                #     if (    (key in item_data.keys())
-                #         and (type(item_data[key]) in [str, int])
-                #     ):
-                #         # If the 'superEvent' or 'facilityUse' key is present as a string or integer, then this is a child
-                #         # event (subevent) item, which probably holds true for all other items in this opportunities object,
-                #         # with the partner opportunities object then being for parent events (superevents). However, if the
-                #         # partner opportunities object is None, due to it not being available or readable, then we won't be
-                #         # processing it and won't have a feed_id for it. Note that we may have what a superevent item which
-                #         # itself has supersuperevent info under a 'superEvent' key, but that won't be a string or integer
-                #         # identifier in that case, but rather a dictionary.
-                #         if (opportunities_pair[1-opportunity_idx] is not None):
-                #             parent_feed_id = opportunities_pair[1-opportunity_idx]['feed']['id']
-                #         parent_matching_id = strip(item_data[key]) # This should be either the exact or the partial parent item ID or data ID. By 'partial' we mean the part after the final slash, if present.
-                #         break
-                # items['parent_feed_id'].append(parent_feed_id)
-                # items['parent_matching_id'].append(parent_matching_id)
 
                 partner_item_ids = None
                 if (is_superevent_subevent_pair):
