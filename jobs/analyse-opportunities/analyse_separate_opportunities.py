@@ -390,10 +390,12 @@ def get_start_dates(item):
                         start_datetimes.append(subevent['startDate'])
                     elif ('dateStart' in subevent.keys()):
                         start_datetimes.append(subevent['dateStart'])
-        elif ('startDate' in item['data'].keys()):
-            start_datetimes.append(item['data']['startDate'])
-        elif ('dateStart' in item['data'].keys()):
-            start_datetimes.append(item['data']['dateStart'])
+
+        if (len(start_datetimes) == 0):
+            if ('startDate' in item['data'].keys()):
+                start_datetimes.append(item['data']['startDate'])
+            elif ('dateStart' in item['data'].keys()):
+                start_datetimes.append(item['data']['dateStart'])
 
         for start_datetime in start_datetimes:
             try:
