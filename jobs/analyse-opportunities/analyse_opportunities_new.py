@@ -381,19 +381,19 @@ def analyse_opportunities(**kwargs):
                 items['type'].append(strip(item_data.get('type', None) or item_data.get('@type', None)))
                 items['event_type'].append(event_type_pair[opportunity_idx])
 
-                activities = [strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]
+                activities = list(set([strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]))
                 if (len(activities)> 0):
                     items['activities'].append(activities)
                 else:
                     items['activities'].append(None)
 
-                facilities = [strip(value) for value in get_values(item_data, 'facilityType', 'prefLabel')]
+                facilities = list(set([strip(value) for value in get_values(item_data, 'facilityType', 'prefLabel')]))
                 if (len(facilities)> 0):
                     items['facilities'].append(facilities)
                 else:
                     items['facilities'].append(None)
 
-                accessibilities = [strip(value) for value in get_values(item_data, 'accessibilitySupport', 'prefLabel')]
+                accessibilities = list(set([strip(value) for value in get_values(item_data, 'accessibilitySupport', 'prefLabel')]))
                 if (len(accessibilities)> 0):
                     items['accessibilities'].append(accessibilities)
                 else:
