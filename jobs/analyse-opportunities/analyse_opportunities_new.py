@@ -283,6 +283,8 @@ def analyse_opportunities(**kwargs):
 
             # --------------------------------------------------------------------------------------------------
 
+            num_items = len(opportunities['items'].keys())
+
             feeds['id'].append(opportunities['feed']['id'])
             if (opportunities_pair[1-opportunity_idx] is not None):
                 feeds['partner_id'].append(opportunities_pair[1-opportunity_idx]['feed']['id'])
@@ -302,7 +304,7 @@ def analyse_opportunities(**kwargs):
             feeds['status'].append(opportunities['status'])
             feeds['is_regular'].append(filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE))
 
-            feeds['num_items'].append(len(opportunities['items']))
+            feeds['num_items'].append(num_items)
             feeds['num_future_items'].append(0)
             feeds['num_future_week_items'].append(0)
 
@@ -322,8 +324,6 @@ def analyse_opportunities(**kwargs):
 
             feeds['item_kinds_counts'].append(item_kinds_counts_pair[opportunity_idx])
             feeds['item_data_types_counts'].append(item_data_types_counts_pair[opportunity_idx])
-
-            num_items = len(opportunities['items'].keys())
 
             for item_idx, item in enumerate(opportunities['items'].values()):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
