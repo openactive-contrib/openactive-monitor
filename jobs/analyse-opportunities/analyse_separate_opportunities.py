@@ -6,7 +6,7 @@ import pickle
 import random
 import sys
 from datetime import datetime, timedelta
-from dateutil import parser, tz
+from dateutil import parser
 
 sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
@@ -52,41 +52,40 @@ def analyse_separate_opportunities(**kwargs):
     # List the items we want to collect for each feed. These column headers need to be specified here in
     # advance of row insertion into the DataFrame:
     separate_analysis = pd.DataFrame(columns=[
-        'feed_id',
-        'feed_name',
-        'feed_type',
-        'feed_url',
-        'dataset_url',
-        'discussion_url',
-        'license_url',
-        'logo_url',
-        'publisher_name',
+        'id', # STR
+        'name', # STR
+        'type', # STR
+        'url', # STR
+        'dataset_url', # STR
+        'discussion_url', # STR
+        'license_url', # STR
+        'logo_url', # STR
+        'publisher_name', # STR
 
-        'file_name',
-        'file_name_partner',
+        'file_name', # STR
+        'file_name_partner', # STR
 
-        'event_type',
-        'event_type_partner',
+        'event_type', # STR
+        'event_type_partner', # STR
 
-        'status',
-        'is_regular',
-        'is_merged_with_partner',
+        'status', # STR
+        'is_regular', # BOOL
+        'is_merged_with_partner', # BOOL
 
-        'num_urls',
-        'num_items',
-        'num_future_items',
-        'num_future_week_items',
-        'num_matched_superevent_items',
-        'num_matched_subevent_items',
-        'num_unmatched_superevent_items',
-        'num_unmatched_subevent_items',
+        'num_items', # INT
+        'num_future_items', # INT
+        'num_future_week_items', # INT
+        'num_matched_superevent_items', # INT
+        'num_matched_subevent_items', # INT
+        'num_unmatched_superevent_items', # INT
+        'num_unmatched_subevent_items', # INT
 
-        'item_kinds_counts',
-        'item_data_types_counts',
-        'organisers_counts',
-        'activities_counts',
-        'postcodes_counts',
-        'latlons_counts',
+        'item_kinds_counts', # DICT
+        'item_data_types_counts', # DICT
+        'organisers_counts', # DICT
+        'activities_counts', # DICT
+        'postcodes_counts', # DICT
+        'latlons_counts', # DICT
     ])
 
     filenames_sampleitems = {}
@@ -312,7 +311,6 @@ def analyse_separate_opportunities(**kwargs):
                     'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
                     'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited, including simply due to no item id matches being found.
 
-                    'num_urls': opportunities['num_urls'],
                     'num_items': len(opportunities['items'].keys()),
                     'num_future_items': num_future_items,
                     'num_future_week_items': num_future_week_items,
