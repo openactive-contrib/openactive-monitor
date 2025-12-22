@@ -6,7 +6,7 @@ import pickle
 import sys
 
 from datetime import datetime, timedelta
-from dateutil import parser, tz
+from dateutil import parser
 
 sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
@@ -16,6 +16,18 @@ from settings import *
 def analyse_opportunities(**kwargs):
     verbose = kwargs.get('verbose', False)
 # xxx
+    # --------------------------------------------------------------------------------------------------
+
+    gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
+    gdf_regions = gdf_regions.to_crs(4326)
+
+    gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
+    gdf_districts = gdf_districts.to_crs(4326)
+
+    todays_date = datetime.now().date()
+    # todays_date = datetime(2025,12,15).date() # TODO: Remove temporary adjustment:
+    next_weeks_date = todays_date + timedelta(days=7)
+
     # --------------------------------------------------------------------------------------------------
 
     filename_pairs = get_filename_pairs()
@@ -78,6 +90,10 @@ def analyse_opportunities(**kwargs):
         'is_regular': [], # BOOL
 
         'num_items': [], # INT
+        'num_future_items': [], # INT
+        'num_future_week_items': [], # INT
+        'num_future_alt_items': [], # INT # TODO: Remove
+        'num_future_week_alt_items': [], # INT # TODO: Remove
 
         'item_kinds_counts': [], # DICT
         'item_data_types_counts': [], # DICT
@@ -118,10 +134,11 @@ def analyse_opportunities(**kwargs):
         'num_future_start_dates': [], # INT
         'num_future_week_start_dates': [], # INT
 
+        # TODO: Remove
         'alt_start_dates': [], # [DATE]
-        'alt_num_start_dates': [], # INT
-        'alt_num_future_start_dates': [], # INT
-        'alt_num_future_week_start_dates': [], # INT
+        'num_alt_start_dates': [], # INT
+        'num_future_alt_start_dates': [], # INT
+        'num_future_week_alt_start_dates': [], # INT
     }
 
     # --------------------------------------------------------------------------------------------------
@@ -271,6 +288,10 @@ def analyse_opportunities(**kwargs):
             feeds['is_regular'].append(filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE))
 
             feeds['num_items'].append(len(opportunities['items']))
+            feeds['num_future_items'].append(0)
+            feeds['num_future_week_items'].append(0)
+            feeds['num_future_alt_items'].append(0) # TODO: Remove
+            feeds['num_future_week_alt_items'].append(0) # TODO: Remove
 
             feeds['item_kinds_counts'].append(item_kinds_counts_pair[opportunity_idx])
             feeds['item_data_types_counts'].append(item_data_types_counts_pair[opportunity_idx])
@@ -373,6 +394,35 @@ def analyse_opportunities(**kwargs):
                 except:
                     items['longitude'].append(None)
 
+                # Note that this point-by-point region/district mapping is slower than the bulk sjoin approach on GeoPandas
+                # dataframe input but much more accurate. The more data given to the bulk sjoin approach, the fewer
+                # entries are matched. If there is a future need to use the bulk sjoin approach, it may be possible
+                # to improve performance by twiddling gpd settings. Search for gpd.sjoin inaccuracies for info.
+                region = None
+                district = None
+                if (    (items['longitude'][-1] is not None)
+                    and (items['latitude'][-1] is not None)
+                ):
+                    point = None
+                    try:
+                        point = gpd.points_from_xy(
+                            [items['longitude'][-1]],
+                            [items['latitude'][-1]]
+                        )[0]
+                    except:
+                        pass
+                    if (point is not None):
+                        try:
+                            region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
+                        except:
+                            pass
+                        try:
+                            district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
+                        except:
+                            pass
+                items['region'].append(region)
+                items['district'].append(district)
+
                 # --------------------------------------------------------------------------------------------------
 
                 # When
@@ -391,14 +441,54 @@ def analyse_opportunities(**kwargs):
 
                 if (len(start_dates) > 0):
                     items['start_dates'].append(start_dates)
+                    items['num_start_dates'].append(len(start_dates))
+                    items['num_future_start_dates'].append(len([
+                        start_date
+                        for start_date in start_dates
+                        if (start_date >= todays_date)
+                    ]))
+                    items['num_future_week_start_dates'].append(len([
+                        start_date
+                        for start_date in start_dates
+                        if (    (start_date >= todays_date)
+                            and (start_date < next_weeks_date) )
+                    ]))
+                    if (items['num_future_start_dates'][-1] > 0):
+                        feeds['num_future_items'][-1] += 1
+                    if (items['num_future_week_start_dates'][-1] > 0):
+                        feeds['num_future_week_items'][-1] += 1
                 else:
                     items['start_dates'].append(None)
+                    items['num_start_dates'].append(0)
+                    items['num_future_start_dates'].append(0)
+                    items['num_future_week_start_dates'].append(0)
 
+                # TODO: Remove
                 alt_start_dates = get_start_dates(item)
+
                 if (len(alt_start_dates) > 0):
                     items['alt_start_dates'].append(alt_start_dates)
+                    items['num_alt_start_dates'].append(len(alt_start_dates))
+                    items['num_future_alt_start_dates'].append(len([
+                        alt_start_date
+                        for alt_start_date in alt_start_dates
+                        if (alt_start_date >= todays_date)
+                    ]))
+                    items['num_future_week_alt_start_dates'].append(len([
+                        alt_start_date
+                        for alt_start_date in alt_start_dates
+                        if (    (alt_start_date >= todays_date)
+                            and (alt_start_date < next_weeks_date) )
+                    ]))
+                    if (items['num_future_alt_start_dates'][-1] > 0):
+                        feeds['num_future_alt_items'][-1] += 1
+                    if (items['num_future_week_alt_start_dates'][-1] > 0):
+                        feeds['num_future_week_alt_items'][-1] += 1
                 else:
                     items['alt_start_dates'].append(None)
+                    items['num_alt_start_dates'].append(0)
+                    items['num_future_alt_start_dates'].append(0)
+                    items['num_future_week_alt_start_dates'].append(0)
 
             # --------------------------------------------------------------------------------------------------
 
@@ -414,12 +504,9 @@ def analyse_opportunities(**kwargs):
 
     t2 = datetime.now()
 
-    sum_processing_times = sum(processing_times)
-    print(f'Time taken to process all files:')
-    print(f'\tsum({processing_times})')
-    print(f'\t= {round(sum_processing_times, 6)} seconds')
-    print(f'\t= {round(sum_processing_times / 60, 2)} minutes')
-    print(f'Time taken to process all files: {t2 - t1}') # ~3hr20min on M1 8GB MacBook Air
+
+    # TODO: Remove this when happy about using total_num_items from filenames, as calculated above
+    total_num_items = len(items['id'])
 
     print('--------------------------------------------------')
 
@@ -447,51 +534,7 @@ def analyse_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
-    gdf_regions = gdf_regions.to_crs(4326)
-
-    gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
-    gdf_districts = gdf_districts.to_crs(4326)
-
-    # --------------------------------------------------------------------------------------------------
-
-    # TODO: Remove this when happy about using total_num_items from filenames, as calculated above
-    total_num_items = len(items['id'])
-
     # Where
-
-    print('Determining locations ...')
-
-    # Dictionary approach
-
-    # The following method is slow (~15min for regions and ~15min for districts when done separately) but
-    # accurate, so we use it:
-
-    for all_item_idx in range(total_num_items):
-        region = None
-        district = None
-        if (    (items['longitude'][all_item_idx] is not None)
-            and (items['latitude'][all_item_idx] is not None)
-        ):
-            point = None
-            try:
-                point = gpd.points_from_xy(
-                    [items['longitude'][all_item_idx]],
-                    [items['latitude'][all_item_idx]]
-                )[0]
-            except:
-                pass
-            if (point is not None):
-                try:
-                    region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
-                except:
-                    pass
-                try:
-                    district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
-                except:
-                    pass
-        items['region'].append(region)
-        items['district'].append(district)
 
     # Dataframe approach
 
@@ -536,75 +579,6 @@ def analyse_opportunities(**kwargs):
     # --------------------------------------------------------------------------------------------------
 
     # When
-
-    print('Determining dates ...')
-
-    # todays_date = datetime.now().date()
-    todays_date = datetime(2025,12,15).date() # TODO: Remove temporary adjustment
-    next_weeks_date = todays_date + timedelta(days=7)
-    print(todays_date) # TODO: Remove when temporary adjustment removed
-
-    # Dictionary approach
-
-    items['num_start_dates'] = [
-        len(start_dates)
-        if isinstance(start_dates, list)
-        else 0
-        for start_dates in items['start_dates']
-    ]
-
-    items['num_future_start_dates'] = [
-        len([
-            start_date
-            for start_date in start_dates
-            if (start_date >= todays_date)
-        ])
-        if isinstance(start_dates, list)
-        else 0
-        for start_dates in items['start_dates']
-    ]
-
-    items['num_future_week_start_dates'] = [
-        len([
-            start_date
-            for start_date in start_dates
-            if (    (start_date >= todays_date)
-                and (start_date < next_weeks_date) )
-        ])
-        if isinstance(start_dates, list)
-        else 0
-        for start_dates in items['start_dates']
-    ]
-
-    items['alt_num_start_dates'] = [
-        len(start_dates)
-        if isinstance(start_dates, list)
-        else 0
-        for start_dates in items['alt_start_dates']
-    ]
-
-    items['alt_num_future_start_dates'] = [
-        len([
-            start_date
-            for start_date in start_dates
-            if (start_date >= todays_date)
-        ])
-        if isinstance(start_dates, list)
-        else 0
-        for start_dates in items['alt_start_dates']
-    ]
-
-    items['alt_num_future_week_start_dates'] = [
-        len([
-            start_date
-            for start_date in start_dates
-            if (    (start_date >= todays_date)
-                and (start_date < next_weeks_date) )
-        ])
-        if isinstance(start_dates, list)
-        else 0
-        for start_dates in items['alt_start_dates']
-    ]
 
     # Dataframe approach
 
@@ -747,15 +721,17 @@ def analyse_opportunities(**kwargs):
     total_num_future_start_dates = sum(items['num_future_start_dates'])
     total_num_future_week_start_dates = sum(items['num_future_week_start_dates'])
 
-    total_alt_num_start_dates = sum(items['alt_num_start_dates'])
-    total_alt_num_future_start_dates = sum(items['alt_num_future_start_dates'])
-    total_alt_num_future_week_start_dates = sum(items['alt_num_future_week_start_dates'])
+    # TODO: Remove
+    total_num_alt_start_dates = sum(items['num_alt_start_dates'])
+    total_num_future_alt_start_dates = sum(items['num_future_alt_start_dates'])
+    total_num_future_week_alt_start_dates = sum(items['num_future_week_alt_start_dates'])
 
-    total_num_future_items = sum([1 for x in items['num_future_start_dates'] if x > 0]) # Measure of future by old analysis (once merging done)
-    total_num_future_week_items = sum([1 for x in items['num_future_week_start_dates'] if x > 0]) # Measure of future week by old analysis (once merging done)
+    total_num_future_items = sum(feeds['num_future_items']) # Measure of future by old analysis (once merging done)
+    total_num_future_week_items = sum(feeds['num_future_week_items']) # Measure of future week by old analysis (once merging done)
 
-    total_alt_num_future_items = sum([1 for x in items['alt_num_future_start_dates'] if x > 0])
-    total_alt_num_future_week_items = sum([1 for x in items['alt_num_future_week_start_dates'] if x > 0])
+    # TODO: Remove
+    total_num_future_alt_items = sum(feeds['num_future_alt_items'])
+    total_num_future_week_alt_items = sum(feeds['num_future_week_alt_items'])
 
     analysis = {
         'organisers_counts': organisers_counts,
@@ -790,16 +766,18 @@ def analyse_opportunities(**kwargs):
         'total_num_future_start_dates': total_num_future_start_dates,
         'total_num_future_week_start_dates': total_num_future_week_start_dates,
 
-            'total_alt_num_start_dates': total_alt_num_start_dates,
-            'total_alt_num_future_start_dates': total_alt_num_future_start_dates,
-            'total_alt_num_future_week_start_dates': total_alt_num_future_week_start_dates,
+        # TODO: Remove
+        'total_num_alt_start_dates': total_num_alt_start_dates,
+        'total_num_future_alt_start_dates': total_num_future_alt_start_dates,
+        'total_num_future_week_alt_start_dates': total_num_future_week_alt_start_dates,
 
         'total_num_items': total_num_items,
         'total_num_future_items': total_num_future_items,
         'total_num_future_week_items': total_num_future_week_items,
 
-            'total_alt_num_future_items': total_alt_num_future_items,
-            'total_alt_num_future_week_items': total_alt_num_future_week_items,
+        # TODO: Remove
+        'total_num_future_alt_items': total_num_future_alt_items,
+        'total_num_future_week_alt_items': total_num_future_week_alt_items,
     }
 
     # Dataframe approach
@@ -900,7 +878,7 @@ def analyse_opportunities(**kwargs):
 
     # Write out feeds (different styles for testing purposes)
 
-    # print('Writing out feeds ...')
+    print('Writing out feeds ...')
 
     t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'dict_feeds.pickle', 'wb') as file_out:
@@ -930,7 +908,7 @@ def analyse_opportunities(**kwargs):
 
     # Write out items (different styles for testing purposes)
 
-    # print('Writing out items ...')
+    print('Writing out items ...')
 
     # The following write times and file sizes were for tests involving storage of:
     #   id
