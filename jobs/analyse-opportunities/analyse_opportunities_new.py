@@ -147,14 +147,17 @@ def analyse_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    processing_times = []
+    prepare_times = []
+    process_times = []
 
-    t1 = datetime.now()
+    t1_overall = datetime.now()
 
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
 
-        # if (filename_pair_idx == 100):
-        #     break
+    #    if (filename_pair_idx == 10):
+    #        break
+
+        t1 = datetime.now()
 
         print(f'File pair: {filename_pair_idx + 1}/{num_filename_pairs}')
 
@@ -280,12 +283,16 @@ def analyse_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
+        t2 = datetime.now()
+        prepare_times.append((t2 - t1).total_seconds())
+
+        t1 = datetime.now()
+
         for opportunity_idx, opportunities in enumerate(opportunities_pair):
             if (opportunities is None):
                 continue
 
-            print(f'Processing File-{opportunity_idx + 1} ...')
-            t1a = datetime.now()
+            print(f'Processing File-{opportunity_idx + 1}:')
 
             # --------------------------------------------------------------------------------------------------
 
@@ -512,20 +519,39 @@ def analyse_opportunities(**kwargs):
                     items['num_future_alt_start_dates'].append(0)
                     items['num_future_week_alt_start_dates'].append(0)
 
-            # --------------------------------------------------------------------------------------------------
-
-            t2a = datetime.now()
-            processing_times.append((t2a - t1a).total_seconds())
-            print(f'\tTime taken: {processing_times[-1]} seconds')
-
         # --------------------------------------------------------------------------------------------------
+
+        t2 = datetime.now()
+        process_times.append((t2 - t1).total_seconds())
+
+        print(f'Time taken:')
+        print(f'\tPrepare: {round(prepare_times[-1], 6)} seconds')
+        print(f'\tProcess: {round(process_times[-1], 6)} seconds')
 
         print('--------------------------------------------------')
 
     # --------------------------------------------------------------------------------------------------
 
-    t2 = datetime.now()
+    t2_overall = datetime.now()
 
+    total_prepare_time = sum(prepare_times)
+    total_process_time = sum(process_times)
+    total_prepare_process_time = total_prepare_time + total_process_time
+
+    print(f'Time taken for all file pairs:')
+    print(f'\tPrepare:')
+    print(f'\t\tsum({prepare_times})')
+    print(f'\t\t= {round(total_prepare_time, 6)} seconds')
+    print(f'\t\t= {round(total_prepare_time / 60, 2)} minutes')
+    print(f'\tProcess:')
+    print(f'\t\tsum({process_times})')
+    print(f'\t\t= {round(total_process_time, 6)} seconds')
+    print(f'\t\t= {round(total_process_time / 60, 2)} minutes')
+    print(f'\tPrepare + Process:')
+    print(f'\t\t  {round(total_prepare_process_time, 6)} seconds')
+    print(f'\t\t= {round(total_prepare_process_time / 60, 2)} minutes')
+    print(f'\tPrepare + Process (from overall start and end times):')
+    print(f'\t\t{t2_overall - t1_overall}') # ~3hr20min on M1 8GB MacBook Air
 
     # TODO: Remove this when happy about using total_num_items from filenames, as calculated above
     total_num_items = len(items['id'])
