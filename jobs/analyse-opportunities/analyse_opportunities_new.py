@@ -92,8 +92,6 @@ def analyse_opportunities(**kwargs):
         'num_items': [], # INT
         'num_future_items': [], # INT
         'num_future_week_items': [], # INT
-        'num_future_alt_items': [], # INT # TODO: Remove
-        'num_future_week_alt_items': [], # INT # TODO: Remove
         'num_matched_superevent_items': [], # INT
         'num_matched_subevent_items': [], # INT
         'num_unmatched_superevent_items': [], # INT
@@ -137,12 +135,6 @@ def analyse_opportunities(**kwargs):
         'num_start_dates': [], # INT
         'num_future_start_dates': [], # INT
         'num_future_week_start_dates': [], # INT
-
-        # TODO: Remove
-        'alt_start_dates': [], # [DATE]
-        'num_alt_start_dates': [], # INT
-        'num_future_alt_start_dates': [], # INT
-        'num_future_week_alt_start_dates': [], # INT
     }
 
     # --------------------------------------------------------------------------------------------------
@@ -318,8 +310,6 @@ def analyse_opportunities(**kwargs):
             feeds['num_items'].append(len(opportunities['items']))
             feeds['num_future_items'].append(0)
             feeds['num_future_week_items'].append(0)
-            feeds['num_future_alt_items'].append(0) # TODO: Remove
-            feeds['num_future_week_alt_items'].append(0) # TODO: Remove
             feeds['num_matched_superevent_items'].append(num_matched_superevent_items)
             feeds['num_matched_subevent_items'].append(num_matched_subevent_items)
             feeds['num_unmatched_superevent_items'].append(num_unmatched_superevent_items)
@@ -491,33 +481,6 @@ def analyse_opportunities(**kwargs):
                     items['num_start_dates'].append(0)
                     items['num_future_start_dates'].append(0)
                     items['num_future_week_start_dates'].append(0)
-
-                # TODO: Remove
-                alt_start_dates = get_start_dates(item)
-
-                if (len(alt_start_dates) > 0):
-                    items['alt_start_dates'].append(alt_start_dates)
-                    items['num_alt_start_dates'].append(len(alt_start_dates))
-                    items['num_future_alt_start_dates'].append(len([
-                        alt_start_date
-                        for alt_start_date in alt_start_dates
-                        if (alt_start_date >= todays_date)
-                    ]))
-                    items['num_future_week_alt_start_dates'].append(len([
-                        alt_start_date
-                        for alt_start_date in alt_start_dates
-                        if (    (alt_start_date >= todays_date)
-                            and (alt_start_date < next_weeks_date) )
-                    ]))
-                    if (items['num_future_alt_start_dates'][-1] > 0):
-                        feeds['num_future_alt_items'][-1] += 1
-                    if (items['num_future_week_alt_start_dates'][-1] > 0):
-                        feeds['num_future_week_alt_items'][-1] += 1
-                else:
-                    items['alt_start_dates'].append(None)
-                    items['num_alt_start_dates'].append(0)
-                    items['num_future_alt_start_dates'].append(0)
-                    items['num_future_week_alt_start_dates'].append(0)
 
         # --------------------------------------------------------------------------------------------------
 
@@ -769,17 +732,8 @@ def analyse_opportunities(**kwargs):
     total_num_future_start_dates = sum(items['num_future_start_dates'])
     total_num_future_week_start_dates = sum(items['num_future_week_start_dates'])
 
-    # TODO: Remove
-    total_num_alt_start_dates = sum(items['num_alt_start_dates'])
-    total_num_future_alt_start_dates = sum(items['num_future_alt_start_dates'])
-    total_num_future_week_alt_start_dates = sum(items['num_future_week_alt_start_dates'])
-
     total_num_future_items = sum(feeds['num_future_items']) # Measure of future by old analysis (once merging done)
     total_num_future_week_items = sum(feeds['num_future_week_items']) # Measure of future week by old analysis (once merging done)
-
-    # TODO: Remove
-    total_num_future_alt_items = sum(feeds['num_future_alt_items'])
-    total_num_future_week_alt_items = sum(feeds['num_future_week_alt_items'])
 
     analysis = {
         'organisers_counts': organisers_counts,
@@ -814,18 +768,9 @@ def analyse_opportunities(**kwargs):
         'total_num_future_start_dates': total_num_future_start_dates,
         'total_num_future_week_start_dates': total_num_future_week_start_dates,
 
-        # TODO: Remove
-        'total_num_alt_start_dates': total_num_alt_start_dates,
-        'total_num_future_alt_start_dates': total_num_future_alt_start_dates,
-        'total_num_future_week_alt_start_dates': total_num_future_week_alt_start_dates,
-
         'total_num_items': total_num_items,
         'total_num_future_items': total_num_future_items,
         'total_num_future_week_items': total_num_future_week_items,
-
-        # TODO: Remove
-        'total_num_future_alt_items': total_num_future_alt_items,
-        'total_num_future_week_alt_items': total_num_future_week_alt_items,
     }
 
     # Dataframe approach
@@ -1047,40 +992,6 @@ def get_values(data, sought_parent_keys, sought_child_keys=None, continue_to_nex
         ]
 
     return values
-
-# --------------------------------------------------------------------------------------------------
-
-def get_start_dates(item):
-    start_dates = []
-
-    if ('data' in item.keys()):
-        start_datetimes = []
-
-        if (    ('subEvent' in item['data'].keys())
-            and (isinstance(item['data']['subEvent'], list))
-        ):
-            for subevent in item['data']['subEvent']:
-                if (isinstance(subevent, dict)):
-                    if ('startDate' in subevent.keys()):
-                        start_datetimes.append(subevent['startDate'])
-                    elif ('dateStart' in subevent.keys()):
-                        start_datetimes.append(subevent['dateStart'])
-
-        if (len(start_datetimes) == 0):
-            if ('startDate' in item['data'].keys()):
-                start_datetimes.append(item['data']['startDate'])
-            elif ('dateStart' in item['data'].keys()):
-                start_datetimes.append(item['data']['dateStart'])
-
-        for start_datetime in start_datetimes:
-            try:
-                # Don't use .astimezone(tz.UTC) here - if there is a date but no time then it defaults to midnight,
-                # so giving e.g. '2025-06-18' would then be converted to '2025-06-17' by the tz.UTC conversion:
-                start_dates.append(parser.parse(start_datetime).date())
-            except:
-                pass
-
-    return start_dates
 
 # --------------------------------------------------------------------------------------------------
 
