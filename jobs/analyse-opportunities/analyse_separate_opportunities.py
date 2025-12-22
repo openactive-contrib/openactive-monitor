@@ -162,23 +162,37 @@ def analyse_separate_opportunities(**kwargs):
                     print('ERROR:', error)
             event_type_pair.append(event_type)
 
-        is_superevent_subevent_pair = ('superevent' in event_type_pair) and ('subevent' in event_type_pair)
-
         # --------------------------------------------------------------------------------------------------
 
-        superevent_id_v_subevent_ids = None
-        if (is_superevent_subevent_pair):
+        superevent_id_v_subevent_ids = {}
+        subevent_id_v_superevent_id = {}
+        num_matched_superevent_items = None
+        num_matched_subevent_items = None
+        num_unmatched_superevent_items = None
+        num_unmatched_subevent_items = None
+        if (    ('superevent' in event_type_pair)
+            and ('subevent' in event_type_pair)
+        ):
             try:
                 superevent_id_v_subevent_ids = get_superevent_id_v_subevent_ids(
                     opportunities_pair[event_type_pair.index('superevent')],
                     opportunities_pair[event_type_pair.index('subevent')]
                 )
+                for superevent_id, subevent_ids in superevent_id_v_subevent_ids.items():
+                    for subevent_id in subevent_ids:
+                        subevent_id_v_superevent_id[subevent_id] = superevent_id
             except Exception as error:
                 print('ERROR:', error)
+            num_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
+            num_subevent_items = len(opportunities_pair[event_type_pair.index('subevent')]['items'].keys())
+            num_matched_superevent_items = len(superevent_id_v_subevent_ids.keys())
+            num_matched_subevent_items = len(subevent_id_v_superevent_id.keys())
+            num_unmatched_superevent_items = num_superevent_items - num_matched_superevent_items
+            num_unmatched_subevent_items = num_subevent_items - num_matched_subevent_items
 
         # --------------------------------------------------------------------------------------------------
 
-        print(f'File-1')
+        print(f'File-1:')
         print(f'\tName: {filename_pair[0]}')
         print(f'\tLoaded: {opportunities_pair[0] is not None}')
         print(f'\tFeed type: {feed_type_pair[0]}')
@@ -186,13 +200,21 @@ def analyse_separate_opportunities(**kwargs):
         print(f'\tItem data types: {item_data_types_counts_pair[0]}')
         print(f'\tEvent type: {event_type_pair[0]}')
 
-        print(f'File-2')
+        print(f'File-2:')
         print(f'\tName: {filename_pair[1]}')
         print(f'\tLoaded: {opportunities_pair[1] is not None}')
         print(f'\tFeed type: {feed_type_pair[1]}')
         print(f'\tItem kinds: {item_kinds_counts_pair[1]}')
         print(f'\tItem data types: {item_data_types_counts_pair[1]}')
         print(f'\tEvent type: {event_type_pair[1]}')
+
+        print(f'Item matching:')
+        print(f'\tnum_superevent_items: {num_superevent_items}')
+        print(f'\tnum_subevent_items: {num_subevent_items}')
+        print(f'\tnum_matched_superevent_items: {num_matched_superevent_items}')
+        print(f'\tnum_matched_subevent_items: {num_matched_subevent_items}')
+        print(f'\tnum_unmatched_superevent_items: {num_unmatched_superevent_items}')
+        print(f'\tnum_unmatched_subevent_items: {num_unmatched_subevent_items}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -212,16 +234,9 @@ def analyse_separate_opportunities(**kwargs):
         # relative minority. If concerned, then check for cases where we do indeed have both opportunities
         # objects in an unmerged pair, and discard at least the superevent object before running counts.
 
-        num_matched_superevent_items = None
-        num_matched_subevent_items = None
-        num_unmatched_superevent_items = None
-        num_unmatched_subevent_items = None
         is_merged_with_partner = False
         if (superevent_id_v_subevent_ids is not None):
             try:
-                num_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
-                num_subevent_items = len(opportunities_pair[event_type_pair.index('subevent')]['items'].keys())
-
                 # Merge superevent items into associated subevent items under a new key called 'superevent_item', and
                 # remove the superevent item from its original opportunities dictionary. Both superevent and subevent
                 # opportunities dictionaries are therefore changed by this procedure.
@@ -229,18 +244,6 @@ def analyse_separate_opportunities(**kwargs):
                     for subevent_id in subevent_ids:
                         opportunities_pair[event_type_pair.index('subevent')]['items'][subevent_id]['superevent_item'] = opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id]
                     del(opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id])
-
-                num_unmatched_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
-                num_unmatched_subevent_items = len([True for item in opportunities_pair[event_type_pair.index('subevent')]['items'].values() if 'superevent_item' not in item.keys()])
-                num_matched_superevent_items = num_superevent_items - num_unmatched_superevent_items
-                num_matched_subevent_items = num_subevent_items - num_unmatched_subevent_items
-
-                print(f'num_superevent_items: {num_superevent_items}')
-                print(f'num_subevent_items: {num_subevent_items}')
-                print(f'num_matched_superevent_items: {num_matched_superevent_items}')
-                print(f'num_matched_subevent_items: {num_matched_subevent_items}')
-                print(f'num_unmatched_superevent_items: {num_unmatched_superevent_items}')
-                print(f'num_unmatched_subevent_items: {num_unmatched_subevent_items}')
 
                 if (    (num_matched_superevent_items > 0)
                     and (num_matched_subevent_items == 0)
