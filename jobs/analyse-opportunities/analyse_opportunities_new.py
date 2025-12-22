@@ -71,6 +71,7 @@ def analyse_opportunities(**kwargs):
 
     feeds = {
         'id': [], # STR
+        'partner_id': [], # STR
         'name': [], # STR
         'type': [], # STR
         'url': [], # STR
@@ -81,11 +82,7 @@ def analyse_opportunities(**kwargs):
         'publisher_name': [], # STR
 
         'file_name': [], # STR
-        'file_name_partner': [], # STR
-
         'event_type': [], # STR
-        'event_type_partner': [], # STR
-
         'status': [], # STR
         'is_regular': [], # BOOL
 
@@ -289,6 +286,10 @@ def analyse_opportunities(**kwargs):
             # --------------------------------------------------------------------------------------------------
 
             feeds['id'].append(opportunities['feed']['id'])
+            if (opportunities_pair[1-opportunity_idx] is not None):
+                feeds['partner_id'].append(opportunities_pair[1-opportunity_idx]['feed']['id'])
+            else:
+                feeds['partner_id'].append(None)
             feeds['name'].append(opportunities['feed']['name'])
             feeds['type'].append(opportunities['feed']['type'])
             feeds['url'].append(opportunities['feed']['url'])
@@ -299,11 +300,7 @@ def analyse_opportunities(**kwargs):
             feeds['publisher_name'].append(opportunities['feed']['publisher_name'])
 
             feeds['file_name'].append(filename_pair[opportunity_idx])
-            feeds['file_name_partner'].append(filename_pair[1-opportunity_idx])
-
             feeds['event_type'].append(event_type_pair[opportunity_idx]),
-            feeds['event_type_partner'].append(event_type_pair[1-opportunity_idx]),
-
             feeds['status'].append(opportunities['status'])
             feeds['is_regular'].append(filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE))
 
@@ -345,8 +342,7 @@ def analyse_opportunities(**kwargs):
 
                 items['id'].append('-'.join([items['feed_id'][-1], str(items['item_id'][-1]).strip()]))
 
-                if (opportunities_pair[1-opportunity_idx] is not None):
-                    items['partner_feed_id'].append(opportunities_pair[1-opportunity_idx]['feed']['id'])
+                items['partner_feed_id'].append(feeds['partner_id'][-1])
 
                 partner_item_ids = None
                 if (event_type_pair[opportunity_idx] == 'superevent'):
