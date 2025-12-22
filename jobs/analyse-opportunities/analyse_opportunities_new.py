@@ -89,10 +89,8 @@ def analyse_opportunities(**kwargs):
         'num_items': [], # INT
         'num_future_items': [], # INT
         'num_future_week_items': [], # INT
-        'num_matched_superevent_items': [], # INT
-        'num_matched_subevent_items': [], # INT
-        'num_unmatched_superevent_items': [], # INT
-        'num_unmatched_subevent_items': [], # INT
+        'num_matched_items': [], # INT
+        'num_unmatched_items': [], # INT
 
         'item_kinds_counts': [], # DICT
         'item_data_types_counts': [], # DICT
@@ -307,10 +305,20 @@ def analyse_opportunities(**kwargs):
             feeds['num_items'].append(len(opportunities['items']))
             feeds['num_future_items'].append(0)
             feeds['num_future_week_items'].append(0)
-            feeds['num_matched_superevent_items'].append(num_matched_superevent_items)
-            feeds['num_matched_subevent_items'].append(num_matched_subevent_items)
-            feeds['num_unmatched_superevent_items'].append(num_unmatched_superevent_items)
-            feeds['num_unmatched_subevent_items'].append(num_unmatched_subevent_items)
+
+            if (event_type_pair[opportunity_idx] == 'superevent'):
+                feeds['num_matched_items'].append(num_matched_superevent_items)
+            elif (event_type_pair[opportunity_idx] == 'subevent'):
+                feeds['num_matched_items'].append(num_matched_subevent_items)
+            else:
+                feeds['num_matched_items'].append(None)
+
+            if (event_type_pair[opportunity_idx] == 'superevent'):
+                feeds['num_unmatched_items'].append(num_unmatched_superevent_items)
+            elif (event_type_pair[opportunity_idx] == 'subevent'):
+                feeds['num_unmatched_items'].append(num_unmatched_subevent_items)
+            else:
+                feeds['num_unmatched_items'].append(None)
 
             feeds['item_kinds_counts'].append(item_kinds_counts_pair[opportunity_idx])
             feeds['item_data_types_counts'].append(item_data_types_counts_pair[opportunity_idx])
