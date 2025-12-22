@@ -94,6 +94,10 @@ def analyse_opportunities(**kwargs):
         'num_future_week_items': [], # INT
         'num_future_alt_items': [], # INT # TODO: Remove
         'num_future_week_alt_items': [], # INT # TODO: Remove
+        'num_matched_superevent_items': [], # INT
+        'num_matched_subevent_items': [], # INT
+        'num_unmatched_superevent_items': [], # INT
+        'num_unmatched_subevent_items': [], # INT
 
         'item_kinds_counts': [], # DICT
         'item_data_types_counts': [], # DICT
@@ -103,10 +107,10 @@ def analyse_opportunities(**kwargs):
         # Identifiers
         'id': [], # STR
         'feed_id': [], # STR
-        'item_id': [], # STR
-        'data_id': [], # STR
+        'item_id': [], # STR/INT
+        'data_id': [], # STR/INT
         'partner_feed_id': [], # STR
-        'partner_item_ids': [], # [STR]
+        'partner_item_ids': [], # [STR/INT]
 
         # Who
         'organiser': [], # STR
@@ -220,28 +224,37 @@ def analyse_opportunities(**kwargs):
                     print('ERROR:', error)
             event_type_pair.append(event_type)
 
-        is_superevent_subevent_pair = ('superevent' in event_type_pair) and ('subevent' in event_type_pair)
-
         # --------------------------------------------------------------------------------------------------
 
-        superevent_id_v_subevent_ids = None
-        subevent_id_v_superevent_id = None
-        if (is_superevent_subevent_pair):
+        superevent_id_v_subevent_ids = {}
+        subevent_id_v_superevent_id = {}
+        num_matched_superevent_items = None
+        num_matched_subevent_items = None
+        num_unmatched_superevent_items = None
+        num_unmatched_subevent_items = None
+        if (    ('superevent' in event_type_pair)
+            and ('subevent' in event_type_pair)
+        ):
             try:
                 superevent_id_v_subevent_ids = get_superevent_id_v_subevent_ids(
                     opportunities_pair[event_type_pair.index('superevent')],
                     opportunities_pair[event_type_pair.index('subevent')]
                 )
-                subevent_id_v_superevent_id = {}
                 for superevent_id, subevent_ids in superevent_id_v_subevent_ids.items():
                     for subevent_id in subevent_ids:
                         subevent_id_v_superevent_id[subevent_id] = superevent_id
             except Exception as error:
                 print('ERROR:', error)
+            num_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
+            num_subevent_items = len(opportunities_pair[event_type_pair.index('subevent')]['items'].keys())
+            num_matched_superevent_items = len(superevent_id_v_subevent_ids.keys())
+            num_matched_subevent_items = len(subevent_id_v_superevent_id.keys())
+            num_unmatched_superevent_items = num_superevent_items - num_matched_superevent_items
+            num_unmatched_subevent_items = num_subevent_items - num_matched_subevent_items
 
         # --------------------------------------------------------------------------------------------------
 
-        print(f'File-1')
+        print(f'File-1:')
         print(f'\tName: {filename_pair[0]}')
         print(f'\tLoaded: {opportunities_pair[0] is not None}')
         print(f'\tFeed type: {feed_type_pair[0]}')
@@ -249,13 +262,21 @@ def analyse_opportunities(**kwargs):
         print(f'\tItem data types: {item_data_types_counts_pair[0]}')
         print(f'\tEvent type: {event_type_pair[0]}')
 
-        print(f'File-2')
+        print(f'File-2:')
         print(f'\tName: {filename_pair[1]}')
         print(f'\tLoaded: {opportunities_pair[1] is not None}')
         print(f'\tFeed type: {feed_type_pair[1]}')
         print(f'\tItem kinds: {item_kinds_counts_pair[1]}')
         print(f'\tItem data types: {item_data_types_counts_pair[1]}')
         print(f'\tEvent type: {event_type_pair[1]}')
+
+        print(f'Item matching:')
+        print(f'\tnum_superevent_items: {num_superevent_items}')
+        print(f'\tnum_subevent_items: {num_subevent_items}')
+        print(f'\tnum_matched_superevent_items: {num_matched_superevent_items}')
+        print(f'\tnum_matched_subevent_items: {num_matched_subevent_items}')
+        print(f'\tnum_unmatched_superevent_items: {num_unmatched_superevent_items}')
+        print(f'\tnum_unmatched_subevent_items: {num_unmatched_subevent_items}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -292,6 +313,10 @@ def analyse_opportunities(**kwargs):
             feeds['num_future_week_items'].append(0)
             feeds['num_future_alt_items'].append(0) # TODO: Remove
             feeds['num_future_week_alt_items'].append(0) # TODO: Remove
+            feeds['num_matched_superevent_items'].append(num_matched_superevent_items)
+            feeds['num_matched_subevent_items'].append(num_matched_subevent_items)
+            feeds['num_unmatched_superevent_items'].append(num_unmatched_superevent_items)
+            feeds['num_unmatched_subevent_items'].append(num_unmatched_subevent_items)
 
             feeds['item_kinds_counts'].append(item_kinds_counts_pair[opportunity_idx])
             feeds['item_data_types_counts'].append(item_data_types_counts_pair[opportunity_idx])
@@ -323,19 +348,16 @@ def analyse_opportunities(**kwargs):
 
                 items['id'].append('-'.join([items['feed_id'][-1], str(items['item_id'][-1]).strip()]))
 
-                partner_item_ids = None
-                if (is_superevent_subevent_pair):
+                if (opportunities_pair[1-opportunity_idx] is not None):
                     items['partner_feed_id'].append(opportunities_pair[1-opportunity_idx]['feed']['id'])
-                    if (event_type_pair[opportunity_idx] == 'superevent'):
-                        if (    (superevent_id_v_subevent_ids is not None)
-                            and (items['id'][-1] in superevent_id_v_subevent_ids.keys())
-                        ):
-                            partner_item_ids = superevent_id_v_subevent_ids[items['id'][-1]]
-                    elif (event_type_pair[opportunity_idx] == 'subevent'):
-                        if (    (subevent_id_v_superevent_id is not None)
-                            and (items['id'][-1] in subevent_id_v_superevent_id.keys())
-                        ):
-                            partner_item_ids = [subevent_id_v_superevent_id[items['id'][-1]]]
+
+                partner_item_ids = None
+                if (event_type_pair[opportunity_idx] == 'superevent'):
+                    if (items['item_id'][-1] in superevent_id_v_subevent_ids.keys()):
+                        partner_item_ids = superevent_id_v_subevent_ids[items['item_id'][-1]]
+                elif (event_type_pair[opportunity_idx] == 'subevent'):
+                    if (items['item_id'][-1] in subevent_id_v_superevent_id.keys()):
+                        partner_item_ids = [subevent_id_v_superevent_id[items['item_id'][-1]]]
                 items['partner_item_ids'].append(partner_item_ids)
 
                 # --------------------------------------------------------------------------------------------------
