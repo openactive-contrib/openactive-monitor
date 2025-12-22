@@ -565,6 +565,11 @@ def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportun
     if (verbose):
         print(stack()[0].function)
 
+    superevent_modified_id_v_superevent_id = {}
+    superevent_data_modified_id_v_superevent_id = {}
+    subevent_id_v_subevent_superevent_modified_id = {}
+    superevent_id_v_subevent_ids = {}
+
     # --------------------------------------------------------------------------------------------------
 
     num_superevents = len(superevent_opportunities['items'].keys())
@@ -585,14 +590,7 @@ def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportun
             and (num_subevents == 0)
         ):
             print('\tNo superevents and no subevents - merging not possible')
-        return None
-
-    # --------------------------------------------------------------------------------------------------
-
-    superevent_modified_id_v_superevent_id = {}
-    superevent_data_modified_id_v_superevent_id = {}
-    subevent_id_v_subevent_superevent_modified_id = {}
-    superevent_id_v_subevent_ids = {}
+        return superevent_id_v_subevent_ids
 
     # --------------------------------------------------------------------------------------------------
 
@@ -633,7 +631,7 @@ def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportun
     if (num_subevents_with_superevent_modified_id == 0):
         if (verbose):
             print('\t\tNo subevents with superevent modified ID - merging not possible')
-        return None
+        return superevent_id_v_subevent_ids
 
     # --------------------------------------------------------------------------------------------------
 
@@ -664,7 +662,7 @@ def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportun
     if (num_superevents_with_subevent_ids == 0):
         if (verbose):
             print('\t\tNo superevents with subevent IDs - merging not possible')
-        return None
+        return superevent_id_v_subevent_ids
 
     # --------------------------------------------------------------------------------------------------
 
