@@ -45,7 +45,7 @@ def analyse_separate_opportunities(**kwargs):
     num_unique_filenames = len(unique_filenames)
 
     if (num_filenames != num_unique_filenames):
-        raise Exception('At least one filename has been matched to more than one other filename. This should not occur and the filename pairing procedure needs to be investigated.')
+        raise Exception('At least one filename has been partnered with more than one other filename. This should not occur and the filename pairing procedure needs to be investigated.')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -75,10 +75,10 @@ def analyse_separate_opportunities(**kwargs):
         'num_items', # INT
         'num_future_items', # INT
         'num_future_week_items', # INT
-        'num_matched_superevent_items', # INT
-        'num_matched_subevent_items', # INT
-        'num_unmatched_superevent_items', # INT
-        'num_unmatched_subevent_items', # INT
+        'num_partnered_superevent_items', # INT
+        'num_partnered_subevent_items', # INT
+        'num_unpartnered_superevent_items', # INT
+        'num_unpartnered_subevent_items', # INT
 
         'item_kinds_counts', # DICT
         'item_types_counts', # DICT
@@ -166,10 +166,10 @@ def analyse_separate_opportunities(**kwargs):
 
         superevent_id_v_subevent_ids = {}
         subevent_id_v_superevent_id = {}
-        num_matched_superevent_items = None
-        num_matched_subevent_items = None
-        num_unmatched_superevent_items = None
-        num_unmatched_subevent_items = None
+        num_partnered_superevent_items = None
+        num_partnered_subevent_items = None
+        num_unpartnered_superevent_items = None
+        num_unpartnered_subevent_items = None
         if (    ('superevent' in event_type_pair)
             and ('subevent' in event_type_pair)
         ):
@@ -185,10 +185,10 @@ def analyse_separate_opportunities(**kwargs):
                 print('ERROR:', error)
             num_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
             num_subevent_items = len(opportunities_pair[event_type_pair.index('subevent')]['items'].keys())
-            num_matched_superevent_items = len(superevent_id_v_subevent_ids.keys())
-            num_matched_subevent_items = len(subevent_id_v_superevent_id.keys())
-            num_unmatched_superevent_items = num_superevent_items - num_matched_superevent_items
-            num_unmatched_subevent_items = num_subevent_items - num_matched_subevent_items
+            num_partnered_superevent_items = len(superevent_id_v_subevent_ids.keys())
+            num_partnered_subevent_items = len(subevent_id_v_superevent_id.keys())
+            num_unpartnered_superevent_items = num_superevent_items - num_partnered_superevent_items
+            num_unpartnered_subevent_items = num_subevent_items - num_partnered_subevent_items
 
         # --------------------------------------------------------------------------------------------------
 
@@ -208,13 +208,13 @@ def analyse_separate_opportunities(**kwargs):
         print(f'\tItem types: {item_types_counts_pair[1]}')
         print(f'\tEvent type: {event_type_pair[1]}')
 
-        print(f'Item matching:')
+        print(f'Item partnering:')
         print(f'\tnum_superevent_items: {num_superevent_items}')
         print(f'\tnum_subevent_items: {num_subevent_items}')
-        print(f'\tnum_matched_superevent_items: {num_matched_superevent_items}')
-        print(f'\tnum_matched_subevent_items: {num_matched_subevent_items}')
-        print(f'\tnum_unmatched_superevent_items: {num_unmatched_superevent_items}')
-        print(f'\tnum_unmatched_subevent_items: {num_unmatched_subevent_items}')
+        print(f'\tnum_partnered_superevent_items: {num_partnered_superevent_items}')
+        print(f'\tnum_partnered_subevent_items: {num_partnered_subevent_items}')
+        print(f'\tnum_unpartnered_superevent_items: {num_unpartnered_superevent_items}')
+        print(f'\tnum_unpartnered_subevent_items: {num_unpartnered_subevent_items}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -301,15 +301,15 @@ def analyse_separate_opportunities(**kwargs):
 
                     'status': opportunities['status'],
                     'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
-                    'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited, including simply due to no item id matches being found.
+                    'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited, including simply due to no item id partners being found.
 
                     'num_items': len(opportunities['items'].keys()),
                     'num_future_items': num_future_items,
                     'num_future_week_items': num_future_week_items,
-                    'num_matched_superevent_items': num_matched_superevent_items,
-                    'num_matched_subevent_items': num_matched_subevent_items,
-                    'num_unmatched_superevent_items': num_unmatched_superevent_items,
-                    'num_unmatched_subevent_items': num_unmatched_subevent_items,
+                    'num_partnered_superevent_items': num_partnered_superevent_items,
+                    'num_partnered_subevent_items': num_partnered_subevent_items,
+                    'num_unpartnered_superevent_items': num_unpartnered_superevent_items,
+                    'num_unpartnered_subevent_items': num_unpartnered_subevent_items,
 
                     # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
                     'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
