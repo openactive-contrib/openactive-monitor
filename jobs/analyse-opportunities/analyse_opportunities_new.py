@@ -10,7 +10,7 @@ from dateutil import parser
 
 sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
-from openactive_custom import get_item_kinds, get_item_data_types, get_event_type, get_superevent_id_v_subevent_ids
+from openactive_custom import get_item_kinds, get_item_types, get_event_type, get_superevent_id_v_subevent_ids
 from settings import *
 
 def analyse_opportunities(**kwargs):
@@ -70,35 +70,35 @@ def analyse_opportunities(**kwargs):
     # they relate to e.g. an empty string for strings, or zero for integers etc.
 
     feeds = {
-        'id': [], # STR
-        'partner_id': [], # STR
-        'name': [], # STR
-        'type': [], # STR
-        'url': [], # STR
+        'feed_id': [], # STR
+        'partner_feed_id': [], # STR
+        'file_name': [], # STR
+        'feed_name': [], # STR
+        'publisher_name': [], # STR
+
+        'feed_url': [], # STR
         'dataset_url': [], # STR
         'discussion_url': [], # STR
         'license_url': [], # STR
         'logo_url': [], # STR
-        'publisher_name': [], # STR
 
-        'file_name': [], # STR
-        'event_type': [], # STR
         'status': [], # STR
         'is_regular': [], # BOOL
+        'feed_type': [], # STR
+        'item_kinds_counts': [], # DICT
+        'item_types_counts': [], # DICT
+        'event_type': [], # STR
 
         'num_items': [], # INT
-        'num_future_items': [], # INT
-        'num_future_week_items': [], # INT
+        # 'num_future_items': [], # INT
+        # 'num_future_week_items': [], # INT
         'num_matched_items': [], # INT
         'num_unmatched_items': [], # INT
-
-        'item_kinds_counts': [], # DICT
-        'item_data_types_counts': [], # DICT
     }
 
     items = {
         # Identifiers
-        'id': [], # STR
+        'unique_item_id': [], # STR
         'feed_id': [], # STR
         'item_id': [], # STR/INT
         'data_id': [], # STR/INT
@@ -110,6 +110,7 @@ def analyse_opportunities(**kwargs):
 
         # What
         'is_regular': [], # BOOL
+        'is_ignored': [], # BOOL
         'name': [], # STR
         'kind': [], # STR
         'type': [], # STR
@@ -127,9 +128,6 @@ def analyse_opportunities(**kwargs):
 
         # When
         'start_dates': [], # [DATE]
-        'num_start_dates': [], # INT
-        'num_future_start_dates': [], # INT
-        'num_future_week_start_dates': [], # INT
     }
 
     # --------------------------------------------------------------------------------------------------
@@ -187,15 +185,15 @@ def analyse_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
-        item_data_types_counts_pair = []
+        item_types_counts_pair = []
         for opportunities in opportunities_pair:
-            item_data_types_counts = None
+            item_types_counts = None
             if (opportunities is not None):
                 try:
-                    item_data_types_counts = get_item_data_types(opportunities)
+                    item_types_counts = get_item_types(opportunities)
                 except Exception as error:
                     print('ERROR:', error)
-            item_data_types_counts_pair.append(item_data_types_counts)
+            item_types_counts_pair.append(item_types_counts)
 
         # --------------------------------------------------------------------------------------------------
 
@@ -204,10 +202,10 @@ def analyse_opportunities(**kwargs):
             event_type = None
             if (opportunities is not None):
                 try:
-                    if (    (item_data_types_counts_pair[opportunity_idx] is not None)
-                        and (len(item_data_types_counts_pair[opportunity_idx].keys()) == 1)
+                    if (    (item_types_counts_pair[opportunity_idx] is not None)
+                        and (len(item_types_counts_pair[opportunity_idx].keys()) == 1)
                     ):
-                        event_type = get_event_type(list(item_data_types_counts_pair[opportunity_idx].keys())[0])
+                        event_type = get_event_type(list(item_types_counts_pair[opportunity_idx].keys())[0])
                     else:
                         event_type = get_event_type(feed_type_pair[opportunity_idx])
                 except Exception as error:
@@ -249,7 +247,7 @@ def analyse_opportunities(**kwargs):
         print(f'\tLoaded: {opportunities_pair[0] is not None}')
         print(f'\tFeed type: {feed_type_pair[0]}')
         print(f'\tItem kinds: {item_kinds_counts_pair[0]}')
-        print(f'\tItem data types: {item_data_types_counts_pair[0]}')
+        print(f'\tItem types: {item_types_counts_pair[0]}')
         print(f'\tEvent type: {event_type_pair[0]}')
 
         print(f'File-2:')
@@ -257,7 +255,7 @@ def analyse_opportunities(**kwargs):
         print(f'\tLoaded: {opportunities_pair[1] is not None}')
         print(f'\tFeed type: {feed_type_pair[1]}')
         print(f'\tItem kinds: {item_kinds_counts_pair[1]}')
-        print(f'\tItem data types: {item_data_types_counts_pair[1]}')
+        print(f'\tItem types: {item_types_counts_pair[1]}')
         print(f'\tEvent type: {event_type_pair[1]}')
 
         print(f'Item matching:')
@@ -285,28 +283,31 @@ def analyse_opportunities(**kwargs):
 
             num_items = len(opportunities['items'].keys())
 
-            feeds['id'].append(opportunities['feed']['id'])
+            feeds['feed_id'].append(opportunities['feed']['id'])
             if (opportunities_pair[1-opportunity_idx] is not None):
-                feeds['partner_id'].append(opportunities_pair[1-opportunity_idx]['feed']['id'])
+                feeds['partner_feed_id'].append(opportunities_pair[1-opportunity_idx]['feed']['id'])
             else:
-                feeds['partner_id'].append(None)
-            feeds['name'].append(opportunities['feed']['name'])
-            feeds['type'].append(opportunities['feed']['type'])
-            feeds['url'].append(opportunities['feed']['url'])
+                feeds['partner_feed_id'].append(None)
+            feeds['file_name'].append(filename_pair[opportunity_idx])
+            feeds['feed_name'].append(opportunities['feed']['name'])
+            feeds['publisher_name'].append(opportunities['feed']['publisher_name'])
+
+            feeds['feed_url'].append(opportunities['feed']['url'])
             feeds['dataset_url'].append(opportunities['feed']['dataset_url'])
             feeds['discussion_url'].append(opportunities['feed']['discussion_url'])
             feeds['license_url'].append(opportunities['feed']['license_url'])
             feeds['logo_url'].append(opportunities['feed']['logo_url'])
-            feeds['publisher_name'].append(opportunities['feed']['publisher_name'])
 
-            feeds['file_name'].append(filename_pair[opportunity_idx])
-            feeds['event_type'].append(event_type_pair[opportunity_idx]),
             feeds['status'].append(opportunities['status'])
             feeds['is_regular'].append(filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE))
+            feeds['feed_type'].append(opportunities['feed']['type'])
+            feeds['item_kinds_counts'].append(item_kinds_counts_pair[opportunity_idx])
+            feeds['item_types_counts'].append(item_types_counts_pair[opportunity_idx])
+            feeds['event_type'].append(event_type_pair[opportunity_idx]),
 
             feeds['num_items'].append(num_items)
-            feeds['num_future_items'].append(0)
-            feeds['num_future_week_items'].append(0)
+            # feeds['num_future_items'].append(0)
+            # feeds['num_future_week_items'].append(0)
 
             if (event_type_pair[opportunity_idx] == 'superevent'):
                 feeds['num_matched_items'].append(num_matched_superevent_items)
@@ -322,9 +323,6 @@ def analyse_opportunities(**kwargs):
             else:
                 feeds['num_unmatched_items'].append(None)
 
-            feeds['item_kinds_counts'].append(item_kinds_counts_pair[opportunity_idx])
-            feeds['item_data_types_counts'].append(item_data_types_counts_pair[opportunity_idx])
-
             for item_idx, item in enumerate(opportunities['items'].values()):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
                 # you'll just end up with a long list of numbers if this is enabled:
@@ -339,18 +337,16 @@ def analyse_opportunities(**kwargs):
 
                 # Identifiers
 
-                items['feed_id'].append(feeds['id'][-1])
-                items['item_id'].append(item['id'])
-                items['data_id'].append(item_data.get('id', None) or item_data.get('@id', None))
-
                 # An item ID in a given feed should be unique within that feed, but the same item ID may be found in
                 # different feeds. We therefore make an absolutely unique item ID here for use in the full set of items
                 # from across all feeds, using the combination of feed ID and item ID as it is within the feed. This
                 # may be a bit long, but it should be absolutely unique:
 
-                items['id'].append('-'.join([items['feed_id'][-1], str(items['item_id'][-1]).strip()]))
-
-                items['partner_feed_id'].append(feeds['partner_id'][-1])
+                items['unique_item_id'].append('-'.join([feeds['feed_id'][-1], str(item['id']).strip()]))
+                items['feed_id'].append(feeds['feed_id'][-1])
+                items['item_id'].append(item['id'])
+                items['data_id'].append(item_data.get('id', None) or item_data.get('@id', None))
+                items['partner_feed_id'].append(feeds['partner_feed_id'][-1])
 
                 partner_item_ids = None
                 if (event_type_pair[opportunity_idx] == 'superevent'):
@@ -365,7 +361,8 @@ def analyse_opportunities(**kwargs):
 
                 # Who
 
-                organisers = get_values(item_data, 'organizer', 'name') # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index
+                # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
+                organisers = get_values(item_data, 'organizer', 'name')
                 try:
                     items['organiser'].append(strip(organisers[0]))
                 except:
@@ -375,26 +372,40 @@ def analyse_opportunities(**kwargs):
 
                 # What
 
+                # If we have any matched items for this feed pair, then all of the superevent items are ignored in
+                # the original analysis (i.e. not this item-by-item analysis). The matched superevents are merged into
+                # the subevents, and the unmatched superevents are neglected, which is fine as we don't expect those
+                # superevents to be of the kind that have embedded subevents given the fact that they belong to a set
+                # of paired feeds that should be doing that job between them. However, the original analysis still
+                # takes counts from both superevents and subevents of paired feeds that could have matches but simply
+                # happen not to. Should possibly ignore the superevents of such pairs, which shouldn't have any session-level
+                # data which people often associate with being "an opportunity".
+
                 items['is_regular'].append(feeds['is_regular'][-1])
+                items['is_ignored'].append(
+                        (event_type_pair[opportunity_idx] == 'superevent')
+                    and (num_matched_superevent_items is not None)
+                    and (num_matched_superevent_items > 0)
+                )
                 items['name'].append(strip(item_data.get('name', None)))
                 items['kind'].append(strip(item.get('kind', None)))
                 items['type'].append(strip(item_data.get('type', None) or item_data.get('@type', None)))
                 items['event_type'].append(event_type_pair[opportunity_idx])
 
                 activities = list(set([strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]))
-                if (len(activities)> 0):
+                if (len(activities) > 0):
                     items['activities'].append(activities)
                 else:
                     items['activities'].append(None)
 
                 facilities = list(set([strip(value) for value in get_values(item_data, 'facilityType', 'prefLabel')]))
-                if (len(facilities)> 0):
+                if (len(facilities) > 0):
                     items['facilities'].append(facilities)
                 else:
                     items['facilities'].append(None)
 
                 accessibilities = list(set([strip(value) for value in get_values(item_data, 'accessibilitySupport', 'prefLabel')]))
-                if (len(accessibilities)> 0):
+                if (len(accessibilities) > 0):
                     items['accessibilities'].append(accessibilities)
                 else:
                     items['accessibilities'].append(None)
@@ -403,7 +414,8 @@ def analyse_opportunities(**kwargs):
 
                 # Where
 
-                locations = get_values(item_data, 'location') # If we get multiple values back (not expected but possible), then below we use the first only i.e. zeroth index
+                # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
+                locations = get_values(item_data, 'location')
                 try:
                     items['postcode'].append(strip(locations[0]['address']['postalCode']))
                 except:
@@ -454,6 +466,7 @@ def analyse_opportunities(**kwargs):
                 start_datetimes = get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False)
                 if (len(start_datetimes) == 0):
                     start_datetimes = get_values(item_data, ['startDate', 'dateStart'], continue_to_next_layer=False)
+
                 for start_datetime in start_datetimes:
                     try:
                         # Don't use .astimezone(tz.UTC) here - if there is a date but no time then it defaults to midnight,
@@ -464,27 +477,8 @@ def analyse_opportunities(**kwargs):
 
                 if (len(start_dates) > 0):
                     items['start_dates'].append(start_dates)
-                    items['num_start_dates'].append(len(start_dates))
-                    items['num_future_start_dates'].append(len([
-                        start_date
-                        for start_date in start_dates
-                        if (start_date >= todays_date)
-                    ]))
-                    items['num_future_week_start_dates'].append(len([
-                        start_date
-                        for start_date in start_dates
-                        if (    (start_date >= todays_date)
-                            and (start_date < next_weeks_date) )
-                    ]))
-                    if (items['num_future_start_dates'][-1] > 0):
-                        feeds['num_future_items'][-1] += 1
-                    if (items['num_future_week_start_dates'][-1] > 0):
-                        feeds['num_future_week_items'][-1] += 1
                 else:
                     items['start_dates'].append(None)
-                    items['num_start_dates'].append(0)
-                    items['num_future_start_dates'].append(0)
-                    items['num_future_week_start_dates'].append(0)
 
         # --------------------------------------------------------------------------------------------------
 
@@ -518,10 +512,10 @@ def analyse_opportunities(**kwargs):
     print(f'\t\t  {round(total_prepare_process_time, 6)} seconds')
     print(f'\t\t= {round(total_prepare_process_time / 60, 2)} minutes')
     print(f'\tPrepare + Process (from overall start and end times):')
-    print(f'\t\t{t2_overall - t1_overall}') # ~3hr20min on M1 8GB MacBook Air
+    print(f'\t\t  {t2_overall - t1_overall}') # ~3hr20min on M1 8GB MacBook Air
 
     # TODO: Remove this when happy about using total_num_items from filenames, as calculated above
-    total_num_items = len(items['id'])
+    total_num_items = len(items['unique_item_id'])
 
     print('--------------------------------------------------')
 
@@ -631,13 +625,20 @@ def analyse_opportunities(**kwargs):
     # gdf_districts.to_crs(4326)
     # with gzip.open('/Users/darrentemple/Documents/OpenActive/openactive-monitor/volume-1/data-analysis/dict_items_new.pickle.gzip', 'rb') as file_in:
     #     items = pickle.load(file_in)
-    # total_num_items = len(items['id'])
+    # total_num_items = len(items['unique_item_id'])
     # t2 = datetime.now()
     # print(t2 - t1)
 
     print('Running counts ...')
 
     # Dictionary approach
+
+    total_num_start_dates = 0
+    total_num_future_start_dates = 0
+    total_num_future_week_start_dates = 0
+
+    total_num_future_items = 0
+    total_num_future_week_items = 0
 
     organisers_counts = {}
     kinds_counts = {}
@@ -681,63 +682,147 @@ def analyse_opportunities(**kwargs):
     districts_accessibilities_counts = copy.deepcopy(districts_values_counts)
     districts_regions_counts = copy.deepcopy(districts_values_counts) # Should be one-to-one
 
+    partner_id_to_all_item_idx = {}
     for all_item_idx in range(total_num_items):
-        presence = [1, items['num_start_dates'][all_item_idx], items['num_future_start_dates'][all_item_idx], items['num_future_week_start_dates'][all_item_idx]]
+        if (    (items['event_type'][all_item_idx] == 'superevent')
+            and (items['partner_feed_id'][all_item_idx] is not None)
+            and (items['partner_item_ids'][all_item_idx] is not None)
+            and (len(items['partner_item_ids'][all_item_idx]) > 0)
+        ):
+            if (items['feed_id'][all_item_idx] not in partner_id_to_all_item_idx.keys()):
+                partner_id_to_all_item_idx \
+                    [items['feed_id'][all_item_idx]] = {}
+            partner_id_to_all_item_idx \
+                [items['feed_id'][all_item_idx]] \
+                [items['item_id'][all_item_idx]] = all_item_idx
 
-        update_values_counts(organisers_counts, items['organiser'][all_item_idx], presence)
-        update_values_counts(regions_organisers_counts[items['region'][all_item_idx]], items['organiser'][all_item_idx], presence)
-        update_values_counts(districts_organisers_counts[items['district'][all_item_idx]], items['organiser'][all_item_idx], presence)
+    for all_item_idx in range(total_num_items):
+        if (   ((all_item_idx + 1) % 10 == 0)
+            or ((all_item_idx + 1) == total_num_items)
+        ):
+            print(f'\tItem: {all_item_idx + 1}/{total_num_items}', end=('\n' if ((all_item_idx + 1) == total_num_items) else '\r'))
 
-        update_values_counts(kinds_counts, items['kind'][all_item_idx], presence)
-        update_values_counts(regions_kinds_counts[items['region'][all_item_idx]], items['kind'][all_item_idx], presence)
-        update_values_counts(districts_kinds_counts[items['district'][all_item_idx]], items['kind'][all_item_idx], presence)
+        if (items['is_ignored'][all_item_idx]):
+            continue
 
-        update_values_counts(types_counts, items['type'][all_item_idx], presence)
-        update_values_counts(regions_types_counts[items['region'][all_item_idx]], items['type'][all_item_idx], presence)
-        update_values_counts(districts_types_counts[items['district'][all_item_idx]], items['type'][all_item_idx], presence)
+        item = {
+            key: val[all_item_idx]
+            for key, val in items.items()
+        }
 
-        update_values_counts(regions_counts, items['region'][all_item_idx], presence)
-        update_values_counts(districts_regions_counts[items['district'][all_item_idx]], items['region'][all_item_idx], presence)
+        partner_item_all_item_idx = None
+        if (    (item['event_type'] == 'subevent')
+            and (item['partner_feed_id'] is not None)
+            and (item['partner_item_ids'] is not None)
+            and (len(item['partner_item_ids']) == 1)
+        ):
+            partner_item_all_item_idx = \
+                partner_id_to_all_item_idx \
+                    [item['partner_feed_id']] \
+                    [item['partner_item_ids'][0]]
 
-        update_values_counts(districts_counts, items['district'][all_item_idx], presence)
-        update_values_counts(regions_districts_counts[items['region'][all_item_idx]], items['district'][all_item_idx], presence)
+        partner_item = None
+        if (partner_item_all_item_idx is not None):
+            partner_item = {
+                key: val[partner_item_all_item_idx]
+                for key, val in items.items()
+            }
 
-        update_values_counts(kinds_types_counts[items['kind'][all_item_idx]], items['type'][all_item_idx], presence)
-        update_values_counts(types_kinds_counts[items['type'][all_item_idx]], items['kind'][all_item_idx], presence)
+        if (partner_item is not None):
+            # Intentionally leave the start dates as they are on the subevent item, as the start dates on the superevent
+            # item are for the overarching series/facility use etc.
+            for key in [
+                'activities',
+                'facilities',
+                'accessibilities',
+                'postcode',
+                'latitude',
+                'longitude',
+                'region',
+                'district',
+                # 'start_dates',
+            ]:
+                if (    (item[key] is None)
+                    and (partner_item[key] is not None)
+                ):
+                    item[key] = partner_item[key]
 
-        if (items['activities'][all_item_idx] is not None):
-            activities = items['activities'][all_item_idx]
+        if (item['start_dates'] is not None):
+            num_start_dates = len(item['start_dates'])
+            num_future_start_dates = len([
+                start_date
+                for start_date in item['start_dates']
+                if (start_date >= todays_date)
+            ])
+            num_future_week_start_dates = len([
+                start_date
+                for start_date in item['start_dates']
+                if (    (start_date >= todays_date)
+                    and (start_date < next_weeks_date) )
+            ])
+        else:
+            num_start_dates = 0
+            num_future_start_dates = 0
+            num_future_week_start_dates = 0
+
+        total_num_start_dates += num_start_dates
+        total_num_future_start_dates += num_future_start_dates
+        total_num_future_week_start_dates += num_future_week_start_dates
+
+        if (num_future_start_dates > 0):
+            total_num_future_items += 1
+        if (num_future_week_start_dates > 0):
+            total_num_future_week_items += 1
+
+        presence = [1, num_start_dates, num_future_start_dates, num_future_week_start_dates]
+
+        update_values_counts(organisers_counts, item['organiser'], presence)
+        update_values_counts(regions_organisers_counts[item['region']], item['organiser'], presence)
+        update_values_counts(districts_organisers_counts[item['district']], item['organiser'], presence)
+
+        update_values_counts(kinds_counts, item['kind'], presence)
+        update_values_counts(regions_kinds_counts[item['region']], item['kind'], presence)
+        update_values_counts(districts_kinds_counts[item['district']], item['kind'], presence)
+
+        update_values_counts(types_counts, item['type'], presence)
+        update_values_counts(regions_types_counts[item['region']], item['type'], presence)
+        update_values_counts(districts_types_counts[item['district']], item['type'], presence)
+
+        update_values_counts(regions_counts, item['region'], presence)
+        update_values_counts(districts_regions_counts[item['district']], item['region'], presence)
+
+        update_values_counts(districts_counts, item['district'], presence)
+        update_values_counts(regions_districts_counts[item['region']], item['district'], presence)
+
+        update_values_counts(kinds_types_counts[item['kind']], item['type'], presence)
+        update_values_counts(types_kinds_counts[item['type']], item['kind'], presence)
+
+        if (item['activities'] is not None):
+            activities = item['activities']
         else:
             activities = [None]
         for activity in activities:
             update_values_counts(activities_counts, activity, presence)
-            update_values_counts(regions_activities_counts[items['region'][all_item_idx]], activity, presence)
-            update_values_counts(districts_activities_counts[items['district'][all_item_idx]], activity, presence)
+            update_values_counts(regions_activities_counts[item['region']], activity, presence)
+            update_values_counts(districts_activities_counts[item['district']], activity, presence)
 
-        if (items['facilities'][all_item_idx] is not None):
-            facilities = items['facilities'][all_item_idx]
+        if (item['facilities'] is not None):
+            facilities = item['facilities']
         else:
             facilities = [None]
         for facility in facilities:
             update_values_counts(facilities_counts, facility, presence)
-            update_values_counts(regions_facilities_counts[items['region'][all_item_idx]], facility, presence)
-            update_values_counts(districts_facilities_counts[items['district'][all_item_idx]], facility, presence)
+            update_values_counts(regions_facilities_counts[item['region']], facility, presence)
+            update_values_counts(districts_facilities_counts[item['district']], facility, presence)
 
-        if (items['accessibilities'][all_item_idx] is not None):
-            accessibilities = items['accessibilities'][all_item_idx]
+        if (item['accessibilities'] is not None):
+            accessibilities = item['accessibilities']
         else:
             accessibilities = [None]
         for accessibility in accessibilities:
             update_values_counts(accessibilities_counts, accessibility, presence)
-            update_values_counts(regions_accessibilities_counts[items['region'][all_item_idx]], accessibility, presence)
-            update_values_counts(districts_accessibilities_counts[items['district'][all_item_idx]], accessibility, presence)
-
-    total_num_start_dates = sum(items['num_start_dates'])
-    total_num_future_start_dates = sum(items['num_future_start_dates'])
-    total_num_future_week_start_dates = sum(items['num_future_week_start_dates'])
-
-    total_num_future_items = sum(feeds['num_future_items']) # Measure of future by old analysis (once merging done)
-    total_num_future_week_items = sum(feeds['num_future_week_items']) # Measure of future week by old analysis (once merging done)
+            update_values_counts(regions_accessibilities_counts[item['region']], accessibility, presence)
+            update_values_counts(districts_accessibilities_counts[item['district']], accessibility, presence)
 
     analysis = {
         'organisers_counts': organisers_counts,
