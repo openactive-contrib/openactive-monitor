@@ -112,8 +112,8 @@ def analyse_opportunities(**kwargs):
         'is_regular': [], # BOOL
         'is_ignored': [], # BOOL
         'item_name': [], # STR
-        'kind': [], # STR
-        'type': [], # STR
+        'item_kind': [], # STR
+        'item_type': [], # STR
         'event_type': [], # STR
         'activities': [], # [STR]
         'facilities': [], # [STR]
@@ -391,8 +391,8 @@ def analyse_opportunities(**kwargs):
                     and (num_matched_superevent_items > 0) # * (see above comment)
                 )
                 items['item_name'].append(strip(item_data.get('name', None)))
-                items['kind'].append(strip(item.get('kind', None)))
-                items['type'].append(strip(item_data.get('type', None) or item_data.get('@type', None)))
+                items['item_kind'].append(strip(item.get('kind', None)))
+                items['item_type'].append(strip(item_data.get('type', None) or item_data.get('@type', None)))
                 items['event_type'].append(event_type_pair[opportunity_idx])
 
                 activities = list(set([strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]))
@@ -652,21 +652,21 @@ def analyse_opportunities(**kwargs):
     total_num_future_week_items = 0
 
     organizer_names_counts = {}
-    kinds_counts = {}
-    types_counts = {}
+    item_kinds_counts = {}
+    item_types_counts = {}
     activities_counts = {}
     facilities_counts = {}
     accessibilities_counts = {}
     regions_counts = {}
     districts_counts = {}
 
-    kinds_types_counts = {
-        kind: {}
-        for kind in set(items['kind'])
+    item_kinds_item_types_counts = {
+        item_kind: {}
+        for item_kind in set(items['item_kind'])
     }
-    types_kinds_counts = {
-        kind: {}
-        for kind in set(items['type'])
+    item_types_item_kinds_counts = {
+        item_type: {}
+        for item_type in set(items['item_type'])
     }
 
     regions_values_counts = {
@@ -674,8 +674,8 @@ def analyse_opportunities(**kwargs):
         for region in [None] + list(gdf_regions['eer18nm'])
     }
     regions_organizer_names_counts = copy.deepcopy(regions_values_counts)
-    regions_kinds_counts = copy.deepcopy(regions_values_counts)
-    regions_types_counts = copy.deepcopy(regions_values_counts)
+    regions_item_kinds_counts = copy.deepcopy(regions_values_counts)
+    regions_item_types_counts = copy.deepcopy(regions_values_counts)
     regions_activities_counts = copy.deepcopy(regions_values_counts)
     regions_facilities_counts = copy.deepcopy(regions_values_counts)
     regions_accessibilities_counts = copy.deepcopy(regions_values_counts)
@@ -686,8 +686,8 @@ def analyse_opportunities(**kwargs):
         for district in [None] + list(gdf_districts['LAD24NM'])
     }
     districts_organizer_names_counts = copy.deepcopy(districts_values_counts)
-    districts_kinds_counts = copy.deepcopy(districts_values_counts)
-    districts_types_counts = copy.deepcopy(districts_values_counts)
+    districts_item_kinds_counts = copy.deepcopy(districts_values_counts)
+    districts_item_types_counts = copy.deepcopy(districts_values_counts)
     districts_activities_counts = copy.deepcopy(districts_values_counts)
     districts_facilities_counts = copy.deepcopy(districts_values_counts)
     districts_accessibilities_counts = copy.deepcopy(districts_values_counts)
@@ -794,13 +794,13 @@ def analyse_opportunities(**kwargs):
         update_values_counts(regions_organizer_names_counts[item['region']], item['organizer_name'], presence)
         update_values_counts(districts_organizer_names_counts[item['district']], item['organizer_name'], presence)
 
-        update_values_counts(kinds_counts, item['kind'], presence)
-        update_values_counts(regions_kinds_counts[item['region']], item['kind'], presence)
-        update_values_counts(districts_kinds_counts[item['district']], item['kind'], presence)
+        update_values_counts(item_kinds_counts, item['item_kind'], presence)
+        update_values_counts(regions_item_kinds_counts[item['region']], item['item_kind'], presence)
+        update_values_counts(districts_item_kinds_counts[item['district']], item['item_kind'], presence)
 
-        update_values_counts(types_counts, item['type'], presence)
-        update_values_counts(regions_types_counts[item['region']], item['type'], presence)
-        update_values_counts(districts_types_counts[item['district']], item['type'], presence)
+        update_values_counts(item_types_counts, item['item_type'], presence)
+        update_values_counts(regions_item_types_counts[item['region']], item['item_type'], presence)
+        update_values_counts(districts_item_types_counts[item['district']], item['item_type'], presence)
 
         update_values_counts(regions_counts, item['region'], presence)
         update_values_counts(districts_regions_counts[item['district']], item['region'], presence)
@@ -808,8 +808,8 @@ def analyse_opportunities(**kwargs):
         update_values_counts(districts_counts, item['district'], presence)
         update_values_counts(regions_districts_counts[item['region']], item['district'], presence)
 
-        update_values_counts(kinds_types_counts[item['kind']], item['type'], presence)
-        update_values_counts(types_kinds_counts[item['type']], item['kind'], presence)
+        update_values_counts(item_kinds_item_types_counts[item['item_kind']], item['item_type'], presence)
+        update_values_counts(item_types_item_kinds_counts[item['item_type']], item['item_kind'], presence)
 
         if (item['activities'] is not None):
             activities = item['activities']
@@ -840,28 +840,28 @@ def analyse_opportunities(**kwargs):
 
     analysis = {
         'organizer_names_counts': organizer_names_counts,
-        'kinds_counts': kinds_counts,
-        'types_counts': types_counts,
+        'item_kinds_counts': item_kinds_counts,
+        'item_types_counts': item_types_counts,
         'activities_counts': activities_counts,
         'facilities_counts': facilities_counts,
         'accessibilities_counts': accessibilities_counts,
         'regions_counts': regions_counts,
         'districts_counts': districts_counts,
 
-        'kinds_types_counts': kinds_types_counts,
-        'types_kinds_counts': types_kinds_counts,
+        'item_kinds_item_types_counts': item_kinds_item_types_counts,
+        'item_types_item_kinds_counts': item_types_item_kinds_counts,
 
         'regions_organizer_names_counts': regions_organizer_names_counts,
-        'regions_kinds_counts': regions_kinds_counts,
-        'regions_types_counts': regions_types_counts,
+        'regions_item_kinds_counts': regions_item_kinds_counts,
+        'regions_item_types_counts': regions_item_types_counts,
         'regions_activities_counts': regions_activities_counts,
         'regions_facilities_counts': regions_facilities_counts,
         'regions_accessibilities_counts': regions_accessibilities_counts,
         'regions_districts_counts': regions_districts_counts,
 
         'districts_organizer_names_counts': districts_organizer_names_counts,
-        'districts_kinds_counts': districts_kinds_counts,
-        'districts_types_counts': districts_types_counts,
+        'districts_item_kinds_counts': districts_item_kinds_counts,
+        'districts_item_types_counts': districts_item_types_counts,
         'districts_activities_counts': districts_activities_counts,
         'districts_facilities_counts': districts_facilities_counts,
         'districts_accessibilities_counts': districts_accessibilities_counts,
@@ -886,8 +886,8 @@ def analyse_opportunities(**kwargs):
     # to be used.
 
     # organizers_counts = df_items['organizer'].value_counts()
-    # kinds_counts = df_items['kind'].value_counts()
-    # types_counts = df_items['type'].value_counts()
+    # item_kinds_counts = df_items['item_kind'].value_counts()
+    # item_types_counts = df_items['item_type'].value_counts()
     # activities_counts =
     # facilities_counts =
     # accessibilities_counts =
@@ -895,8 +895,8 @@ def analyse_opportunities(**kwargs):
     # districts_counts = df_items['district'].value_counts()
 
     # future_organizers_counts = df_items['organizer'][future_rows].value_counts()
-    # future_kinds_counts = df_items['kind'][future_rows].value_counts()
-    # future_types_counts = df_items['type'][future_rows].value_counts()
+    # future_kinds_counts = df_items['item_kind'][future_rows].value_counts()
+    # future_types_counts = df_items['item_type'][future_rows].value_counts()
     # future_activities_counts =
     # future_facilities_counts =
     # future_accessibilities_counts =
@@ -904,8 +904,8 @@ def analyse_opportunities(**kwargs):
     # future_districts_counts = df_items['district'][future_rows].value_counts()
 
     # future_week_organizers_counts = df_items['organizer'][future_week_rows].value_counts()
-    # future_week_kinds_counts = df_items['kind'][future_week_rows].value_counts()
-    # future_week_types_counts = df_items['type'][future_week_rows].value_counts()
+    # future_week_kinds_counts = df_items['item_kind'][future_week_rows].value_counts()
+    # future_week_types_counts = df_items['item_type'][future_week_rows].value_counts()
     # future_week_activities_counts =
     # future_week_facilities_counts =
     # future_week_accessibilities_counts =
@@ -913,43 +913,43 @@ def analyse_opportunities(**kwargs):
     # future_week_districts_counts = df_items['district'][future_week_rows].value_counts()
 
     # regions_organizers_counts = df_items[['region', 'organizer']].groupby('region').value_counts()
-    # regions_kinds_counts = df_items[['region', 'kind']].groupby('region').value_counts()
-    # regions_types_counts = df_items[['region', 'type']].groupby('region').value_counts()
+    # regions_item_kinds_counts = df_items[['region', 'item_kind']].groupby('region').value_counts()
+    # regions_item_types_counts = df_items[['region', 'item_type']].groupby('region').value_counts()
     # regions_activities_counts =
     # regions_facilities_counts =
     # regions_accessibilities_counts =
 
     # future_regions_organizers_counts = df_items[['region', 'organizer']][future_rows].groupby('region').value_counts()
-    # future_regions_kinds_counts = df_items[['region', 'kind']][future_rows].groupby('region').value_counts()
-    # future_regions_types_counts = df_items[['region', 'type']][future_rows].groupby('region').value_counts()
+    # future_regions_item_kinds_counts = df_items[['region', 'item_kind']][future_rows].groupby('region').value_counts()
+    # future_regions_item_types_counts = df_items[['region', 'item_type']][future_rows].groupby('region').value_counts()
     # future_regions_activities_counts =
     # future_regions_facilities_counts =
     # future_regions_accessibilities_counts =
 
     # future_week_regions_organizers_counts = df_items[['region', 'organizer']][future_week_rows].groupby('region').value_counts()
-    # future_week_regions_kinds_counts = df_items[['region', 'kind']][future_week_rows].groupby('region').value_counts()
-    # future_week_regions_types_counts = df_items[['region', 'type']][future_week_rows].groupby('region').value_counts()
+    # future_week_regions_item_kinds_counts = df_items[['region', 'item_kind']][future_week_rows].groupby('region').value_counts()
+    # future_week_regions_item_types_counts = df_items[['region', 'item_type']][future_week_rows].groupby('region').value_counts()
     # future_week_regions_activities_counts =
     # future_week_regions_facilities_counts =
     # future_week_regions_accessibilities_counts =
 
     # districts_organizers_counts = df_items[['district', 'organizer']].groupby('district').value_counts()
-    # districts_kinds_counts = df_items[['district', 'kind']].groupby('district').value_counts()
-    # districts_types_counts = df_items[['district', 'type']].groupby('district').value_counts()
+    # districts_item_kinds_counts = df_items[['district', 'item_kind']].groupby('district').value_counts()
+    # districts_item_types_counts = df_items[['district', 'item_type']].groupby('district').value_counts()
     # districts_activities_counts =
     # districts_facilities_counts =
     # districts_accessibilities_counts =
 
     # future_districts_organizers_counts = df_items[['district', 'organizer']][future_rows].groupby('district').value_counts()
-    # future_districts_kinds_counts = df_items[['district', 'kind']][future_rows].groupby('district').value_counts()
-    # future_districts_types_counts = df_items[['district', 'type']][future_rows].groupby('district').value_counts()
+    # future_districts_item_kinds_counts = df_items[['district', 'item_kind']][future_rows].groupby('district').value_counts()
+    # future_districts_item_types_counts = df_items[['district', 'item_type']][future_rows].groupby('district').value_counts()
     # future_districts_activities_counts =
     # future_districts_facilities_counts =
     # future_districts_accessibilities_counts =
 
     # future_week_districts_organizers_counts = df_items[['district', 'organizer']][future_week_rows].groupby('district').value_counts()
-    # future_week_districts_kinds_counts = df_items[['district', 'kind']][future_week_rows].groupby('district').value_counts()
-    # future_week_districts_types_counts = df_items[['district', 'type']][future_week_rows].groupby('district').value_counts()
+    # future_week_districts_item_kinds_counts = df_items[['district', 'item_kind']][future_week_rows].groupby('district').value_counts()
+    # future_week_districts_item_types_counts = df_items[['district', 'item_type']][future_week_rows].groupby('district').value_counts()
     # future_week_districts_activities_counts =
     # future_week_districts_facilities_counts =
     # future_week_districts_accessibilities_counts =
