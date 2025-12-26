@@ -235,7 +235,7 @@ def analyse_separate_opportunities(**kwargs):
         # objects in an unmerged pair, and discard at least the superevent object before running counts.
 
         is_merged_with_partner = False
-        if (superevent_id_v_subevent_ids is not None):
+        if (len(superevent_id_v_subevent_ids.keys()) > 0):
             try:
                 # Merge superevent items into associated subevent items under a new key called 'superevent_item', and
                 # remove the superevent item from its original opportunities dictionary. Both superevent and subevent
