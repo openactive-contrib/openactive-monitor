@@ -245,19 +245,8 @@ def analyse_separate_opportunities(**kwargs):
                         opportunities_pair[event_type_pair.index('subevent')]['items'][subevent_id]['superevent_item'] = opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id]
                     del(opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id])
 
-                if (    (num_matched_superevent_items > 0)
-                    and (num_matched_subevent_items == 0)
-                ):
-                    raise('Matched superevents but no matched subevents ... should not be possible')
-                elif (  (num_matched_superevent_items == 0)
-                    and (num_matched_subevent_items > 0)
-                ):
-                    raise('No matched superevents but matched subevents ... should not be possible')
-                elif (  (num_matched_superevent_items > 0)
-                    and (num_matched_subevent_items > 0)
-                ):
-                    opportunities_pair[event_type_pair.index('superevent')] = None
-                    is_merged_with_partner = True
+                opportunities_pair[event_type_pair.index('superevent')] = None
+                is_merged_with_partner = True
             except Exception as error:
                 print('ERROR:', error)
 
