@@ -89,9 +89,14 @@ def analyse_opportunities(**kwargs):
         'item_types_counts': [], # DICT
         'event_type': [], # STR
 
+        'num_start_dates': [], # INT
+        'num_future_start_dates': [], # INT
+        'num_future_week_start_dates': [], # INT
+
         'num_items': [], # INT
-        # 'num_future_items': [], # INT
-        # 'num_future_week_items': [], # INT
+        'num_future_items': [], # INT
+        'num_future_week_items': [], # INT
+
         'num_partnered_items': [], # INT
         'num_unpartnered_items': [], # INT
     }
@@ -306,9 +311,13 @@ def analyse_opportunities(**kwargs):
             feeds['item_types_counts'].append(item_types_counts_pair[opportunity_idx])
             feeds['event_type'].append(event_type_pair[opportunity_idx]),
 
+            feeds['num_start_dates'].append(0)
+            feeds['num_future_start_dates'].append(0)
+            feeds['num_future_week_start_dates'].append(0)
+
             feeds['num_items'].append(num_items)
-            # feeds['num_future_items'].append(0)
-            # feeds['num_future_week_items'].append(0)
+            feeds['num_future_items'].append(0)
+            feeds['num_future_week_items'].append(0)
 
             if (event_type_pair[opportunity_idx] == 'superevent'):
                 feeds['num_partnered_items'].append(num_partnered_superevent_items)
@@ -641,7 +650,7 @@ def analyse_opportunities(**kwargs):
     # t2 = datetime.now()
     # print(t2 - t1)
 
-    print('Running counts ...')
+    print('Analysing ...')
 
     # Dictionary approach
 
@@ -707,6 +716,11 @@ def analyse_opportunities(**kwargs):
             partner_id_to_all_item_idx \
                 [items['feed_id'][all_item_idx]] \
                 [items['item_id'][all_item_idx]] = all_item_idx
+
+    feed_id_to_feed_idx = {
+        feed_id: feed_idx
+        for feed_idx, feed_id in enumerate(feeds['feed_id'])
+    }
 
     for all_item_idx in range(total_num_items):
         if (   ((all_item_idx + 1) % 10 == 0)
@@ -780,13 +794,18 @@ def analyse_opportunities(**kwargs):
             num_future_start_dates = 0
             num_future_week_start_dates = 0
 
+        feeds['num_start_dates'][feed_id_to_feed_idx[item['feed_id']]] += num_start_dates
         total_num_start_dates += num_start_dates
+        feeds['num_future_start_dates'][feed_id_to_feed_idx[item['feed_id']]] += num_future_start_dates
         total_num_future_start_dates += num_future_start_dates
+        feeds['num_future_week_start_dates'][feed_id_to_feed_idx[item['feed_id']]] += num_future_week_start_dates
         total_num_future_week_start_dates += num_future_week_start_dates
 
         if (num_future_start_dates > 0):
+            feeds['num_future_items'][feed_id_to_feed_idx[item['feed_id']]] += 1
             total_num_future_items += 1
         if (num_future_week_start_dates > 0):
+            feeds['num_future_week_items'][feed_id_to_feed_idx[item['feed_id']]] += 1
             total_num_future_week_items += 1
 
         presence = [1, num_start_dates, num_future_start_dates, num_future_week_start_dates]
