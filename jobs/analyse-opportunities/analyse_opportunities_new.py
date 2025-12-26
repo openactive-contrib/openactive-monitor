@@ -380,13 +380,15 @@ def analyse_opportunities(**kwargs):
                 # of paired feeds that should be doing that job between them. However, the original analysis still
                 # takes counts from both superevents and subevents of paired feeds that could have matches but simply
                 # happen not to. Should possibly ignore the superevents of such pairs, which shouldn't have any session-level
-                # data which people often associate with being "an opportunity".
+                # data which people often associate with being "an opportunity". To do so, get rid of the lines below
+                # marked with *, which will then increase the item neglection to all superevents with a partner feed.
 
                 items['is_regular'].append(feeds['is_regular'][-1])
                 items['is_ignored'].append(
                         (event_type_pair[opportunity_idx] == 'superevent')
-                    and (num_matched_superevent_items is not None)
-                    and (num_matched_superevent_items > 0)
+                    and (items['partner_feed_id'][-1] is not None)
+                    and (num_matched_superevent_items is not None) # * (see above comment)
+                    and (num_matched_superevent_items > 0) # * (see above comment)
                 )
                 items['name'].append(strip(item_data.get('name', None)))
                 items['kind'].append(strip(item.get('kind', None)))
