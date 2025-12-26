@@ -86,12 +86,12 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    df_total_item_data_types_counts, \
-    total_num_item_data_types, \
-    total_num_items_with_data_types = get_df_total_values_counts(separate_analysis, 'item_data_types_counts', feeds_to_include='all')
+    df_total_item_types_counts, \
+    total_num_item_types, \
+    total_num_items_with_types = get_df_total_values_counts(separate_analysis, 'item_types_counts', feeds_to_include='all')
 
-    # Columns: ['item_data_type', 'count', 'percentage']
-    df_total_item_data_types_counts.rename(columns={'value': 'item_data_type'}, inplace=True)
+    # Columns: ['item_type', 'count', 'percentage']
+    df_total_item_types_counts.rename(columns={'value': 'item_type'}, inplace=True)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -311,9 +311,9 @@ def analyse_aggregate_opportunities(**kwargs):
         'total_num_item_kinds': total_num_item_kinds,
         'total_num_items_with_kinds': total_num_items_with_kinds,
 
-        'df_total_item_data_types_counts': df_total_item_data_types_counts,
-        'total_num_item_data_types': total_num_item_data_types,
-        'total_num_items_with_data_types': total_num_items_with_data_types,
+        'df_total_item_types_counts': df_total_item_types_counts,
+        'total_num_item_types': total_num_item_types,
+        'total_num_items_with_types': total_num_items_with_types,
 
         'df_total_activities_counts': df_total_activities_counts,
         'total_num_activities': total_num_activities,

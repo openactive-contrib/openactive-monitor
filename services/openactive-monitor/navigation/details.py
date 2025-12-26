@@ -387,11 +387,11 @@ with tabs[idx_tab]:
         st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_kinds']:,}")
     with cols[1]:
         st.dataframe(
-            st.session_state.aggregate_analysis['df_total_item_data_types_counts'],
+            st.session_state.aggregate_analysis['df_total_item_types_counts'],
             use_container_width=True,
             hide_index=True,
             column_config={
-                'item_data_type': 'OA item data type',
+                'item_type': 'OA item type',
                 'count': 'Num. opportunities',
                 'percentage': st.column_config.NumberColumn(
                     '% opportunities',
@@ -399,8 +399,8 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. item data types: {st.session_state.aggregate_analysis['total_num_item_data_types']:,}")
-        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_data_types']:,}")
+        st.write(f"Num. item types: {st.session_state.aggregate_analysis['total_num_item_types']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_types']:,}")
 
 # --------------------------------------------------------------------------------------------------
 

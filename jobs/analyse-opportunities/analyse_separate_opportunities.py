@@ -10,7 +10,7 @@ from dateutil import parser
 
 sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
-from openactive_custom import get_item_kinds, get_item_data_types, get_event_type, get_superevent_id_v_subevent_ids
+from openactive_custom import get_item_kinds, get_item_types, get_event_type, get_superevent_id_v_subevent_ids
 from settings import *
 
 # --------------------------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ def analyse_separate_opportunities(**kwargs):
         'num_unmatched_subevent_items', # INT
 
         'item_kinds_counts', # DICT
-        'item_data_types_counts', # DICT
+        'item_types_counts', # DICT
         'organisers_counts', # DICT
         'activities_counts', # DICT
         'postcodes_counts', # DICT
@@ -135,15 +135,15 @@ def analyse_separate_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
-        item_data_types_counts_pair = []
+        item_types_counts_pair = []
         for opportunities in opportunities_pair:
-            item_data_types_counts = None
+            item_types_counts = None
             if (opportunities is not None):
                 try:
-                    item_data_types_counts = get_item_data_types(opportunities)
+                    item_types_counts = get_item_types(opportunities)
                 except Exception as error:
                     print('ERROR:', error)
-            item_data_types_counts_pair.append(item_data_types_counts)
+            item_types_counts_pair.append(item_types_counts)
 
         # --------------------------------------------------------------------------------------------------
 
@@ -152,10 +152,10 @@ def analyse_separate_opportunities(**kwargs):
             event_type = None
             if (opportunities is not None):
                 try:
-                    if (    (item_data_types_counts_pair[opportunity_idx] is not None)
-                        and (len(item_data_types_counts_pair[opportunity_idx].keys()) == 1)
+                    if (    (item_types_counts_pair[opportunity_idx] is not None)
+                        and (len(item_types_counts_pair[opportunity_idx].keys()) == 1)
                     ):
-                        event_type = get_event_type(list(item_data_types_counts_pair[opportunity_idx].keys())[0])
+                        event_type = get_event_type(list(item_types_counts_pair[opportunity_idx].keys())[0])
                     else:
                         event_type = get_event_type(feed_type_pair[opportunity_idx])
                 except Exception as error:
@@ -197,7 +197,7 @@ def analyse_separate_opportunities(**kwargs):
         print(f'\tLoaded: {opportunities_pair[0] is not None}')
         print(f'\tFeed type: {feed_type_pair[0]}')
         print(f'\tItem kinds: {item_kinds_counts_pair[0]}')
-        print(f'\tItem data types: {item_data_types_counts_pair[0]}')
+        print(f'\tItem types: {item_types_counts_pair[0]}')
         print(f'\tEvent type: {event_type_pair[0]}')
 
         print(f'File-2:')
@@ -205,7 +205,7 @@ def analyse_separate_opportunities(**kwargs):
         print(f'\tLoaded: {opportunities_pair[1] is not None}')
         print(f'\tFeed type: {feed_type_pair[1]}')
         print(f'\tItem kinds: {item_kinds_counts_pair[1]}')
-        print(f'\tItem data types: {item_data_types_counts_pair[1]}')
+        print(f'\tItem types: {item_types_counts_pair[1]}')
         print(f'\tEvent type: {event_type_pair[1]}')
 
         print(f'Item matching:')
@@ -324,7 +324,7 @@ def analyse_separate_opportunities(**kwargs):
 
                     # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
                     'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
-                    'item_data_types_counts': item_data_types_counts_pair[opportunity_idx],
+                    'item_types_counts': item_types_counts_pair[opportunity_idx],
                     'organisers_counts': get_values_counts(opportunities, 'organizer', 'name'),
                     'activities_counts': get_values_counts(opportunities, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
                     'postcodes_counts': get_values_counts(opportunities, 'address', 'postalCode'),
