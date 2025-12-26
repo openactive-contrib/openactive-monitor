@@ -64,7 +64,7 @@ def analyse_opportunities(**kwargs):
     # in the case of items where we are dealing with millions of rows.
 
     # The comments after each line show the data types. Note that some data types are themselves lists,
-    # which occurs for attributes that may have multiple values for the same item e.g. activity, start date.
+    # which occurs for attributes that may have multiple values for the same item e.g. activity, facility.
 
     # Entries which can't be determined are filled with None rather than the empty version of the type
     # they relate to e.g. an empty string for strings, or zero for integers etc.
@@ -106,7 +106,7 @@ def analyse_opportunities(**kwargs):
         'partner_item_ids': [], # [STR/INT]
 
         # Who
-        'organiser': [], # STR
+        'organiser_name': [], # STR
 
         # What
         'is_regular': [], # BOOL
@@ -363,11 +363,11 @@ def analyse_opportunities(**kwargs):
                 # Who
 
                 # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
-                organisers = get_values(item_data, 'organizer', 'name')
+                organiser_names = get_values(item_data, 'organizer', 'name')
                 try:
-                    items['organiser'].append(strip(organisers[0]))
+                    items['organiser_name'].append(strip(organiser_names[0]))
                 except:
-                    items['organiser'].append(None)
+                    items['organiser_name'].append(None)
 
                 # --------------------------------------------------------------------------------------------------
 
@@ -627,7 +627,6 @@ def analyse_opportunities(**kwargs):
     # --------------------------------------------------------------------------------------------------
 
     # Counts
-# xxx
 
     # print('Opening files ...')
     # t1 = datetime.now()
@@ -652,7 +651,7 @@ def analyse_opportunities(**kwargs):
     total_num_future_items = 0
     total_num_future_week_items = 0
 
-    organisers_counts = {}
+    organiser_names_counts = {}
     kinds_counts = {}
     types_counts = {}
     activities_counts = {}
@@ -674,7 +673,7 @@ def analyse_opportunities(**kwargs):
         region: {}
         for region in [None] + list(gdf_regions['eer18nm'])
     }
-    regions_organisers_counts = copy.deepcopy(regions_values_counts)
+    regions_organiser_names_counts = copy.deepcopy(regions_values_counts)
     regions_kinds_counts = copy.deepcopy(regions_values_counts)
     regions_types_counts = copy.deepcopy(regions_values_counts)
     regions_activities_counts = copy.deepcopy(regions_values_counts)
@@ -686,7 +685,7 @@ def analyse_opportunities(**kwargs):
         district: {}
         for district in [None] + list(gdf_districts['LAD24NM'])
     }
-    districts_organisers_counts = copy.deepcopy(districts_values_counts)
+    districts_organiser_names_counts = copy.deepcopy(districts_values_counts)
     districts_kinds_counts = copy.deepcopy(districts_values_counts)
     districts_types_counts = copy.deepcopy(districts_values_counts)
     districts_activities_counts = copy.deepcopy(districts_values_counts)
@@ -791,9 +790,9 @@ def analyse_opportunities(**kwargs):
 
         presence = [1, num_start_dates, num_future_start_dates, num_future_week_start_dates]
 
-        update_values_counts(organisers_counts, item['organiser'], presence)
-        update_values_counts(regions_organisers_counts[item['region']], item['organiser'], presence)
-        update_values_counts(districts_organisers_counts[item['district']], item['organiser'], presence)
+        update_values_counts(organiser_names_counts, item['organiser_name'], presence)
+        update_values_counts(regions_organiser_names_counts[item['region']], item['organiser_name'], presence)
+        update_values_counts(districts_organiser_names_counts[item['district']], item['organiser_name'], presence)
 
         update_values_counts(kinds_counts, item['kind'], presence)
         update_values_counts(regions_kinds_counts[item['region']], item['kind'], presence)
@@ -840,7 +839,7 @@ def analyse_opportunities(**kwargs):
             update_values_counts(districts_accessibilities_counts[item['district']], accessibility, presence)
 
     analysis = {
-        'organisers_counts': organisers_counts,
+        'organiser_names_counts': organiser_names_counts,
         'kinds_counts': kinds_counts,
         'types_counts': types_counts,
         'activities_counts': activities_counts,
@@ -852,7 +851,7 @@ def analyse_opportunities(**kwargs):
         'kinds_types_counts': kinds_types_counts,
         'types_kinds_counts': types_kinds_counts,
 
-        'regions_organisers_counts': regions_organisers_counts,
+        'regions_organiser_names_counts': regions_organiser_names_counts,
         'regions_kinds_counts': regions_kinds_counts,
         'regions_types_counts': regions_types_counts,
         'regions_activities_counts': regions_activities_counts,
@@ -860,7 +859,7 @@ def analyse_opportunities(**kwargs):
         'regions_accessibilities_counts': regions_accessibilities_counts,
         'regions_districts_counts': regions_districts_counts,
 
-        'districts_organisers_counts': districts_organisers_counts,
+        'districts_organiser_names_counts': districts_organiser_names_counts,
         'districts_kinds_counts': districts_kinds_counts,
         'districts_types_counts': districts_types_counts,
         'districts_activities_counts': districts_activities_counts,
