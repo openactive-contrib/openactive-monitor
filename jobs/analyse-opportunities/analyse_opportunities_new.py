@@ -127,7 +127,8 @@ def analyse_opportunities(**kwargs):
         'district': [], # STR
 
         # When
-        'start_dates': [], # [DATE]
+        'start_date': [], # DATE
+        'subevent_start_dates': [], # [DATE]
     }
 
     # --------------------------------------------------------------------------------------------------
@@ -462,23 +463,32 @@ def analyse_opportunities(**kwargs):
 
                 # When
 
-                start_dates = []
-                start_datetimes = get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False)
-                if (len(start_datetimes) == 0):
-                    start_datetimes = get_values(item_data, ['startDate', 'dateStart'], continue_to_next_layer=False)
+                # Don't use .astimezone(tz.UTC) here - if there is a date but no time then it defaults to midnight,
+                # so giving e.g. '2025-06-18' would then be converted to '2025-06-17' by the tz.UTC conversion.
 
-                for start_datetime in start_datetimes:
+                start_dates = []
+                for start_datetime in get_values(item_data, ['startDate', 'dateStart'], continue_to_next_layer=False):
                     try:
-                        # Don't use .astimezone(tz.UTC) here - if there is a date but no time then it defaults to midnight,
-                        # so giving e.g. '2025-06-18' would then be converted to '2025-06-17' by the tz.UTC conversion:
                         start_dates.append(parser.parse(start_datetime).date())
                     except:
                         pass
 
+                subevent_start_dates = []
+                for subevent_start_datetime in get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False):
+                    try:
+                        subevent_start_dates.append(parser.parse(subevent_start_datetime).date())
+                    except:
+                        pass
+
                 if (len(start_dates) > 0):
-                    items['start_dates'].append(start_dates)
+                    items['start_date'].append(start_dates[0]) # There should only be one i.e. zeroth index
                 else:
-                    items['start_dates'].append(None)
+                    items['start_date'].append(None)
+
+                if (len(subevent_start_dates) > 0):
+                    items['subevent_start_dates'].append(subevent_start_dates)
+                else:
+                    items['subevent_start_dates'].append(None)
 
         # --------------------------------------------------------------------------------------------------
 
@@ -729,8 +739,6 @@ def analyse_opportunities(**kwargs):
             }
 
         if (partner_item is not None):
-            # Intentionally leave the start dates as they are on the subevent item, as the start dates on the superevent
-            # item are for the overarching series/facility use etc.
             for key in [
                 'activities',
                 'facilities',
@@ -740,23 +748,28 @@ def analyse_opportunities(**kwargs):
                 'longitude',
                 'region',
                 'district',
-                # 'start_dates',
             ]:
                 if (    (item[key] is None)
                     and (partner_item[key] is not None)
                 ):
                     item[key] = partner_item[key]
 
-        if (item['start_dates'] is not None):
-            num_start_dates = len(item['start_dates'])
+        start_dates = None
+        if (item['subevent_start_dates'] is not None):
+            start_dates = item['subevent_start_dates']
+        elif (item['start_date'] is not None):
+            start_dates = [item['start_date']]
+
+        if (start_dates is not None):
+            num_start_dates = len(start_dates)
             num_future_start_dates = len([
                 start_date
-                for start_date in item['start_dates']
+                for start_date in start_dates
                 if (start_date >= todays_date)
             ])
             num_future_week_start_dates = len([
                 start_date
-                for start_date in item['start_dates']
+                for start_date in start_dates
                 if (    (start_date >= todays_date)
                     and (start_date < next_weeks_date) )
             ])
