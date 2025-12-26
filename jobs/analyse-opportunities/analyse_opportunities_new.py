@@ -15,7 +15,7 @@ from settings import *
 
 def analyse_opportunities(**kwargs):
     verbose = kwargs.get('verbose', False)
-# xxx
+
     # --------------------------------------------------------------------------------------------------
 
     gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
@@ -111,7 +111,7 @@ def analyse_opportunities(**kwargs):
         # What
         'is_regular': [], # BOOL
         'is_ignored': [], # BOOL
-        'name': [], # STR
+        'item_name': [], # STR
         'kind': [], # STR
         'type': [], # STR
         'event_type': [], # STR
@@ -390,7 +390,7 @@ def analyse_opportunities(**kwargs):
                     and (num_matched_superevent_items is not None) # * (see above comment)
                     and (num_matched_superevent_items > 0) # * (see above comment)
                 )
-                items['name'].append(strip(item_data.get('name', None)))
+                items['item_name'].append(strip(item_data.get('name', None)))
                 items['kind'].append(strip(item.get('kind', None)))
                 items['type'].append(strip(item_data.get('type', None) or item_data.get('@type', None)))
                 items['event_type'].append(event_type_pair[opportunity_idx])
