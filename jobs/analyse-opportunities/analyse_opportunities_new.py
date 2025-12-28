@@ -116,7 +116,6 @@ def analyse_opportunities(**kwargs):
 
         # What
         'is_regular': [], # BOOL
-        'is_ignored': [], # BOOL
         'item_name': [], # STR
         'item_kind': [], # STR
         'item_type': [], # STR
@@ -384,24 +383,7 @@ def analyse_opportunities(**kwargs):
 
                 # What
 
-                # If we have any partnered items for this feed pair, then all of the superevent items are ignored in
-                # the original analysis (i.e. not this item-by-item analysis). The partnered superevents are merged
-                # into the subevents, and the unpartnered superevents are neglected, which is fine as we don't expect
-                # those superevents to be of the kind that have embedded subevents given the fact that they belong
-                # to a set of paired feeds that should be doing that job between them. However, the original analysis
-                # still takes counts from both superevents and subevents of paired feeds that could have partnered
-                # items but simply happen not to. Should possibly ignore the superevents of such pairs, which shouldn't
-                # have any session-level data which people often associate with being "an opportunity". To do so, get
-                # rid of the lines below marked with *, which will then increase the item neglection to all superevents
-                # with a partner feed.
-
                 items['is_regular'].append(feeds['is_regular'][-1])
-                items['is_ignored'].append(
-                        (event_type_pair[opportunity_idx] == 'superevent')
-                    and (items['partner_feed_id'][-1] is not None)
-                    and (num_partnered_superevent_items is not None) # * (see above comment)
-                    and (num_partnered_superevent_items > 0) # * (see above comment)
-                )
                 items['item_name'].append(strip(item_data.get('name', None)))
                 items['item_kind'].append(strip(item.get('kind', None)))
                 items['item_type'].append(strip(item_data.get('type', None) or item_data.get('@type', None)))
@@ -503,6 +485,13 @@ def analyse_opportunities(**kwargs):
                     items['subevent_start_dates'].append(subevent_start_dates)
                 else:
                     items['subevent_start_dates'].append(None)
+
+                # Note that a superevent feed with a partnered subevent feed may nonetheless also have some embedded
+                # subevent items e.g. https://bookwhen.com/api/openactive/sessionseries. Not sure if this is totally
+                # kosher, but it is done.
+
+                # If looking for eventSchedule in further iterations of this code, take care that subEvent with startDate
+                # is not also present e.g. https://api.clubspark.uk/odi/public/courses
 
         # --------------------------------------------------------------------------------------------------
 
@@ -730,13 +719,30 @@ def analyse_opportunities(**kwargs):
         ):
             print(f'\tItem: {all_item_idx + 1}/{total_num_items}', end=('\n' if ((all_item_idx + 1) == total_num_items) else '\r'))
 
-        if (items['is_ignored'][all_item_idx]):
-            continue
-
         item = {
             key: val[all_item_idx]
             for key, val in items.items()
         }
+
+        feed_idx = feed_id_to_feed_idx[item['feed_id']]
+
+        # If we have any partnered items for this feed pair, then all of the superevent items are ignored in
+        # the original analysis (i.e. not this item-by-item analysis). The partnered superevents are merged
+        # into the subevents, and the unpartnered superevents are neglected, which is fine as we don't expect
+        # those superevents to be of the kind that have embedded subevents given the fact that they belong
+        # to a set of paired feeds that should be doing that job between them. However, the original analysis
+        # still takes counts from both superevents and subevents of paired feeds that could have partnered
+        # items but simply happen not to. Should possibly ignore the superevents of such pairs, which shouldn't
+        # have any session-level data which people often associate with being "an opportunity". To do so, get
+        # rid of the lines below marked with *, which will then increase the item neglection to all superevents
+        # with a partner feed.
+
+        if (    (items['event_type'][all_item_idx] == 'superevent')
+            and (items['partner_feed_id'][all_item_idx] is not None)
+            and (feeds['num_partnered_items'][feed_idx] is not None) # * (see above comment)
+            and (feeds['num_partnered_items'][feed_idx] > 0) # * (see above comment)
+        ):
+            continue
 
         partner_item_all_item_idx = None
         if (    (item['event_type'] == 'subevent')
@@ -796,18 +802,18 @@ def analyse_opportunities(**kwargs):
             num_future_start_dates = 0
             num_future_week_start_dates = 0
 
-        feeds['num_start_dates'][feed_id_to_feed_idx[item['feed_id']]] += num_start_dates
+        feeds['num_start_dates'][feed_idx] += num_start_dates
         total_num_start_dates += num_start_dates
-        feeds['num_future_start_dates'][feed_id_to_feed_idx[item['feed_id']]] += num_future_start_dates
+        feeds['num_future_start_dates'][feed_idx] += num_future_start_dates
         total_num_future_start_dates += num_future_start_dates
-        feeds['num_future_week_start_dates'][feed_id_to_feed_idx[item['feed_id']]] += num_future_week_start_dates
+        feeds['num_future_week_start_dates'][feed_idx] += num_future_week_start_dates
         total_num_future_week_start_dates += num_future_week_start_dates
 
         if (num_future_start_dates > 0):
-            feeds['num_future_items'][feed_id_to_feed_idx[item['feed_id']]] += 1
+            feeds['num_future_items'][feed_idx] += 1
             total_num_future_items += 1
         if (num_future_week_start_dates > 0):
-            feeds['num_future_week_items'][feed_id_to_feed_idx[item['feed_id']]] += 1
+            feeds['num_future_week_items'][feed_idx] += 1
             total_num_future_week_items += 1
 
         presence = [1, num_start_dates, num_future_start_dates, num_future_week_start_dates]
@@ -889,11 +895,12 @@ def analyse_opportunities(**kwargs):
         'districts_accessibilities_counts': districts_accessibilities_counts,
         'districts_regions_counts': districts_regions_counts,
 
+        'total_num_items': total_num_items,
+
         'total_num_start_dates': total_num_start_dates,
         'total_num_future_start_dates': total_num_future_start_dates,
         'total_num_future_week_start_dates': total_num_future_week_start_dates,
 
-        'total_num_items': total_num_items,
         'total_num_future_items': total_num_future_items,
         'total_num_future_week_items': total_num_future_week_items,
     }
