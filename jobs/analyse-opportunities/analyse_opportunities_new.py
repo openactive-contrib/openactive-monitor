@@ -94,12 +94,13 @@ def analyse_opportunities(**kwargs):
         'num_partnered_items': [], # INT
         'num_unpartnered_items': [], # INT
 
-        'num_start_dates': [], # INT
-        'num_future_start_dates': [], # INT
-        'num_future_week_start_dates': [], # INT
+        'num_opportunity_start_dates': [], # INT
+        'num_future_opportunity_start_dates': [], # INT
+        'num_future_week_opportunity_start_dates': [], # INT
 
-        'num_future_items': [], # INT
-        'num_future_week_items': [], # INT
+        'num_opportunity_items': [], # INT
+        'num_future_opportunity_items': [], # INT
+        'num_future_week_opportunity_items': [], # INT
     }
 
     items = {
@@ -327,12 +328,13 @@ def analyse_opportunities(**kwargs):
             else:
                 feeds['num_unpartnered_items'].append(None)
 
-            feeds['num_start_dates'].append(0)
-            feeds['num_future_start_dates'].append(0)
-            feeds['num_future_week_start_dates'].append(0)
+            feeds['num_opportunity_start_dates'].append(0)
+            feeds['num_future_opportunity_start_dates'].append(0)
+            feeds['num_future_week_opportunity_start_dates'].append(0)
 
-            feeds['num_future_items'].append(0)
-            feeds['num_future_week_items'].append(0)
+            feeds['num_opportunity_items'].append(0)
+            feeds['num_future_opportunity_items'].append(0)
+            feeds['num_future_week_opportunity_items'].append(0)
 
             for item_idx, item in enumerate(opportunities['items'].values()):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
@@ -645,12 +647,13 @@ def analyse_opportunities(**kwargs):
 
     # Dictionary approach
 
-    total_num_start_dates = 0
-    total_num_future_start_dates = 0
-    total_num_future_week_start_dates = 0
+    total_num_opportunity_start_dates = 0
+    total_num_future_opportunity_start_dates = 0
+    total_num_future_week_opportunity_start_dates = 0
 
-    total_num_future_items = 0
-    total_num_future_week_items = 0
+    total_num_opportunity_items = 0
+    total_num_future_opportunity_items = 0
+    total_num_future_week_opportunity_items = 0
 
     organizer_names_counts = {}
     item_kinds_counts = {}
@@ -778,45 +781,72 @@ def analyse_opportunities(**kwargs):
                 ):
                     item[key] = partner_item[key]
 
-        start_dates = None
-        if (item['subevent_start_dates'] is not None):
-            start_dates = item['subevent_start_dates']
-        elif (item['start_date'] is not None):
-            start_dates = [item['start_date']]
 
-        if (start_dates is not None):
-            num_start_dates = len(start_dates)
-            num_future_start_dates = len([
-                start_date
-                for start_date in start_dates
-                if (start_date >= todays_date)
+        # Regardless of classification of this item as a superevent or subevent, if there are embedded subevent
+        # start dates then these are likely to be the ones we want for the individual sessions/slots which
+        # are usually thought of as the individual "opportunities". If we don't have such start dates, then
+        # we choose to accept root level start dates from subevents only, as those from superevents are (or
+        # should be) for the start of a set of sessions/slots, which, as just indicated, are not usually thought
+        # of as the individual "opportunities". We therefore have a distinction between:
+        #     1) Item - any item of any superevent/subevent classification and any content
+        #     2) Future item - an item with at least one future start date, either at the root level or from
+        #        embedded subevents
+        #     3) Opportunity item - a superevent/subevent item with embedded subevent start dates, or a subevent
+        #        with a root level start date
+        #     4) Future opportunity item - an opportunity item with at least one future start date, either
+        #        at the root level or from embedded subevents
+        # Ultimately, it is the future opportunity items that we end up counting below. We also count the start
+        # dates and future start dates, and it may be preferable to re-cast the sense of "an opportunity" from
+        # an item to an instance of a start date within an item. TODO: Consider this and adjust accordingly.
+
+        opportunity_start_dates = None
+        if (item['subevent_start_dates'] is not None):
+            opportunity_start_dates = item['subevent_start_dates']
+        elif (  (item['event_type'] == 'subevent')
+            and (item['start_date'] is not None)
+        ):
+            opportunity_start_dates = [item['start_date']]
+
+        if (opportunity_start_dates is not None):
+            num_opportunity_start_dates = len(opportunity_start_dates)
+            num_future_opportunity_start_dates = len([
+                opportunity_start_date
+                for opportunity_start_date in opportunity_start_dates
+                if (opportunity_start_date >= todays_date)
             ])
-            num_future_week_start_dates = len([
-                start_date
-                for start_date in start_dates
-                if (    (start_date >= todays_date)
-                    and (start_date < next_weeks_date) )
+            num_future_week_opportunity_start_dates = len([
+                opportunity_start_date
+                for opportunity_start_date in opportunity_start_dates
+                if (    (opportunity_start_date >= todays_date)
+                    and (opportunity_start_date < next_weeks_date) )
             ])
         else:
-            num_start_dates = 0
-            num_future_start_dates = 0
-            num_future_week_start_dates = 0
+            num_opportunity_start_dates = 0
+            num_future_opportunity_start_dates = 0
+            num_future_week_opportunity_start_dates = 0
 
-        feeds['num_start_dates'][feed_idx] += num_start_dates
-        total_num_start_dates += num_start_dates
-        feeds['num_future_start_dates'][feed_idx] += num_future_start_dates
-        total_num_future_start_dates += num_future_start_dates
-        feeds['num_future_week_start_dates'][feed_idx] += num_future_week_start_dates
-        total_num_future_week_start_dates += num_future_week_start_dates
+        feed_idx = feed_id_to_feed_idx[item['feed_id']]
 
-        if (num_future_start_dates > 0):
-            feeds['num_future_items'][feed_idx] += 1
-            total_num_future_items += 1
-        if (num_future_week_start_dates > 0):
-            feeds['num_future_week_items'][feed_idx] += 1
-            total_num_future_week_items += 1
+        feeds['num_opportunity_start_dates'][feed_idx] += num_opportunity_start_dates
+        total_num_opportunity_start_dates += num_opportunity_start_dates
+        feeds['num_future_opportunity_start_dates'][feed_idx] += num_future_opportunity_start_dates
+        total_num_future_opportunity_start_dates += num_future_opportunity_start_dates
+        feeds['num_future_week_opportunity_start_dates'][feed_idx] += num_future_week_opportunity_start_dates
+        total_num_future_week_opportunity_start_dates += num_future_week_opportunity_start_dates
 
-        presence = [1, num_start_dates, num_future_start_dates, num_future_week_start_dates]
+        if (num_opportunity_start_dates > 0):
+            feeds['num_opportunity_items'][feed_idx] += 1
+            total_num_opportunity_items += 1
+        if (num_future_opportunity_start_dates > 0):
+            feeds['num_future_opportunity_items'][feed_idx] += 1
+            total_num_future_opportunity_items += 1
+        if (num_future_week_opportunity_start_dates > 0):
+            feeds['num_future_week_opportunity_items'][feed_idx] += 1
+            total_num_future_week_opportunity_items += 1
+
+        # --------------------------------------------------------------------------------------------------
+
+        presence = [1, num_opportunity_start_dates, num_future_opportunity_start_dates, num_future_week_opportunity_start_dates]
 
         update_values_counts(organizer_names_counts, item['organizer_name'], presence)
         update_values_counts(regions_organizer_names_counts[item['region']], item['organizer_name'], presence)
@@ -897,12 +927,13 @@ def analyse_opportunities(**kwargs):
 
         'total_num_items': total_num_items,
 
-        'total_num_start_dates': total_num_start_dates,
-        'total_num_future_start_dates': total_num_future_start_dates,
-        'total_num_future_week_start_dates': total_num_future_week_start_dates,
+        'total_num_opportunity_start_dates': total_num_opportunity_start_dates,
+        'total_num_future_opportunity_start_dates': total_num_future_opportunity_start_dates,
+        'total_num_future_week_opportunity_start_dates': total_num_future_week_opportunity_start_dates,
 
-        'total_num_future_items': total_num_future_items,
-        'total_num_future_week_items': total_num_future_week_items,
+        'total_num_opportunity_items': total_num_opportunity_items,
+        'total_num_future_opportunity_items': total_num_future_opportunity_items,
+        'total_num_future_week_opportunity_items': total_num_future_week_opportunity_items,
     }
 
     # Dataframe approach
