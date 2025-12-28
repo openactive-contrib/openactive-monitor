@@ -722,30 +722,29 @@ def analyse_opportunities(**kwargs):
         ):
             print(f'\tItem: {all_item_idx + 1}/{total_num_items}', end=('\n' if ((all_item_idx + 1) == total_num_items) else '\r'))
 
+        # --------------------------------------------------------------------------------------------------
+
         item = {
             key: val[all_item_idx]
             for key, val in items.items()
         }
 
-        feed_idx = feed_id_to_feed_idx[item['feed_id']]
+        # --------------------------------------------------------------------------------------------------
 
-        # If we have any partnered items for this feed pair, then all of the superevent items are ignored in
-        # the original analysis (i.e. not this item-by-item analysis). The partnered superevents are merged
-        # into the subevents, and the unpartnered superevents are neglected, which is fine as we don't expect
-        # those superevents to be of the kind that have embedded subevents given the fact that they belong
-        # to a set of paired feeds that should be doing that job between them. However, the original analysis
-        # still takes counts from both superevents and subevents of paired feeds that could have partnered
-        # items but simply happen not to. Should possibly ignore the superevents of such pairs, which shouldn't
-        # have any session-level data which people often associate with being "an opportunity". To do so, get
-        # rid of the lines below marked with *, which will then increase the item neglection to all superevents
-        # with a partner feed.
+        # If this is a superevent item with subevents via ID and no subevents via embedding, then it will be
+        # wholly used and referred to by the subevents via ID, so we skip over it here as it is not something
+        # to separately analyse by itself:
 
-        if (    (items['event_type'][all_item_idx] == 'superevent')
-            and (items['partner_feed_id'][all_item_idx] is not None)
-            and (feeds['num_partnered_items'][feed_idx] is not None) # * (see above comment)
-            and (feeds['num_partnered_items'][feed_idx] > 0) # * (see above comment)
+        if (    (item['event_type'] == 'superevent')
+            and (item['partner_item_ids'] is not None)
+            and (item['subevent_start_dates'] is None)
         ):
             continue
+
+        # --------------------------------------------------------------------------------------------------
+
+        # If this is a subevent item with a superevent partner, then modify the subevent content with the contextual
+        # superevent info:
 
         partner_item_all_item_idx = None
         if (    (item['event_type'] == 'subevent')
@@ -781,6 +780,7 @@ def analyse_opportunities(**kwargs):
                 ):
                     item[key] = partner_item[key]
 
+        # --------------------------------------------------------------------------------------------------
 
         # Regardless of classification of this item as a superevent or subevent, if there are embedded subevent
         # start dates then these are likely to be the ones we want for the individual sessions/slots which
