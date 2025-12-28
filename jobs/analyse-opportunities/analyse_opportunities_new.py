@@ -89,16 +89,17 @@ def analyse_opportunities(**kwargs):
         'item_types_counts': [], # DICT
         'event_type': [], # STR
 
+        'num_items': [], # INT
+
+        'num_partnered_items': [], # INT
+        'num_unpartnered_items': [], # INT
+
         'num_start_dates': [], # INT
         'num_future_start_dates': [], # INT
         'num_future_week_start_dates': [], # INT
 
-        'num_items': [], # INT
         'num_future_items': [], # INT
         'num_future_week_items': [], # INT
-
-        'num_partnered_items': [], # INT
-        'num_unpartnered_items': [], # INT
     }
 
     items = {
@@ -311,13 +312,7 @@ def analyse_opportunities(**kwargs):
             feeds['item_types_counts'].append(item_types_counts_pair[opportunity_idx])
             feeds['event_type'].append(event_type_pair[opportunity_idx]),
 
-            feeds['num_start_dates'].append(0)
-            feeds['num_future_start_dates'].append(0)
-            feeds['num_future_week_start_dates'].append(0)
-
             feeds['num_items'].append(num_items)
-            feeds['num_future_items'].append(0)
-            feeds['num_future_week_items'].append(0)
 
             if (event_type_pair[opportunity_idx] == 'superevent'):
                 feeds['num_partnered_items'].append(num_partnered_superevent_items)
@@ -332,6 +327,13 @@ def analyse_opportunities(**kwargs):
                 feeds['num_unpartnered_items'].append(num_unpartnered_subevent_items)
             else:
                 feeds['num_unpartnered_items'].append(None)
+
+            feeds['num_start_dates'].append(0)
+            feeds['num_future_start_dates'].append(0)
+            feeds['num_future_week_start_dates'].append(0)
+
+            feeds['num_future_items'].append(0)
+            feeds['num_future_week_items'].append(0)
 
             for item_idx, item in enumerate(opportunities['items'].values()):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
