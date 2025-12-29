@@ -778,10 +778,23 @@ def analyse_opportunities(**kwargs):
             }
 
         if (partner_item is not None):
+            # Merge the subevent and superevent activities, facilities and accessibilities:
             for key in [
                 'activities',
                 'facilities',
                 'accessibilities',
+            ]:
+                if (    (item[key] is None)
+                    and (partner_item[key] is not None)
+                ):
+                    item[key] = partner_item[key]
+                elif (  (item[key] is not None)
+                    and (partner_item[key] is not None)
+                ):
+                    item[key] += partner_item[key]
+                    item[key] = list(set(item[key]))
+            # Overwrite the subevent location info with that from the superevent if the former are None:
+            for key in [
                 'postcode',
                 'latitude',
                 'longitude',
