@@ -778,6 +778,10 @@ def analyse_opportunities(**kwargs):
             }
 
         if (partner_item is not None):
+            # Define a new item kind and item type for these partnered items:
+            item['item_kind'] = '_x_'.join([str(item['item_kind']), str(partner_item['item_kind'])])
+            item['item_type'] = '_x_'.join([str(item['item_type']), str(partner_item['item_type'])])
+
             # Merge the subevent and superevent activities, facilities and accessibilities:
             for key in [
                 'activities',
