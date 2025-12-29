@@ -600,14 +600,8 @@ def analyse_opportunities(**kwargs):
     regions_counts = {}
     districts_counts = {}
 
-    item_kinds_item_types_counts = {
-        item_kind: {}
-        for item_kind in set(items['item_kind'])
-    }
-    item_types_item_kinds_counts = {
-        item_type: {}
-        for item_type in set(items['item_type'])
-    }
+    item_kinds_item_types_counts = {}
+    item_types_item_kinds_counts = {}
 
     regions_values_counts = {
         region: {}
@@ -825,6 +819,11 @@ def analyse_opportunities(**kwargs):
 
         update_values_counts(districts_counts, item['district'], presence)
         update_values_counts(regions_districts_counts[item['region']], item['district'], presence)
+
+        if (item['item_kind'] not in item_kinds_item_types_counts.keys()):
+            item_kinds_item_types_counts[item['item_kind']] = {}
+        if (item['item_type'] not in item_types_item_kinds_counts.keys()):
+            item_types_item_kinds_counts[item['item_type']] = {}
 
         update_values_counts(item_kinds_item_types_counts[item['item_kind']], item['item_type'], presence)
         update_values_counts(item_types_item_kinds_counts[item['item_type']], item['item_kind'], presence)
