@@ -716,7 +716,6 @@ def analyse_opportunities(**kwargs):
         if (    (items['event_type'][all_item_idx] == 'superevent')
             and (items['partner_feed_id'][all_item_idx] is not None)
             and (items['partner_item_ids'][all_item_idx] is not None)
-            and (len(items['partner_item_ids'][all_item_idx]) > 0)
         ):
             if (items['feed_id'][all_item_idx] not in partner_id_to_all_item_idx.keys()):
                 partner_id_to_all_item_idx \
