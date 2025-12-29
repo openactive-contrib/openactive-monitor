@@ -1,7 +1,7 @@
 import copy
 import geopandas as gpd
 import gzip
-import pandas as pd
+# import pandas as pd
 import pickle
 import sys
 
@@ -85,8 +85,8 @@ def analyse_opportunities(**kwargs):
         'status': [], # STR
         'is_regular': [], # BOOL
         'feed_type': [], # STR
-        'item_kinds_counts': [], # DICT
-        'item_types_counts': [], # DICT
+        'item_kinds_counts': [], # {STR: INT}
+        'item_types_counts': [], # {STR: INT}
         'event_type': [], # STR
 
         'num_items': [], # INT
@@ -152,6 +152,7 @@ def analyse_opportunities(**kwargs):
         t1 = datetime.now()
 
         print(f'File pair: {filename_pair_idx + 1}/{num_filename_pairs}')
+        print('Preparing ...')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -263,29 +264,29 @@ def analyse_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
-        print(f'File-1:')
-        print(f'\tName: {filename_pair[0]}')
-        print(f'\tLoaded: {opportunities_pair[0] is not None}')
-        print(f'\tFeed type: {feed_type_pair[0]}')
-        print(f'\tItem kinds: {item_kinds_counts_pair[0]}')
-        print(f'\tItem types: {item_types_counts_pair[0]}')
-        print(f'\tEvent type: {event_type_pair[0]}')
+        print(f'\tFile-1:')
+        print(f'\t\tName: {filename_pair[0]}')
+        print(f'\t\tLoaded: {opportunities_pair[0] is not None}')
+        print(f'\t\tFeed type: {feed_type_pair[0]}')
+        print(f'\t\tItem kinds: {item_kinds_counts_pair[0]}')
+        print(f'\t\tItem types: {item_types_counts_pair[0]}')
+        print(f'\t\tEvent type: {event_type_pair[0]}')
 
-        print(f'File-2:')
-        print(f'\tName: {filename_pair[1]}')
-        print(f'\tLoaded: {opportunities_pair[1] is not None}')
-        print(f'\tFeed type: {feed_type_pair[1]}')
-        print(f'\tItem kinds: {item_kinds_counts_pair[1]}')
-        print(f'\tItem types: {item_types_counts_pair[1]}')
-        print(f'\tEvent type: {event_type_pair[1]}')
+        print(f'\tFile-2:')
+        print(f'\t\tName: {filename_pair[1]}')
+        print(f'\t\tLoaded: {opportunities_pair[1] is not None}')
+        print(f'\t\tFeed type: {feed_type_pair[1]}')
+        print(f'\t\tItem kinds: {item_kinds_counts_pair[1]}')
+        print(f'\t\tItem types: {item_types_counts_pair[1]}')
+        print(f'\t\tEvent type: {event_type_pair[1]}')
 
-        print(f'Item partnering:')
-        print(f'\tnum_superevent_items: {num_superevent_items}')
-        print(f'\tnum_subevent_items: {num_subevent_items}')
-        print(f'\tnum_partnered_superevent_items: {num_partnered_superevent_items}')
-        print(f'\tnum_partnered_subevent_items: {num_partnered_subevent_items}')
-        print(f'\tnum_unpartnered_superevent_items: {num_unpartnered_superevent_items}')
-        print(f'\tnum_unpartnered_subevent_items: {num_unpartnered_subevent_items}')
+        print(f'\tItem partnering:')
+        print(f'\t\tnum_superevent_items: {num_superevent_items}')
+        print(f'\t\tnum_subevent_items: {num_subevent_items}')
+        print(f'\t\tnum_partnered_superevent_items: {num_partnered_superevent_items}')
+        print(f'\t\tnum_partnered_subevent_items: {num_partnered_subevent_items}')
+        print(f'\t\tnum_unpartnered_superevent_items: {num_unpartnered_superevent_items}')
+        print(f'\t\tnum_unpartnered_subevent_items: {num_unpartnered_subevent_items}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -294,13 +295,17 @@ def analyse_opportunities(**kwargs):
 
         t1 = datetime.now()
 
+        print('Processing ...')
+
         for opportunity_idx, opportunities in enumerate(opportunities_pair):
             if (opportunities is None):
                 continue
 
-            print(f'Processing File-{opportunity_idx + 1}:')
+            print(f'\tFile-{opportunity_idx + 1}:')
 
             # --------------------------------------------------------------------------------------------------
+
+            # Feed level data
 
             num_items = len(opportunities['items'].keys())
 
@@ -350,13 +355,17 @@ def analyse_opportunities(**kwargs):
             feeds['num_future_opportunity_items'].append(0)
             feeds['num_future_week_opportunity_items'].append(0)
 
+            # --------------------------------------------------------------------------------------------------
+
+            # Item level data
+
             for item_idx, item in enumerate(opportunities['items'].values()):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
                 # you'll just end up with a long list of numbers if this is enabled:
                 if (   ((item_idx + 1) % 10 == 0)
                     or ((item_idx + 1) == num_items)
                 ):
-                    print(f'\tItem: {item_idx + 1}/{num_items}', end=('\n' if ((item_idx + 1) == num_items) else '\r'))
+                    print(f'\t\tItem: {item_idx + 1}/{num_items}', end=('\n' if ((item_idx + 1) == num_items) else '\r'))
 
                 item_data = item.get('data', {})
 
@@ -389,6 +398,7 @@ def analyse_opportunities(**kwargs):
                 # Who
 
                 # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
+
                 organizer_names = get_values(item_data, 'organizer', 'name')
                 try:
                     items['organizer_name'].append(strip(organizer_names[0]))
@@ -428,6 +438,7 @@ def analyse_opportunities(**kwargs):
                 # Where
 
                 # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
+
                 locations = get_values(item_data, 'location')
                 try:
                     items['postcode'].append(strip(locations[0]['address']['postalCode']))
@@ -517,7 +528,6 @@ def analyse_opportunities(**kwargs):
         print(f'Time taken:')
         print(f'\tPrepare: {round(prepare_times[-1], 6)} seconds')
         print(f'\tProcess: {round(process_times[-1], 6)} seconds')
-
         print('--------------------------------------------------')
 
     # --------------------------------------------------------------------------------------------------
@@ -533,32 +543,30 @@ def analyse_opportunities(**kwargs):
     print(f'\t\tsum({prepare_times})')
     print(f'\t\t= {round(total_prepare_time, 6)} seconds')
     print(f'\t\t= {round(total_prepare_time / 60, 2)} minutes')
+    print(f'\t\t= {round(total_prepare_time / (60 * 60), 2)} hours') # ~4hr52min on M1 8GB MacBook Air
     print(f'\tProcess:')
     print(f'\t\tsum({process_times})')
     print(f'\t\t= {round(total_process_time, 6)} seconds')
     print(f'\t\t= {round(total_process_time / 60, 2)} minutes')
-    print(f'\tPrepare + Process:')
+    print(f'\t\t= {round(total_process_time / (60 * 60), 2)} hours') # ~1hr14min on M1 8GB MacBook Air
+    print(f'\tPrepare + Process (from summing individual times):')
     print(f'\t\t  {round(total_prepare_process_time, 6)} seconds')
     print(f'\t\t= {round(total_prepare_process_time / 60, 2)} minutes')
+    print(f'\t\t= {round(total_prepare_process_time / (60 * 60), 2)} hours') # ~6hr6min on M1 8GB MacBook Air
     print(f'\tPrepare + Process (from overall start and end times):')
-    print(f'\t\t  {t2_overall - t1_overall}') # ~3hr20min on M1 8GB MacBook Air
-
-    # TODO: Remove this when happy about using total_num_items from filenames, as calculated above
-    total_num_items = len(items['unique_item_id'])
-
+    print(f'\t\t  {t2_overall - t1_overall}') # ~6hr6min on M1 8GB MacBook Air
     print('--------------------------------------------------')
 
     # --------------------------------------------------------------------------------------------------
 
-    # We have now extracted all values of interest from the raw data, and inserted into a dictionary. Now
-    # for some post-processing and derived values. We could convert the dictionary to a dataframe at this
-    # point and use dataframe operations, but with ~13 million rows this conversion takes ~2hr (at least
-    # on an M1 8GB Macbook Air), and, if a saved version is needed, then writing out the dictionary takes
-    # ~1hr whereas writing out the dataframe takes ~3hr. So, choosing to stick with the dictionary version
-    # and use native Python data types for speed and efficiency. Some dataframe equivalent operations are
-    # commented out below for reference and potential future use.
+    print('Analysing ...')
 
-    # --------------------------------------------------------------------------------------------------
+    # We have now extracted all values of interest from the raw data, and inserted into a dictionary. Now
+    # for some analysis. We could convert the items dictionary to a dataframe at this point and use dataframe
+    # operations, but with ~13 million rows this conversion takes ~2hr (at least on an M1 8GB Macbook Air),
+    # and, if a saved version is needed, then writing out the dictionary takes ~1hr whereas writing out
+    # the dataframe takes ~3hr. So, choosing to stick with the dictionary version and use native Python
+    # data types for speed and efficiency.
 
     # t1 = datetime.now()
     # df_feeds = pd.DataFrame(feeds, columns=feeds.keys())
@@ -570,96 +578,10 @@ def analyse_opportunities(**kwargs):
     # t2 = datetime.now()
     # print(f'Converting dictionary items to dataframe items: {t2 - t1}') # ~2.25hr on M1 8GB MacBook Air
 
-    # --------------------------------------------------------------------------------------------------
+    t1 = datetime.now()
 
-    # Where
-
-    # Dataframe approach
-
-    # The following method is fast (~20sec for regions and ~50sec for districts) but inaccurate, lots of
-    # missed matches. May be able to improve by twiddling gpd settings. Search for gpd.sjoin inaccuracies
-    # for info. Another reason for not using the dataframe approach.
-
-    # gdf_items = gpd.GeoDataFrame(
-    #     # df_items[['longitude', 'latitude']],
-    #     geometry=gpd.points_from_xy(df_items['longitude'], df_items['latitude']),
-    #     crs='epsg:4326', # Set Coordinate Reference System (CRS) to World Geodetic System 1984 (WGS84). See https://epsg.io/4326.
-    # )
-
-    # df_items['region'] = gpd.sjoin(
-    #     gdf_regions[['eer18nm', 'geometry']],
-    #     gdf_items,
-    #     how="right",
-    #     predicate="contains"
-    # )['eer18nm']
-    # # Or:
-    # df_items['region'] = gpd.sjoin(
-    #     gdf_items,
-    #     gdf_regions[['eer18nm', 'geometry']],
-    #     how="left",
-    #     predicate="within"
-    # )['eer18nm']
-
-    # df_items['district'] = gpd.sjoin(
-    #     gdf_districts[['LAD24NM', 'geometry']],
-    #     gdf_items,
-    #     how="right",
-    #     predicate="contains"
-    # )['LAD24NM']
-    # # Or:
-    # df_items['district'] = gpd.sjoin(
-    #     gdf_items,
-    #     gdf_districts[['LAD24NM', 'geometry']],
-    #     how="left",
-    #     predicate="within"
-    # )['LAD24NM']
-
-    # --------------------------------------------------------------------------------------------------
-
-    # When
-
-    # Dataframe approach
-
-    # astype('Int64') is needed to allow for columns with mixed integer and None entries, otherwise integers
-    # are changed to floats by Pandas.
-
-    # start_date_rows = df_items['start_dates'].notnull()
-
-    # df_items['num_start_dates'] = df_items['start_dates'][start_date_rows].apply(len).astype('Int64')
-    # df_items['num_future_start_dates'] = df_items['start_dates'][start_date_rows].apply(lambda start_dates: len([
-    #     start_date
-    #     for start_date in start_dates
-    #     if (start_date >= todays_date)
-    # ])).astype('Int64')
-    # df_items['num_future_week_start_dates'] = df_items['start_dates'][start_date_rows].apply(lambda start_dates: len([
-    #     start_date
-    #     for start_date in start_dates
-    #     if (    (start_date >= todays_date)
-    #         and (start_date < next_weeks_date) )
-    # ])).astype('Int64')
-
-    # future_rows = df_items['num_future_start_dates'] > 0
-    # future_week_rows = df_items['num_future_week_start_dates'] > 0
-
-    # --------------------------------------------------------------------------------------------------
-
-    # Counts
-
-    # print('Opening files ...')
-    # t1 = datetime.now()
-    # gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
-    # gdf_regions.to_crs(4326)
-    # gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
-    # gdf_districts.to_crs(4326)
-    # with gzip.open('/Users/darrentemple/Documents/OpenActive/openactive-monitor/volume-1/data-analysis/dict_items_new.pickle.gzip', 'rb') as file_in:
-    #     items = pickle.load(file_in)
-    # total_num_items = len(items['unique_item_id'])
-    # t2 = datetime.now()
-    # print(t2 - t1)
-
-    print('Analysing ...')
-
-    # Dictionary approach
+    # TODO: Remove this if using total_num_items from filenames above. They should be the same anyway.
+    total_num_items = len(items['unique_item_id'])
 
     total_num_opportunity_start_dates = 0
     total_num_future_opportunity_start_dates = 0
@@ -730,6 +652,8 @@ def analyse_opportunities(**kwargs):
     }
 
     for all_item_idx in range(total_num_items):
+        # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
+        # you'll just end up with a long list of numbers if this is enabled:
         if (   ((all_item_idx + 1) % 10 == 0)
             or ((all_item_idx + 1) == total_num_items)
         ):
@@ -972,179 +896,42 @@ def analyse_opportunities(**kwargs):
         'total_num_future_week_opportunity_items': total_num_future_week_opportunity_items,
     }
 
-    # Dataframe approach
-
-    # Note that kind, type, region and district fields have one value per processed item, and as such the
-    # dataframe value_counts() method can be directly applied as indicated below. However, the activities,
-    # facilities and accessibilities fields are always lists, even if they have only one element, and as
-    # such the value_counts() method will not give what we really want in cases with more than one element
-    # per list. Some thought will need to be given to this if and when the dataframe approach is decided
-    # to be used.
-
-    # organizers_counts = df_items['organizer'].value_counts()
-    # item_kinds_counts = df_items['item_kind'].value_counts()
-    # item_types_counts = df_items['item_type'].value_counts()
-    # activities_counts =
-    # facilities_counts =
-    # accessibilities_counts =
-    # regions_counts = df_items['region'].value_counts()
-    # districts_counts = df_items['district'].value_counts()
-
-    # future_organizers_counts = df_items['organizer'][future_rows].value_counts()
-    # future_kinds_counts = df_items['item_kind'][future_rows].value_counts()
-    # future_types_counts = df_items['item_type'][future_rows].value_counts()
-    # future_activities_counts =
-    # future_facilities_counts =
-    # future_accessibilities_counts =
-    # future_regions_counts = df_items['region'][future_rows].value_counts()
-    # future_districts_counts = df_items['district'][future_rows].value_counts()
-
-    # future_week_organizers_counts = df_items['organizer'][future_week_rows].value_counts()
-    # future_week_kinds_counts = df_items['item_kind'][future_week_rows].value_counts()
-    # future_week_types_counts = df_items['item_type'][future_week_rows].value_counts()
-    # future_week_activities_counts =
-    # future_week_facilities_counts =
-    # future_week_accessibilities_counts =
-    # future_week_regions_counts = df_items['region'][future_week_rows].value_counts()
-    # future_week_districts_counts = df_items['district'][future_week_rows].value_counts()
-
-    # regions_organizers_counts = df_items[['region', 'organizer']].groupby('region').value_counts()
-    # regions_item_kinds_counts = df_items[['region', 'item_kind']].groupby('region').value_counts()
-    # regions_item_types_counts = df_items[['region', 'item_type']].groupby('region').value_counts()
-    # regions_activities_counts =
-    # regions_facilities_counts =
-    # regions_accessibilities_counts =
-
-    # future_regions_organizers_counts = df_items[['region', 'organizer']][future_rows].groupby('region').value_counts()
-    # future_regions_item_kinds_counts = df_items[['region', 'item_kind']][future_rows].groupby('region').value_counts()
-    # future_regions_item_types_counts = df_items[['region', 'item_type']][future_rows].groupby('region').value_counts()
-    # future_regions_activities_counts =
-    # future_regions_facilities_counts =
-    # future_regions_accessibilities_counts =
-
-    # future_week_regions_organizers_counts = df_items[['region', 'organizer']][future_week_rows].groupby('region').value_counts()
-    # future_week_regions_item_kinds_counts = df_items[['region', 'item_kind']][future_week_rows].groupby('region').value_counts()
-    # future_week_regions_item_types_counts = df_items[['region', 'item_type']][future_week_rows].groupby('region').value_counts()
-    # future_week_regions_activities_counts =
-    # future_week_regions_facilities_counts =
-    # future_week_regions_accessibilities_counts =
-
-    # districts_organizers_counts = df_items[['district', 'organizer']].groupby('district').value_counts()
-    # districts_item_kinds_counts = df_items[['district', 'item_kind']].groupby('district').value_counts()
-    # districts_item_types_counts = df_items[['district', 'item_type']].groupby('district').value_counts()
-    # districts_activities_counts =
-    # districts_facilities_counts =
-    # districts_accessibilities_counts =
-
-    # future_districts_organizers_counts = df_items[['district', 'organizer']][future_rows].groupby('district').value_counts()
-    # future_districts_item_kinds_counts = df_items[['district', 'item_kind']][future_rows].groupby('district').value_counts()
-    # future_districts_item_types_counts = df_items[['district', 'item_type']][future_rows].groupby('district').value_counts()
-    # future_districts_activities_counts =
-    # future_districts_facilities_counts =
-    # future_districts_accessibilities_counts =
-
-    # future_week_districts_organizers_counts = df_items[['district', 'organizer']][future_week_rows].groupby('district').value_counts()
-    # future_week_districts_item_kinds_counts = df_items[['district', 'item_kind']][future_week_rows].groupby('district').value_counts()
-    # future_week_districts_item_types_counts = df_items[['district', 'item_type']][future_week_rows].groupby('district').value_counts()
-    # future_week_districts_activities_counts =
-    # future_week_districts_facilities_counts =
-    # future_week_districts_accessibilities_counts =
-
-    # total_num_start_dates = df_items['num_start_dates'].sum()
-    # total_num_future_start_dates = df_items['num_future_start_dates'].sum()
-    # total_num_future_week_start_dates = df_items['num_future_week_start_dates'].sum()
+    t2 = datetime.now()
+    print(f'\tTime taken: {t2 - t1}') # ~12min on M1 8GB MacBook Air
+    print('--------------------------------------------------')
 
     # --------------------------------------------------------------------------------------------------
 
-    # Write out analysis (do this before writing out items in case that bigger operation results in a crash)
-
     print('Writing out analysis ...')
+
+    # We write out the analysis before writing out items in case the latter bigger operation results in
+    # a crash, so at least some useful output is given from this run:
 
     t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'analysis.pickle', 'wb') as file_out:
         pickle.dump(analysis, file_out)
     t2 = datetime.now()
-    print(f'Writing zipped dictionary analysis: {t2 - t1}') # ~??? on M1 8GB MacBook Air
+    print(f'\tTime taken: {t2 - t1}') # ~4sec (~1.2MB) on M1 8GB MacBook Air
 
     # --------------------------------------------------------------------------------------------------
-
-    # Write out feeds (different styles for testing purposes)
 
     print('Writing out feeds ...')
 
     t1 = datetime.now()
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'dict_feeds.pickle', 'wb') as file_out:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'feeds.pickle', 'wb') as file_out:
         pickle.dump(feeds, file_out)
     t2 = datetime.now()
-    print(f'Writing dictionary feeds: {t2 - t1}') # ~0.4sec (~0.3MB) on M1 8GB MacBook Air
-
-    # t1 = datetime.now()
-    # with gzip.open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'dict_feeds.pickle.gzip', 'wb') as file_out:
-    #     pickle.dump(feeds, file_out)
-    # t2 = datetime.now()
-    # print(f'Writing zipped dictionary feeds: {t2 - t1}') # ~??? on M1 8GB MacBook Air
-
-    # t1 = datetime.now()
-    # with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'df_feeds.pickle', 'wb') as file_out:
-    #     pickle.dump(df_feeds, file_out)
-    # t2 = datetime.now()
-    # print(f'Writing dataframe feeds: {t2 - t1}') # ~??? on M1 8GB MacBook Air
-
-    # t1 = datetime.now()
-    # with gzip.open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'df_feeds.pickle.gzip', 'wb') as file_out:
-    #     pickle.dump(df_feeds, file_out)
-    # t2 = datetime.now()
-    # print(f'Writing zipped dataframe feeds: {t2 - t1}') # ~??? on M1 8GB MacBook Air
+    print(f'\tTime taken: {t2 - t1}') # ~0.5sec (~0.3MB) on M1 8GB MacBook Air
 
     # --------------------------------------------------------------------------------------------------
 
-    # Write out items (different styles for testing purposes)
-
     print('Writing out items ...')
 
-    # The following write times and file sizes were for tests involving storage of:
-    #   id
-    #   data_id
-    #   feed_id
-    #   parent_feed_id
-    #   parent_matching_id
-    #   kind
-    #   type
-    #   organizer
-    #   name
-    #   activities
-    #   facilities
-    #   region (from address content, not calculated from latlon)
-    #   postcode
-    #   latitude
-    #   longitude
-    #   start_dates
-
-    # Also note that read times for these large files is ~10-40min, at least on M1 8GB MacBook Air
-
     t1 = datetime.now()
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'dict_items.pickle', 'wb') as file_out:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'items.pickle', 'wb') as file_out:
         pickle.dump(items, file_out)
     t2 = datetime.now()
-    print(f'Writing dictionary items: {t2 - t1}') # ~1hr10min (~3.940GB) on M1 8GB MacBook Air
-
-    # t1 = datetime.now()
-    # with gzip.open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'dict_items.pickle.gzip', 'wb') as file_out:
-    #     pickle.dump(items, file_out)
-    # t2 = datetime.now()
-    # print(f'Writing zipped dictionary items: {t2 - t1}') # ~1hr15min (~320MB) on M1 8GB MacBook Air
-
-    # t1 = datetime.now()
-    # with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'df_items.pickle', 'wb') as file_out:
-    #     pickle.dump(df_items, file_out)
-    # t2 = datetime.now()
-    # print(f'Writing dataframe items: {t2 - t1}') # ~2hr50min (~4.250GB) on M1 8GB MacBook Air
-
-    # t1 = datetime.now()
-    # with gzip.open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'df_items.pickle.gzip', 'wb') as file_out:
-    #     pickle.dump(df_items, file_out)
-    # t2 = datetime.now()
-    # print(f'Writing zipped dataframe items: {t2 - t1}') # ~2hr50min (~320MB) on M1 8GB MacBook Air
+    print(f'\tTime taken: {t2 - t1}') # ~1hr4min (~4.25GB) on M1 8GB MacBook Air
 
 # --------------------------------------------------------------------------------------------------
 
