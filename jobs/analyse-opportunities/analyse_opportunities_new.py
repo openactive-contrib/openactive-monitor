@@ -1149,7 +1149,7 @@ def analyse_opportunities(**kwargs):
 # --------------------------------------------------------------------------------------------------
 
 def strip(value):
-    if (type(value) != None):
+    if (type(value) is not None):
         return str(value).strip()
     else:
         return value
