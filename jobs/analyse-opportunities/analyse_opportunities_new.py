@@ -797,8 +797,10 @@ def analyse_opportunities(**kwargs):
                 ):
                     item[key] += partner_item[key]
                     item[key] = list(set(item[key]))
+
             # Overwrite the subevent location info with that from the superevent if the former are None:
             for key in [
+                'organizer_name',
                 'postcode',
                 'latitude',
                 'longitude',
