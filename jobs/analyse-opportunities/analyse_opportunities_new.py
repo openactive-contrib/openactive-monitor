@@ -878,6 +878,10 @@ def analyse_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
+        # Remember that these counts do not separately include superevent items with subevents via ID and no
+        # subevents via embedding, due to skipping over such items above. The information from such items is
+        # contained within their partnered subevent items:
+
         presence = [1, num_opportunity_start_dates, num_future_opportunity_start_dates, num_future_week_opportunity_start_dates]
 
         update_values_counts(organizer_names_counts, item['organizer_name'], presence)
