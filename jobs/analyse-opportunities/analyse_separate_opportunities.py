@@ -142,11 +142,25 @@ def analyse_separate_opportunities(**kwargs):
             event_type = None
             if (opportunities is not None):
                 try:
-                    if (    (item_types_counts_pair[opportunity_idx] is not None)
-                        and (len(item_types_counts_pair[opportunity_idx].keys()) == 1)
+                    if (item_types_counts_pair[opportunity_idx] is not None):
+                        event_types = [
+                            get_event_type(item_type)
+                            for item_type in item_types_counts_pair[opportunity_idx].keys()
+                        ]
+                        if (len(set(event_types)) == 1):
+                            event_type = event_types[0]
+                    if (    (event_type is None)
+                        and (item_kinds_counts_pair[opportunity_idx] is not None)
                     ):
-                        event_type = get_event_type(list(item_types_counts_pair[opportunity_idx].keys())[0])
-                    else:
+                        event_types = [
+                            get_event_type(item_kind)
+                            for item_kind in item_kinds_counts_pair[opportunity_idx].keys()
+                        ]
+                        if (len(set(event_types)) == 1):
+                            event_type = event_types[0]
+                    if (    (event_type is None)
+                        and (feed_type_pair[opportunity_idx] is not None)
+                    ):
                         event_type = get_event_type(feed_type_pair[opportunity_idx])
                 except Exception as error:
                     print('ERROR:', error)
