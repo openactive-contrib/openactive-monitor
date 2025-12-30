@@ -56,7 +56,6 @@ def analyse_separate_opportunities(**kwargs):
 
         'status', # STR
         'is_regular', # BOOL
-        'is_merged_with_partner', # BOOL
         'feed_type', # STR
         'item_kinds_counts', # {STR: INT}
         'item_types_counts', # {STR: INT}
@@ -224,14 +223,6 @@ def analyse_separate_opportunities(**kwargs):
         # relative minority. If concerned, then check for cases where we do indeed have both opportunities
         # objects in an unmerged pair, and discard at least the superevent object before running counts.
 
-        premerge_num_items_pair = []
-        for opportunity_idx, opportunities in enumerate(opportunities_pair):
-            num_items = None
-            if (opportunities is not None):
-                num_items = len(opportunities['items'].keys())
-            premerge_num_items_pair.append(num_items)
-
-        is_merged_with_partner = False
         if (len(superevent_id_v_subevent_ids.keys()) > 0):
             try:
                 # Merge superevent items into associated subevent items under a new key called 'superevent_item', and
@@ -240,13 +231,8 @@ def analyse_separate_opportunities(**kwargs):
                 for superevent_id, subevent_ids in superevent_id_v_subevent_ids.items():
                     for subevent_id in subevent_ids:
                         opportunities_pair[event_type_pair.index('subevent')]['items'][subevent_id]['superevent_item'] = opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id]
-                    del(opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id])
-
-                is_merged_with_partner = True
             except Exception as error:
                 print('ERROR:', error)
-
-        print(f'Feeds merged: {is_merged_with_partner}')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -323,13 +309,12 @@ def analyse_separate_opportunities(**kwargs):
 
                     'status': opportunities['status'],
                     'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
-                    'is_merged_with_partner': is_merged_with_partner, # TODO: Remove once catered for in aggregate analysis
                     'feed_type': opportunities['feed']['type'],
                     'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
                     'item_types_counts': item_types_counts_pair[opportunity_idx],
                     'event_type': event_type_pair[opportunity_idx],
 
-                    'num_items': premerge_num_items_pair[opportunity_idx],
+                    'num_items': len(opportunities['items'].keys()),
 
                     'num_partnered_items':
                         num_partnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
