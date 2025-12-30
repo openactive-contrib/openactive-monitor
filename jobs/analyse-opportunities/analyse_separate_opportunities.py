@@ -76,6 +76,8 @@ def analyse_separate_opportunities(**kwargs):
 
         'organisers_counts', # {STR: INT}
         'activities_counts', # {STR: INT}
+        'facilities_counts', # {STR: INT}
+        'accessibilities_counts', # {STR: INT}
         'postcodes_counts', # {STR: INT}
         'latlons_counts', # {STR: INT}
     ])
@@ -334,7 +336,9 @@ def analyse_separate_opportunities(**kwargs):
 
                 # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
                 'organisers_counts': get_values_counts(opportunities, 'organizer', 'name'),
-                'activities_counts': get_values_counts(opportunities, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
+                'activities_counts': get_values_counts(opportunities, 'activity', 'prefLabel'),
+                'facilities_counts': get_values_counts(opportunities, 'facilityType', 'prefLabel'),
+                'accessibilities_counts': get_values_counts(opportunities, 'accessibilitySupport', 'prefLabel'),
                 'postcodes_counts': get_values_counts(opportunities, 'address', 'postalCode'),
                 'latlons_counts': get_latlons_counts(opportunities),
             }
