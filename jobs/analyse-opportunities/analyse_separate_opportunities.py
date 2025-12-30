@@ -1,6 +1,5 @@
 import gzip
 import json
-# import openactive as oa
 import pandas as pd
 import pickle
 import random
@@ -12,16 +11,6 @@ sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
 from openactive_custom import get_item_kinds, get_item_types, get_event_type, get_superevent_id_v_subevent_ids
 from settings import *
-
-# --------------------------------------------------------------------------------------------------
-
-# Moving away from the former nominatum approach, which creates coords from postcodes.
-# Moving towards creating a postcode for each record, from coords if necessary for NSPL matching.
-# 4 positions:
-# 1) Item has postcode, has coords - use postcode
-# 2) Item has postcode, has no coords - use postcode
-# 3) Item has no postcode, has coords - find nearest centroid and use that postcode
-# 4) Item has no postcode, has no coords - if not online event, use an organiser postcode, otherwise flag as missing
 
 # --------------------------------------------------------------------------------------------------
 
@@ -51,41 +40,42 @@ def analyse_separate_opportunities(**kwargs):
 
     # List the items we want to collect for each feed. These column headers need to be specified here in
     # advance of row insertion into the DataFrame:
+
     separate_analysis = pd.DataFrame(columns=[
-        'id', # STR
-        'name', # STR
-        'type', # STR
-        'url', # STR
+        'feed_id', # STR
+        'partner_feed_id', # STR
+        'file_name', # STR
+        'dataset_name', # STR
+        'publisher_name', # STR
+
+        'feed_url', # STR
         'dataset_url', # STR
         'discussion_url', # STR
         'license_url', # STR
         'logo_url', # STR
-        'publisher_name', # STR
-
-        'file_name', # STR
-        'file_name_partner', # STR
-
-        'event_type', # STR
-        'event_type_partner', # STR
 
         'status', # STR
         'is_regular', # BOOL
         'is_merged_with_partner', # BOOL
+        'feed_type', # STR
+        'item_kinds_counts', # {STR: INT}
+        'item_types_counts', # {STR: INT}
+        'event_type', # STR
 
         'num_items', # INT
-        'num_future_items', # INT
-        'num_future_week_items', # INT
+
         'num_partnered_superevent_items', # INT
         'num_partnered_subevent_items', # INT
         'num_unpartnered_superevent_items', # INT
         'num_unpartnered_subevent_items', # INT
 
-        'item_kinds_counts', # DICT
-        'item_types_counts', # DICT
-        'organisers_counts', # DICT
-        'activities_counts', # DICT
-        'postcodes_counts', # DICT
-        'latlons_counts', # DICT
+        'num_future_items', # INT
+        'num_future_week_items', # INT
+
+        'organisers_counts', # {STR: INT}
+        'activities_counts', # {STR: INT}
+        'postcodes_counts', # {STR: INT}
+        'latlons_counts', # {STR: INT}
     ])
 
     filenames_sampleitems = {}
@@ -254,7 +244,7 @@ def analyse_separate_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
-        print('Running counts and adding entry to dataframe ...')
+        print('Analysing ...')
 
         for opportunity_idx, opportunities in enumerate(opportunities_pair):
             if (opportunities is None):
@@ -283,37 +273,37 @@ def analyse_separate_opportunities(**kwargs):
                     }
 
                 separate_analysis.loc[len(separate_analysis)] = {
-                    'id': opportunities['feed']['id'],
-                    'name': opportunities['feed']['name'],
-                    'type': opportunities['feed']['type'],
-                    'url': opportunities['feed']['url'],
+                    'feed_id': opportunities['feed']['id'],
+                    'partner_feed_id': opportunities_pair[1-opportunity_idx]['feed']['id'] if (opportunities_pair[1-opportunity_idx] is not None) else None,
+                    'file_name': filename_pair[opportunity_idx],
+                    'dataset_name': opportunities['feed']['name'], # TODO: Change to 'dataset_name' to accommodate changed openactive_custom
+                    'publisher_name': opportunities['feed']['publisher_name'],
+
+                    'feed_url': opportunities['feed']['url'],
                     'dataset_url': opportunities['feed']['dataset_url'],
                     'discussion_url': opportunities['feed']['discussion_url'],
                     'license_url': opportunities['feed']['license_url'],
                     'logo_url': opportunities['feed']['logo_url'],
-                    'publisher_name': opportunities['feed']['publisher_name'],
-
-                    'file_name': filename_pair[opportunity_idx],
-                    'file_name_partner': filename_pair[1-opportunity_idx],
-
-                    'event_type': event_type_pair[opportunity_idx],
-                    'event_type_partner': event_type_pair[1-opportunity_idx],
 
                     'status': opportunities['status'],
                     'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
                     'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited, including simply due to no item id partners being found.
+                    'feed_type': opportunities['feed']['type'],
+                    'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
+                    'item_types_counts': item_types_counts_pair[opportunity_idx],
+                    'event_type': event_type_pair[opportunity_idx],
 
                     'num_items': len(opportunities['items'].keys()),
-                    'num_future_items': num_future_items,
-                    'num_future_week_items': num_future_week_items,
+
                     'num_partnered_superevent_items': num_partnered_superevent_items,
                     'num_partnered_subevent_items': num_partnered_subevent_items,
                     'num_unpartnered_superevent_items': num_unpartnered_superevent_items,
                     'num_unpartnered_subevent_items': num_unpartnered_subevent_items,
 
+                    'num_future_items': num_future_items,
+                    'num_future_week_items': num_future_week_items,
+
                     # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
-                    'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
-                    'item_types_counts': item_types_counts_pair[opportunity_idx],
                     'organisers_counts': get_values_counts(opportunities, 'organizer', 'name'),
                     'activities_counts': get_values_counts(opportunities, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
                     'postcodes_counts': get_values_counts(opportunities, 'address', 'postalCode'),
