@@ -277,71 +277,67 @@ def analyse_separate_opportunities(**kwargs):
 
             # --------------------------------------------------------------------------------------------------
 
-            try:
-                num_opportunity_start_dates, \
-                num_future_opportunity_start_dates, \
-                num_future_week_opportunity_start_dates, \
-                num_opportunity_items, \
-                num_future_opportunity_items, \
-                num_future_week_opportunity_items, \
-                opportunity_item_ids, \
-                future_opportunity_item_ids, \
-                future_week_opportunity_item_ids = get_future(opportunities, event_type_pair[opportunity_idx])
+            num_opportunity_start_dates, \
+            num_future_opportunity_start_dates, \
+            num_future_week_opportunity_start_dates, \
+            num_opportunity_items, \
+            num_future_opportunity_items, \
+            num_future_week_opportunity_items, \
+            opportunity_item_ids, \
+            future_opportunity_item_ids, \
+            future_week_opportunity_item_ids = get_future(opportunities, event_type_pair[opportunity_idx])
 
-                if (num_future_week_opportunity_items > 0):
-                    filenames_sampleitems[filename_pair[opportunity_idx]] = {
-                        item_id: opportunities['items'][item_id]
-                        for item_id in random.sample(future_week_opportunity_item_ids, min(2, num_future_week_opportunity_items))
-                    }
-
-                separate_analysis.loc[len(separate_analysis)] = {
-                    'feed_id': opportunities['feed']['id'],
-                    'partner_feed_id': opportunities_pair[1-opportunity_idx]['feed']['id'] if (opportunities_pair[1-opportunity_idx] is not None) else None,
-                    'file_name': filename_pair[opportunity_idx],
-                    'dataset_name': opportunities['feed']['name'], # TODO: Change to 'dataset_name' to accommodate changed openactive_custom
-                    'publisher_name': opportunities['feed']['publisher_name'],
-
-                    'feed_url': opportunities['feed']['url'],
-                    'dataset_url': opportunities['feed']['dataset_url'],
-                    'discussion_url': opportunities['feed']['discussion_url'],
-                    'license_url': opportunities['feed']['license_url'],
-                    'logo_url': opportunities['feed']['logo_url'],
-
-                    'status': opportunities['status'],
-                    'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
-                    'feed_type': opportunities['feed']['type'],
-                    'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
-                    'item_types_counts': item_types_counts_pair[opportunity_idx],
-                    'event_type': event_type_pair[opportunity_idx],
-
-                    'num_items': len(opportunities['items'].keys()),
-
-                    'num_partnered_items':
-                        num_partnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
-                        else num_partnered_subevent_items if (event_type_pair[opportunity_idx] == 'subevent')
-                        else None,
-                    'num_unpartnered_items':
-                        num_unpartnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
-                        else num_unpartnered_subevent_items if (event_type_pair[opportunity_idx] == 'subevent')
-                        else None,
-
-                    'num_opportunity_start_dates': num_opportunity_start_dates,
-                    'num_future_opportunity_start_dates': num_future_opportunity_start_dates,
-                    'num_future_week_opportunity_start_dates': num_future_week_opportunity_start_dates,
-
-                    'num_opportunity_items': num_opportunity_items,
-                    'num_future_opportunity_items': num_future_opportunity_items,
-                    'num_future_week_opportunity_items': num_future_week_opportunity_items,
-
-                    # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
-                    'organisers_counts': get_values_counts(opportunities, 'organizer', 'name'),
-                    'activities_counts': get_values_counts(opportunities, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
-                    'postcodes_counts': get_values_counts(opportunities, 'address', 'postalCode'),
-                    'latlons_counts': get_latlons_counts(opportunities),
+            if (num_future_week_opportunity_items > 0):
+                filenames_sampleitems[filename_pair[opportunity_idx]] = {
+                    item_id: opportunities['items'][item_id]
+                    for item_id in random.sample(future_week_opportunity_item_ids, min(2, num_future_week_opportunity_items))
                 }
 
-            except Exception as error:
-                print('ERROR:', error)
+            separate_analysis.loc[len(separate_analysis)] = {
+                'feed_id': opportunities['feed']['id'],
+                'partner_feed_id': opportunities_pair[1-opportunity_idx]['feed']['id'] if (opportunities_pair[1-opportunity_idx] is not None) else None,
+                'file_name': filename_pair[opportunity_idx],
+                'dataset_name': opportunities['feed']['name'], # TODO: Change to 'dataset_name' to accommodate changed openactive_custom
+                'publisher_name': opportunities['feed']['publisher_name'],
+
+                'feed_url': opportunities['feed']['url'],
+                'dataset_url': opportunities['feed']['dataset_url'],
+                'discussion_url': opportunities['feed']['discussion_url'],
+                'license_url': opportunities['feed']['license_url'],
+                'logo_url': opportunities['feed']['logo_url'],
+
+                'status': opportunities['status'],
+                'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
+                'feed_type': opportunities['feed']['type'],
+                'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
+                'item_types_counts': item_types_counts_pair[opportunity_idx],
+                'event_type': event_type_pair[opportunity_idx],
+
+                'num_items': len(opportunities['items'].keys()),
+
+                'num_partnered_items':
+                    num_partnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
+                    else num_partnered_subevent_items if (event_type_pair[opportunity_idx] == 'subevent')
+                    else None,
+                'num_unpartnered_items':
+                    num_unpartnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
+                    else num_unpartnered_subevent_items if (event_type_pair[opportunity_idx] == 'subevent')
+                    else None,
+
+                'num_opportunity_start_dates': num_opportunity_start_dates,
+                'num_future_opportunity_start_dates': num_future_opportunity_start_dates,
+                'num_future_week_opportunity_start_dates': num_future_week_opportunity_start_dates,
+
+                'num_opportunity_items': num_opportunity_items,
+                'num_future_opportunity_items': num_future_opportunity_items,
+                'num_future_week_opportunity_items': num_future_week_opportunity_items,
+
+                # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
+                'organisers_counts': get_values_counts(opportunities, 'organizer', 'name'),
+                'activities_counts': get_values_counts(opportunities, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
+                'postcodes_counts': get_values_counts(opportunities, 'address', 'postalCode'),
+                'latlons_counts': get_latlons_counts(opportunities),
+            }
 
         # --------------------------------------------------------------------------------------------------
 
