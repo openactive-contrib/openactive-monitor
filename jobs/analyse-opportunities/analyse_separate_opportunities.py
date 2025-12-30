@@ -82,9 +82,20 @@ def analyse_separate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    prepare_times = []
+    process_times = []
+
+    t1_overall = datetime.now()
+
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
 
+        # if (filename_pair_idx == 1):
+        #     break
+
+        t1 = datetime.now()
+
         print(f'File pair: {filename_pair_idx + 1}/{num_filename_pairs}')
+        print('Preparing ...')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -194,34 +205,6 @@ def analyse_separate_opportunities(**kwargs):
             num_unpartnered_superevent_items = num_superevent_items - num_partnered_superevent_items
             num_unpartnered_subevent_items = num_subevent_items - num_partnered_subevent_items
 
-        # --------------------------------------------------------------------------------------------------
-
-        print(f'File-1:')
-        print(f'\tName: {filename_pair[0]}')
-        print(f'\tLoaded: {opportunities_pair[0] is not None}')
-        print(f'\tFeed type: {feed_type_pair[0]}')
-        print(f'\tItem kinds: {item_kinds_counts_pair[0]}')
-        print(f'\tItem types: {item_types_counts_pair[0]}')
-        print(f'\tEvent type: {event_type_pair[0]}')
-
-        print(f'File-2:')
-        print(f'\tName: {filename_pair[1]}')
-        print(f'\tLoaded: {opportunities_pair[1] is not None}')
-        print(f'\tFeed type: {feed_type_pair[1]}')
-        print(f'\tItem kinds: {item_kinds_counts_pair[1]}')
-        print(f'\tItem types: {item_types_counts_pair[1]}')
-        print(f'\tEvent type: {event_type_pair[1]}')
-
-        print(f'Item partnering:')
-        print(f'\tnum_superevent_items: {num_superevent_items}')
-        print(f'\tnum_subevent_items: {num_subevent_items}')
-        print(f'\tnum_partnered_superevent_items: {num_partnered_superevent_items}')
-        print(f'\tnum_partnered_subevent_items: {num_partnered_subevent_items}')
-        print(f'\tnum_unpartnered_superevent_items: {num_unpartnered_superevent_items}')
-        print(f'\tnum_unpartnered_subevent_items: {num_unpartnered_subevent_items}')
-
-        # --------------------------------------------------------------------------------------------------
-
         # Merging happens if:
         #   we have a pair of feeds ...
         #   the event type (superevent/subevent) for each feed has been unambiguously identified ...
@@ -258,11 +241,46 @@ def analyse_separate_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
-        print('Analysing ...')
+        print(f'\tFile-1:')
+        print(f'\t\tName: {filename_pair[0]}')
+        print(f'\t\tLoaded: {opportunities_pair[0] is not None}')
+        print(f'\t\tFeed type: {feed_type_pair[0]}')
+        print(f'\t\tItem kinds: {item_kinds_counts_pair[0]}')
+        print(f'\t\tItem types: {item_types_counts_pair[0]}')
+        print(f'\t\tEvent type: {event_type_pair[0]}')
+
+        print(f'\tFile-2:')
+        print(f'\t\tName: {filename_pair[1]}')
+        print(f'\t\tLoaded: {opportunities_pair[1] is not None}')
+        print(f'\t\tFeed type: {feed_type_pair[1]}')
+        print(f'\t\tItem kinds: {item_kinds_counts_pair[1]}')
+        print(f'\t\tItem types: {item_types_counts_pair[1]}')
+        print(f'\t\tEvent type: {event_type_pair[1]}')
+
+        print(f'\tItem partnering:')
+        print(f'\t\tnum_superevent_items: {num_superevent_items}')
+        print(f'\t\tnum_subevent_items: {num_subevent_items}')
+        print(f'\t\tnum_partnered_superevent_items: {num_partnered_superevent_items}')
+        print(f'\t\tnum_partnered_subevent_items: {num_partnered_subevent_items}')
+        print(f'\t\tnum_unpartnered_superevent_items: {num_unpartnered_superevent_items}')
+        print(f'\t\tnum_unpartnered_subevent_items: {num_unpartnered_subevent_items}')
+
+        # --------------------------------------------------------------------------------------------------
+
+        t2 = datetime.now()
+        prepare_times.append((t2 - t1).total_seconds())
+
+        t1 = datetime.now()
+
+        print('Processing ...')
 
         for opportunity_idx, opportunities in enumerate(opportunities_pair):
             if (opportunities is None):
                 continue
+
+            print(f'\tFile-{opportunity_idx + 1}:')
+
+            # --------------------------------------------------------------------------------------------------
 
             try:
                 # Note that a future item is one for which there is at least one future start date. A given item could
@@ -329,7 +347,40 @@ def analyse_separate_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
+        t2 = datetime.now()
+        process_times.append((t2 - t1).total_seconds())
+
+        print(f'Time taken:')
+        print(f'\tPrepare: {round(prepare_times[-1], 6)} seconds')
+        print(f'\tProcess: {round(process_times[-1], 6)} seconds')
         print('--------------------------------------------------')
+
+    # --------------------------------------------------------------------------------------------------
+
+    t2_overall = datetime.now()
+
+    total_prepare_time = sum(prepare_times)
+    total_process_time = sum(process_times)
+    total_prepare_process_time = total_prepare_time + total_process_time
+
+    print(f'Time taken for all file pairs:')
+    print(f'\tPrepare:')
+    print(f'\t\tsum({prepare_times})')
+    print(f'\t\t= {round(total_prepare_time, 6)} seconds')
+    print(f'\t\t= {round(total_prepare_time / 60, 2)} minutes')
+    print(f'\t\t= {round(total_prepare_time / (60 * 60), 2)} hours') # ~??? on M1 8GB MacBook Air
+    print(f'\tProcess:')
+    print(f'\t\tsum({process_times})')
+    print(f'\t\t= {round(total_process_time, 6)} seconds')
+    print(f'\t\t= {round(total_process_time / 60, 2)} minutes')
+    print(f'\t\t= {round(total_process_time / (60 * 60), 2)} hours') # ~??? on M1 8GB MacBook Air
+    print(f'\tPrepare + Process (from summing individual times):')
+    print(f'\t\t  {round(total_prepare_process_time, 6)} seconds')
+    print(f'\t\t= {round(total_prepare_process_time / 60, 2)} minutes')
+    print(f'\t\t= {round(total_prepare_process_time / (60 * 60), 2)} hours') # ~??? on M1 8GB MacBook Air
+    print(f'\tPrepare + Process (from overall start and end times):')
+    print(f'\t\t  {t2_overall - t1_overall}') # ~??? on M1 8GB MacBook Air
+    print('--------------------------------------------------')
 
     # --------------------------------------------------------------------------------------------------
 
