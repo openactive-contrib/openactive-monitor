@@ -1,9 +1,10 @@
+import geopandas as gpd
 import gzip
-import json
 import pandas as pd
 import pickle
 import random
 import sys
+
 from datetime import datetime, timedelta
 from dateutil import parser
 
@@ -16,6 +17,18 @@ from settings import *
 
 def analyse_separate_opportunities(**kwargs):
     verbose = kwargs.get('verbose', False)
+
+    # --------------------------------------------------------------------------------------------------
+
+    gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
+    gdf_regions = gdf_regions.to_crs(4326)
+
+    gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
+    gdf_districts = gdf_districts.to_crs(4326)
+
+    # todays_date = datetime.now().date()
+    # todays_date = datetime(2025,12,15).date() # TODO: Remove temporary adjustment
+    # next_weeks_date = todays_date + timedelta(days=7)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -39,7 +52,12 @@ def analyse_separate_opportunities(**kwargs):
     # --------------------------------------------------------------------------------------------------
 
     # List the items we want to collect for each feed. These column headers need to be specified here in
-    # advance of row insertion into the DataFrame:
+    # advance of row insertion into the DataFrame.
+
+    # The comments after each line show the data types.
+
+    # Entries which can't be determined are filled with None rather than the empty version of the type
+    # they relate to e.g. an empty string for strings, or zero for integers etc.
 
     separate_analysis = pd.DataFrame(columns=[
         'feed_id', # STR
@@ -74,12 +92,12 @@ def analyse_separate_opportunities(**kwargs):
         'num_future_opportunity_items', # INT
         'num_future_week_opportunity_items', # INT
 
-        'organisers_counts', # {STR: INT}
+        'organizer_names_counts', # {STR: INT}
         'activities_counts', # {STR: INT}
         'facilities_counts', # {STR: INT}
         'accessibilities_counts', # {STR: INT}
-        'postcodes_counts', # {STR: INT}
-        'latlons_counts', # {STR: INT}
+        'regions_counts', # {STR: INT}
+        'districts_counts', # {STR: INT}
     ])
 
     filenames_sampleitems = {}
@@ -209,33 +227,6 @@ def analyse_separate_opportunities(**kwargs):
             num_unpartnered_superevent_items = num_superevent_items - num_partnered_superevent_items
             num_unpartnered_subevent_items = num_subevent_items - num_partnered_subevent_items
 
-        # Merging happens if:
-        #   we have a pair of feeds ...
-        #   the event type (superevent/subevent) for each feed has been unambiguously identified ...
-        #   the subevent items refer to existing superevent items.
-
-        # If merging does happen, then superevent items are inserted into related subevent items, and the superevent
-        # opportunities object is completely removed from play. We therefore discard any potential counts from
-        # superevent items that weren't associated with subevent items.
-
-        # If merging doesn't happen (due to the above conditions not being fulfilled, and usually because of
-        # at least one of the feeds having no items), then both opportunities files (if present) go on for
-        # independent item content counting. Nothing is discarded. This retention of all such items may not
-        # in fact be desirable, and yield superfluous counts of e.g. activities. However, this should be a
-        # relative minority. If concerned, then check for cases where we do indeed have both opportunities
-        # objects in an unmerged pair, and discard at least the superevent object before running counts.
-
-        if (len(superevent_id_v_subevent_ids.keys()) > 0):
-            try:
-                # Merge superevent items into associated subevent items under a new key called 'superevent_item', and
-                # remove the superevent item from its original opportunities dictionary. Both superevent and subevent
-                # opportunities dictionaries are therefore changed by this procedure.
-                for superevent_id, subevent_ids in superevent_id_v_subevent_ids.items():
-                    for subevent_id in subevent_ids:
-                        opportunities_pair[event_type_pair.index('subevent')]['items'][subevent_id]['superevent_item'] = opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id]
-            except Exception as error:
-                print('ERROR:', error)
-
         # --------------------------------------------------------------------------------------------------
 
         print(f'\tFile-1:')
@@ -279,6 +270,8 @@ def analyse_separate_opportunities(**kwargs):
 
             # --------------------------------------------------------------------------------------------------
 
+            # When
+
             num_opportunity_start_dates, \
             num_future_opportunity_start_dates, \
             num_future_week_opportunity_start_dates, \
@@ -295,9 +288,207 @@ def analyse_separate_opportunities(**kwargs):
                     for item_id in random.sample(future_week_opportunity_item_ids, min(2, num_future_week_opportunity_items))
                 }
 
+            # --------------------------------------------------------------------------------------------------
+
+            num_items = len(opportunities['items'].keys())
+
+            item_kinds_counts = {}
+            item_types_counts = {}
+            organizer_names_counts = {}
+            activities_counts = {}
+            facilities_counts = {}
+            accessibilities_counts = {}
+            regions_counts = {}
+            districts_counts = {}
+            for item_idx, item in enumerate(opportunities['items'].values()):
+                # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
+                # you'll just end up with a long list of numbers if this is enabled:
+                if (   ((item_idx + 1) % 10 == 0)
+                    or ((item_idx + 1) == num_items)
+                ):
+                    print(f'\t\tItem: {item_idx + 1}/{num_items}', end=('\n' if ((item_idx + 1) == num_items) else '\r'))
+
+                # Leave this in play, we can and do have instances where an item has no data field, so this is a needed
+                # safety check:
+                item_data = item.get('data', {})
+
+                # --------------------------------------------------------------------------------------------------
+
+                # If this is a superevent item with subevents via ID and no subevents via embedding, then it will be
+                # wholly used and referred to by the subevents via ID, so we skip over it here as it is not something
+                # to separately analyse by itself:
+
+                if (    (event_type_pair[opportunity_idx] == 'superevent')
+                    and (item['id'] in superevent_id_v_subevent_ids.keys())
+                ):
+                    subevent_start_dates = []
+                    for subevent_start_datetime in get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False):
+                        try:
+                            subevent_start_dates.append(parser.parse(subevent_start_datetime).date())
+                        except:
+                            pass
+                    if (len(subevent_start_dates) == 0):
+                        continue
+
+                # --------------------------------------------------------------------------------------------------
+
+                if (    (event_type_pair[opportunity_idx] == 'subevent')
+                    and (item['id'] in subevent_id_v_superevent_id.keys())
+                ):
+                    partner_item_id = subevent_id_v_superevent_id[item['id']]
+                    partner_item = opportunities_pair[1-opportunity_idx]['items'][partner_item_id]
+                    partner_item_data = partner_item.get('data', {})
+                else:
+                    partner_item = None
+
+                # --------------------------------------------------------------------------------------------------
+
+                # Who
+
+                # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
+
+                organizer_names = get_values(item_data, 'organizer', 'name')
+                if (    (len(organizer_names) == 0)
+                    and (partner_item is not None)
+                ):
+                    organizer_names = get_values(partner_item_data, 'organizer', 'name')
+
+                try:
+                    organizer_name = strip(organizer_names[0])
+                except:
+                    organizer_name = None
+
+                update_values_counts(organizer_names_counts, organizer_name)
+
+                # --------------------------------------------------------------------------------------------------
+
+                # What
+
+                item_kind = strip(item.get('kind', None))
+                item_type = strip(item_data.get('type', None) or item_data.get('@type', None))
+
+                if (partner_item is not None):
+                    # Define a new item kind and item type for these partnered items:
+                    partner_item_kind = strip(partner_item.get('kind', None))
+                    partner_item_type = strip(partner_item_data.get('type', None) or partner_item_data.get('@type', None))
+                    item_kind = '_x_'.join([str(item_kind), str(partner_item_kind)])
+                    item_type = '_x_'.join([str(item_type), str(partner_item_type)])
+
+                update_values_counts(item_kinds_counts, item_kind)
+                update_values_counts(item_types_counts, item_type)
+
+                activities = list(set([strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]))
+                if (    (len(activities) == 0)
+                    and (partner_item is not None)
+                ):
+                    activities = list(set([strip(value) for value in get_values(partner_item_data, 'activity', 'prefLabel')]))
+                if (len(activities) == 0):
+                    activities = [None]
+                for activity in activities:
+                    update_values_counts(activities_counts, activity)
+
+                facilities = list(set([strip(value) for value in get_values(item_data, 'facilityType', 'prefLabel')]))
+                if (    (len(facilities) == 0)
+                    and (partner_item is not None)
+                ):
+                    facilities = list(set([strip(value) for value in get_values(partner_item_data, 'facilityType', 'prefLabel')]))
+                if (len(facilities) == 0):
+                    facilities = [None]
+                for facility in facilities:
+                    update_values_counts(facilities_counts, facility)
+
+                accessibilities = list(set([strip(value) for value in get_values(item_data, 'accessibilitySupport', 'prefLabel')]))
+                if (    (len(accessibilities) == 0)
+                    and (partner_item is not None)
+                ):
+                    accessibilities = list(set([strip(value) for value in get_values(partner_item_data, 'accessibilitySupport', 'prefLabel')]))
+                if (len(accessibilities) == 0):
+                    accessibilities = [None]
+                for accessibility in accessibilities:
+                    update_values_counts(accessibilities_counts, accessibility)
+
+                # --------------------------------------------------------------------------------------------------
+
+                # Where
+
+                # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
+
+                locations = get_values(item_data, 'location')
+                try:
+                    postcode = strip(locations[0]['address']['postalCode'])
+                except:
+                    postcode = None
+                try:
+                    latitude = round(float(locations[0]['geo']['latitude']), 6)
+                except:
+                    latitude = None
+                try:
+                    longitude = round(float(locations[0]['geo']['longitude']), 6)
+                except:
+                    longitude = None
+
+                if (    (   (postcode is None)
+                        or  (latitude is None)
+                        or  (longitude is None) )
+                    and (partner_item is not None)
+                ):
+                    partner_locations = get_values(partner_item_data, 'location')
+                    if (postcode is None):
+                        try:
+                            postcode = strip(partner_locations[0]['address']['postalCode'])
+                        except:
+                            postcode = None
+                    if (latitude is None):
+                        try:
+                            latitude = round(float(partner_locations[0]['geo']['latitude']), 6)
+                        except:
+                            latitude = None
+                    if (longitude is None):
+                        try:
+                            longitude = round(float(partner_locations[0]['geo']['longitude']), 6)
+                        except:
+                            longitude = None
+
+                # Note that this point-by-point region/district mapping is slower than the bulk sjoin approach on GeoPandas
+                # dataframe input but much more accurate. The more data given to the bulk sjoin approach, the fewer
+                # entries are matched. If there is a future need to use the bulk sjoin approach, it may be possible
+                # to improve performance by twiddling gpd settings. Search for gpd.sjoin inaccuracies for info.
+                region = None
+                district = None
+                if (    (longitude is not None)
+                    and (latitude is not None)
+                ):
+                    point = None
+                    try:
+                        point = gpd.points_from_xy(
+                            [longitude],
+                            [latitude]
+                        )[0]
+                    except:
+                        pass
+                    if (point is not None):
+                        try:
+                            region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
+                        except:
+                            pass
+                        try:
+                            district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
+                        except:
+                            pass
+
+                update_values_counts(regions_counts, region)
+                update_values_counts(districts_counts, district)
+
+            # --------------------------------------------------------------------------------------------------
+
+            if (opportunities_pair[1-opportunity_idx] is not None):
+                partner_feed_id = opportunities_pair[1-opportunity_idx]['feed']['id']
+            else:
+                partner_feed_id = None
+
             separate_analysis.loc[len(separate_analysis)] = {
                 'feed_id': opportunities['feed']['id'],
-                'partner_feed_id': opportunities_pair[1-opportunity_idx]['feed']['id'] if (opportunities_pair[1-opportunity_idx] is not None) else None,
+                'partner_feed_id': partner_feed_id,
                 'file_name': filename_pair[opportunity_idx],
                 'dataset_name': opportunities['feed']['name'], # TODO: Change to 'dataset_name' to accommodate changed openactive_custom
                 'publisher_name': opportunities['feed']['publisher_name'],
@@ -311,11 +502,11 @@ def analyse_separate_opportunities(**kwargs):
                 'status': opportunities['status'],
                 'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
                 'feed_type': opportunities['feed']['type'],
-                'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
-                'item_types_counts': item_types_counts_pair[opportunity_idx],
+                'item_kinds_counts': item_kinds_counts,
+                'item_types_counts': item_types_counts,
                 'event_type': event_type_pair[opportunity_idx],
 
-                'num_items': len(opportunities['items'].keys()),
+                'num_items': num_items,
 
                 'num_partnered_items':
                     num_partnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
@@ -334,13 +525,12 @@ def analyse_separate_opportunities(**kwargs):
                 'num_future_opportunity_items': num_future_opportunity_items,
                 'num_future_week_opportunity_items': num_future_week_opportunity_items,
 
-                # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
-                'organisers_counts': get_values_counts(opportunities, 'organizer', 'name'),
-                'activities_counts': get_values_counts(opportunities, 'activity', 'prefLabel'),
-                'facilities_counts': get_values_counts(opportunities, 'facilityType', 'prefLabel'),
-                'accessibilities_counts': get_values_counts(opportunities, 'accessibilitySupport', 'prefLabel'),
-                'postcodes_counts': get_values_counts(opportunities, 'address', 'postalCode'),
-                'latlons_counts': get_latlons_counts(opportunities),
+                'organizer_names_counts': organizer_names_counts,
+                'activities_counts': activities_counts,
+                'facilities_counts': facilities_counts,
+                'accessibilities_counts': accessibilities_counts,
+                'regions_counts': regions_counts,
+                'districts_counts': districts_counts,
             }
 
         # --------------------------------------------------------------------------------------------------
@@ -382,11 +572,23 @@ def analyse_separate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    print('Writing out analysis ...')
+
+    t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SEPARATE_ANALYSIS_FILENAME, 'wb') as file_out:
         pickle.dump(separate_analysis, file_out)
+    t2 = datetime.now()
+    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
 
+    # --------------------------------------------------------------------------------------------------
+
+    print('Writing out samples ...')
+
+    t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:
         pickle.dump(filenames_sampleitems, file_out)
+    t2 = datetime.now()
+    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
 
 # --------------------------------------------------------------------------------------------------
 
@@ -403,18 +605,20 @@ def get_future(opportunities, event_type):
     future_week_opportunity_item_ids = []
     for item_id, item in opportunities['items'].items():
 
+        item_data = item.get('data', {})
+
         # Don't use .astimezone(tz.UTC) here - if there is a date but no time then it defaults to midnight,
         # so giving e.g. '2025-06-18' would then be converted to '2025-06-17' by the tz.UTC conversion.
 
         start_dates = []
-        for start_datetime in get_values(item['data'], ['startDate', 'dateStart'], continue_to_next_layer=False):
+        for start_datetime in get_values(item_data, ['startDate', 'dateStart'], continue_to_next_layer=False):
             try:
                 start_dates.append(parser.parse(start_datetime).date())
             except:
                 pass
 
         subevent_start_dates = []
-        for subevent_start_datetime in get_values(item['data'], 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False):
+        for subevent_start_datetime in get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False):
             try:
                 subevent_start_dates.append(parser.parse(subevent_start_datetime).date())
             except:
@@ -424,6 +628,13 @@ def get_future(opportunities, event_type):
             start_date = start_dates[0] # There should only be one i.e. zeroth index
         else:
             start_date = None
+
+        # Note that a superevent feed with a partnered subevent feed may nonetheless also have some embedded
+        # subevent items e.g. https://bookwhen.com/api/openactive/sessionseries. Not sure if this is totally
+        # kosher, but it is done.
+
+        # If looking for eventSchedule in further iterations of this code, take care that subEvent with startDate
+        # is not also present e.g. https://api.clubspark.uk/odi/public/courses
 
         # Regardless of classification of this item as a superevent or subevent, if there are embedded subevent
         # start dates then these are likely to be the ones we want for the individual sessions/slots which
@@ -497,25 +708,6 @@ def get_future(opportunities, event_type):
 
 # --------------------------------------------------------------------------------------------------
 
-def get_values_counts(opportunities, sought_parent_keys, sought_child_keys=None):
-    values_counts = {}
-
-    for item in opportunities['items'].values():
-        values = list(set([
-            json.dumps(value).strip() if (isinstance(value, dict))
-            else str(value).strip()
-            for value in get_values(item, sought_parent_keys, sought_child_keys)
-        ]))
-        for value in values:
-            if (value not in values_counts.keys()):
-                values_counts[value] = 1
-            else:
-                values_counts[value] += 1
-
-    return values_counts
-
-# --------------------------------------------------------------------------------------------------
-
 def get_values(data, sought_parent_keys, sought_child_keys=None, continue_to_next_layer=True):
     values = []
 
@@ -554,40 +746,16 @@ def get_values(data, sought_parent_keys, sought_child_keys=None, continue_to_nex
 
 # --------------------------------------------------------------------------------------------------
 
-def get_latlons_counts(opportunities):
-    latlons_counts = {}
-
-    for item in opportunities['items'].values():
-        latlon = get_latlon(item)
-        if (latlon):
-            if (latlon not in latlons_counts.keys()):
-                latlons_counts[latlon] = 1
-            else:
-                latlons_counts[latlon] += 1
-
-    return latlons_counts
+def update_values_counts(values_counts, key):
+    if (key not in values_counts.keys()):
+        values_counts[key] = 1
+    else:
+        values_counts[key] += 1
 
 # --------------------------------------------------------------------------------------------------
 
-def get_latlon(data):
-    latlon = ''
-
-    for key, val in data.items():
-        if (    (key == 'geo')
-            and (isinstance(val, dict))
-            and ('latitude' in val.keys())
-            and ('longitude' in val.keys())
-        ):
-            try:
-                latlon = ','.join([
-                    str(round(float(val['latitude']), 6)),
-                    str(round(float(val['longitude']), 6))
-                ])
-            except:
-                pass
-        elif (isinstance(val, dict)):
-            latlon = get_latlon(val)
-        if (latlon):
-            break
-
-    return latlon
+def strip(value):
+    if (type(value) is not None):
+        return str(value).strip()
+    else:
+        return value
