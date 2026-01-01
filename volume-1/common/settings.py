@@ -64,7 +64,7 @@ AGGREGATE_ANALYSIS_FILENAME = 'aggregate-analysis.pickle'
 SAMPLE_ITEMS_FILENAME = 'sample-items.pickle'
 
 GEO_REGIONS_FILENAME = '000-location-regions.geojson'
-GEO_LADS_FILENAME = '000-location-lads.geojson'
+GEO_DISTRICTS_FILENAME = '000-location-districts.geojson'
 SE_SPORT_AND_DISCIPLINE_FILENAME = '000-SE-sport-and-discipline.csv'
 OA_SE_MAPPING_FILENAME = '000-OA-SE-mapping.csv'
 

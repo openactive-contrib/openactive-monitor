@@ -21,7 +21,7 @@ def analyse_opportunities(**kwargs):
     gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
     gdf_regions = gdf_regions.to_crs(4326)
 
-    gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
+    gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_DISTRICTS_FILENAME)
     gdf_districts = gdf_districts.to_crs(4326)
 
     todays_date = datetime.now().date()
