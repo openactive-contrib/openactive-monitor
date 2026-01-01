@@ -123,6 +123,21 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    # Note that this drops None:
+
+    df_total_activitiesfacilities_counts = pd.concat([
+            df_total_activities_counts[['activity', 'count']],
+            df_total_facilities_counts[['facility', 'count']].rename(columns={'facility': 'activity'}),
+        ],
+        ignore_index=True
+    ) \
+    .dropna() \
+    .sort_values('count', ascending=False)
+
+    df_total_activitiesfacilities_counts['percentage'] = (df_total_activitiesfacilities_counts['count'] / df_total_activitiesfacilities_counts['count'].sum()) * 100
+
+    # --------------------------------------------------------------------------------------------------
+
     df_total_accessibilities_counts, \
     total_num_accessibilities, \
     total_num_items_with_accessibilities = get_df_total_values_counts(separate_analysis, 'accessibilities_counts', feeds_to_include='all')
@@ -210,7 +225,7 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # Columns: ['activity', 'count', 'sport_and_discipline']
     df_total_sad_counts = pd.merge(
-        df_total_activities_counts \
+        df_total_activitiesfacilities_counts \
         .drop(columns=['percentage']) \
         .assign(activity=lambda x: x['activity'].str.strip()),
         df_oa_se_mapping,
@@ -335,6 +350,8 @@ def analyse_aggregate_opportunities(**kwargs):
         'df_total_facilities_counts': df_total_facilities_counts,
         'total_num_facilities': total_num_facilities,
         'total_num_items_with_facilities': total_num_items_with_facilities,
+
+        'df_total_activitiesfacilities_counts': df_total_activitiesfacilities_counts,
 
         'df_total_accessibilities_counts': df_total_accessibilities_counts,
         'total_num_accessibilities': total_num_accessibilities,
