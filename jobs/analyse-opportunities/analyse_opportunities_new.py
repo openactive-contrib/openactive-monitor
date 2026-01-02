@@ -461,6 +461,11 @@ def analyse_opportunities(**kwargs):
 
                 # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
 
+                # Note that the point-by-point region/district mapping is slower than the bulk sjoin approach on GeoPandas
+                # dataframe input but much more accurate. The more data given to the bulk sjoin approach, the fewer
+                # entries are matched. If there is a future need to use the bulk sjoin approach, it may be possible
+                # to improve performance by twiddling gpd settings. Search for gpd.sjoin inaccuracies for info.
+
                 locations = get_values(item_data, 'location')
                 try:
                     items['postcode'].append(strip(locations[0]['address']['postalCode']))
@@ -475,23 +480,18 @@ def analyse_opportunities(**kwargs):
                 except:
                     items['longitude'].append(None)
 
-                # Note that this point-by-point region/district mapping is slower than the bulk sjoin approach on GeoPandas
-                # dataframe input but much more accurate. The more data given to the bulk sjoin approach, the fewer
-                # entries are matched. If there is a future need to use the bulk sjoin approach, it may be possible
-                # to improve performance by twiddling gpd settings. Search for gpd.sjoin inaccuracies for info.
                 region = None
                 district = None
                 if (    (items['longitude'][-1] is not None)
                     and (items['latitude'][-1] is not None)
                 ):
-                    point = None
                     try:
                         point = gpd.points_from_xy(
                             [items['longitude'][-1]],
                             [items['latitude'][-1]]
                         )[0]
                     except:
-                        pass
+                        point = None
                     if (point is not None):
                         try:
                             region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
@@ -699,7 +699,6 @@ def analyse_opportunities(**kwargs):
         # If this is a subevent item with a superevent partner, then modify the subevent content with the contextual
         # superevent info:
 
-        partner_item_all_item_idx = None
         if (    (item['event_type'] == 'subevent')
             and (item['partner_feed_id'] is not None)
             and (item['partner_item_ids'] is not None)
@@ -709,13 +708,16 @@ def analyse_opportunities(**kwargs):
                 partner_id_to_all_item_idx \
                     [item['partner_feed_id']] \
                     [item['partner_item_ids'][0]]
+        else:
+            partner_item_all_item_idx = None
 
-        partner_item = None
         if (partner_item_all_item_idx is not None):
             partner_item = {
                 key: val[partner_item_all_item_idx]
                 for key, val in items.items()
             }
+        else:
+            partner_item = None
 
         if (partner_item is not None):
             # Define a new item kind and item type for these partnered items:
@@ -771,13 +773,14 @@ def analyse_opportunities(**kwargs):
         # dates and future start dates, and it may be preferable to re-cast the sense of "an opportunity" from
         # an item to an instance of a start date within an item. TODO: Consider this and adjust accordingly.
 
-        opportunity_start_dates = None
         if (item['subevent_start_dates'] is not None):
             opportunity_start_dates = item['subevent_start_dates']
         elif (  (item['event_type'] == 'subevent')
             and (item['start_date'] is not None)
         ):
             opportunity_start_dates = [item['start_date']]
+        else:
+            opportunity_start_dates = None
 
         if (opportunity_start_dates is not None):
             num_opportunity_start_dates = len(opportunity_start_dates)
