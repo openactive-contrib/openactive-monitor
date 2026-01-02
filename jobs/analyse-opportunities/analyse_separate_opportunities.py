@@ -421,15 +421,20 @@ def analyse_separate_opportunities(**kwargs):
                 # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
 
                 organizer_names = get_values(item_data, 'organizer', 'name')
-                if (    (len(organizer_names) == 0)
-                    and (partner_item is not None)
-                ):
-                    organizer_names = get_values(partner_item_data, 'organizer', 'name')
 
                 try:
                     organizer_name = strip(organizer_names[0])
                 except:
                     organizer_name = None
+
+                if (    (partner_item is not None)
+                    and (organizer_name is None)
+                ):
+                    partner_organizer_names = get_values(partner_item_data, 'organizer', 'name')
+                    try:
+                        organizer_name = strip(partner_organizer_names[0])
+                    except:
+                        organizer_name = None
 
                 update_values_counts(organizer_names_counts, organizer_name)
 
