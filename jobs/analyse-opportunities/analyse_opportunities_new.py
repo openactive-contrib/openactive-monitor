@@ -408,11 +408,11 @@ def analyse_opportunities(**kwargs):
 
                 partner_item_ids = None
                 if (event_type_pair[opportunity_idx] == 'superevent'):
-                    if (items['item_id'][-1] in superevent_id_v_subevent_ids.keys()):
-                        partner_item_ids = superevent_id_v_subevent_ids[items['item_id'][-1]]
+                    if (item['id'] in superevent_id_v_subevent_ids.keys()):
+                        partner_item_ids = superevent_id_v_subevent_ids[item['id']]
                 elif (event_type_pair[opportunity_idx] == 'subevent'):
-                    if (items['item_id'][-1] in subevent_id_v_superevent_id.keys()):
-                        partner_item_ids = [subevent_id_v_superevent_id[items['item_id'][-1]]]
+                    if (item['id'] in subevent_id_v_superevent_id.keys()):
+                        partner_item_ids = [subevent_id_v_superevent_id[item['id']]]
                 items['partner_item_ids'].append(partner_item_ids)
 
                 # --------------------------------------------------------------------------------------------------
