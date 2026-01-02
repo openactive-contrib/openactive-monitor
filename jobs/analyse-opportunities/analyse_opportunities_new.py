@@ -13,6 +13,8 @@ from fileutils import get_filename_pairs
 from openactive_custom import get_item_kinds, get_item_types, get_event_type, get_superevent_id_v_subevent_ids
 from settings import *
 
+# --------------------------------------------------------------------------------------------------
+
 def analyse_opportunities(**kwargs):
     verbose = kwargs.get('verbose', False)
 
@@ -87,6 +89,8 @@ def analyse_opportunities(**kwargs):
         'feed_type': [], # STR
         'item_kinds_counts': [], # {STR: INT}
         'item_types_counts': [], # {STR: INT}
+        'merged_item_kinds_counts': [], # {STR: INT}
+        'merged_item_types_counts': [], # {STR: INT}
         'event_type': [], # STR
 
         'num_items': [], # INT
@@ -101,6 +105,13 @@ def analyse_opportunities(**kwargs):
         'num_opportunity_items': [], # INT
         'num_future_opportunity_items': [], # INT
         'num_future_week_opportunity_items': [], # INT
+
+        'organizer_names_counts': [], # {STR: INT}
+        'activities_counts': [], # {STR: INT}
+        'facilities_counts': [], # {STR: INT}
+        'accessibilities_counts': [], # {STR: INT}
+        'regions_counts': [], # {STR: INT}
+        'districts_counts': [], # {STR: INT}
     }
 
     items = {
@@ -329,6 +340,8 @@ def analyse_opportunities(**kwargs):
             feeds['feed_type'].append(opportunities['feed']['type'])
             feeds['item_kinds_counts'].append(item_kinds_counts_pair[opportunity_idx])
             feeds['item_types_counts'].append(item_types_counts_pair[opportunity_idx])
+            feeds['merged_item_kinds_counts'].append({})
+            feeds['merged_item_types_counts'].append({})
             feeds['event_type'].append(event_type_pair[opportunity_idx]),
 
             feeds['num_items'].append(num_items)
@@ -355,6 +368,13 @@ def analyse_opportunities(**kwargs):
             feeds['num_future_opportunity_items'].append(0)
             feeds['num_future_week_opportunity_items'].append(0)
 
+            feeds['organizer_names_counts'].append({})
+            feeds['activities_counts'].append({})
+            feeds['facilities_counts'].append({})
+            feeds['accessibilities_counts'].append({})
+            feeds['regions_counts'].append({})
+            feeds['districts_counts'].append({})
+
             # --------------------------------------------------------------------------------------------------
 
             # Item level data
@@ -367,6 +387,8 @@ def analyse_opportunities(**kwargs):
                 ):
                     print(f'\t\tItem: {item_idx + 1}/{num_items}', end=('\n' if ((item_idx + 1) == num_items) else '\r'))
 
+                # Leave this in play, we can and do have instances where an item has no data field, so this is a needed
+                # safety check:
                 item_data = item.get('data', {})
 
                 # --------------------------------------------------------------------------------------------------
@@ -802,58 +824,66 @@ def analyse_opportunities(**kwargs):
 
         presence = [1, num_opportunity_start_dates, num_future_opportunity_start_dates, num_future_week_opportunity_start_dates]
 
-        update_values_counts(organizer_names_counts, item['organizer_name'], presence)
-        update_values_counts(regions_organizer_names_counts[item['region']], item['organizer_name'], presence)
-        update_values_counts(districts_organizer_names_counts[item['district']], item['organizer_name'], presence)
+        update_values_counts(feeds['organizer_names_counts'][feed_idx], item['organizer_name'])
+        update_values_presence(organizer_names_counts, item['organizer_name'], presence)
+        update_values_presence(regions_organizer_names_counts[item['region']], item['organizer_name'], presence)
+        update_values_presence(districts_organizer_names_counts[item['district']], item['organizer_name'], presence)
 
-        update_values_counts(item_kinds_counts, item['item_kind'], presence)
-        update_values_counts(regions_item_kinds_counts[item['region']], item['item_kind'], presence)
-        update_values_counts(districts_item_kinds_counts[item['district']], item['item_kind'], presence)
+        update_values_counts(feeds['merged_item_kinds_counts'][feed_idx], item['item_kind'])
+        update_values_presence(item_kinds_counts, item['item_kind'], presence)
+        update_values_presence(regions_item_kinds_counts[item['region']], item['item_kind'], presence)
+        update_values_presence(districts_item_kinds_counts[item['district']], item['item_kind'], presence)
 
-        update_values_counts(item_types_counts, item['item_type'], presence)
-        update_values_counts(regions_item_types_counts[item['region']], item['item_type'], presence)
-        update_values_counts(districts_item_types_counts[item['district']], item['item_type'], presence)
+        update_values_counts(feeds['merged_item_types_counts'][feed_idx], item['item_type'])
+        update_values_presence(item_types_counts, item['item_type'], presence)
+        update_values_presence(regions_item_types_counts[item['region']], item['item_type'], presence)
+        update_values_presence(districts_item_types_counts[item['district']], item['item_type'], presence)
 
-        update_values_counts(regions_counts, item['region'], presence)
-        update_values_counts(districts_regions_counts[item['district']], item['region'], presence)
+        update_values_counts(feeds['regions_counts'][feed_idx], item['region'])
+        update_values_presence(regions_counts, item['region'], presence)
+        update_values_presence(districts_regions_counts[item['district']], item['region'], presence)
 
-        update_values_counts(districts_counts, item['district'], presence)
-        update_values_counts(regions_districts_counts[item['region']], item['district'], presence)
+        update_values_counts(feeds['districts_counts'][feed_idx], item['district'])
+        update_values_presence(districts_counts, item['district'], presence)
+        update_values_presence(regions_districts_counts[item['region']], item['district'], presence)
 
         if (item['item_kind'] not in item_kinds_item_types_counts.keys()):
             item_kinds_item_types_counts[item['item_kind']] = {}
         if (item['item_type'] not in item_types_item_kinds_counts.keys()):
             item_types_item_kinds_counts[item['item_type']] = {}
 
-        update_values_counts(item_kinds_item_types_counts[item['item_kind']], item['item_type'], presence)
-        update_values_counts(item_types_item_kinds_counts[item['item_type']], item['item_kind'], presence)
+        update_values_presence(item_kinds_item_types_counts[item['item_kind']], item['item_type'], presence)
+        update_values_presence(item_types_item_kinds_counts[item['item_type']], item['item_kind'], presence)
 
         if (item['activities'] is not None):
             activities = item['activities']
         else:
             activities = [None]
         for activity in activities:
-            update_values_counts(activities_counts, activity, presence)
-            update_values_counts(regions_activities_counts[item['region']], activity, presence)
-            update_values_counts(districts_activities_counts[item['district']], activity, presence)
+            update_values_counts(feeds['activities_counts'][feed_idx], activity)
+            update_values_presence(activities_counts, activity, presence)
+            update_values_presence(regions_activities_counts[item['region']], activity, presence)
+            update_values_presence(districts_activities_counts[item['district']], activity, presence)
 
         if (item['facilities'] is not None):
             facilities = item['facilities']
         else:
             facilities = [None]
         for facility in facilities:
-            update_values_counts(facilities_counts, facility, presence)
-            update_values_counts(regions_facilities_counts[item['region']], facility, presence)
-            update_values_counts(districts_facilities_counts[item['district']], facility, presence)
+            update_values_counts(feeds['facilities_counts'][feed_idx], facility)
+            update_values_presence(facilities_counts, facility, presence)
+            update_values_presence(regions_facilities_counts[item['region']], facility, presence)
+            update_values_presence(districts_facilities_counts[item['district']], facility, presence)
 
         if (item['accessibilities'] is not None):
             accessibilities = item['accessibilities']
         else:
             accessibilities = [None]
         for accessibility in accessibilities:
-            update_values_counts(accessibilities_counts, accessibility, presence)
-            update_values_counts(regions_accessibilities_counts[item['region']], accessibility, presence)
-            update_values_counts(districts_accessibilities_counts[item['district']], accessibility, presence)
+            update_values_counts(feeds['accessibilities_counts'][feed_idx], accessibility)
+            update_values_presence(accessibilities_counts, accessibility, presence)
+            update_values_presence(regions_accessibilities_counts[item['region']], accessibility, presence)
+            update_values_presence(districts_accessibilities_counts[item['district']], accessibility, presence)
 
     analysis = {
         'organizer_names_counts': organizer_names_counts,
@@ -934,14 +964,6 @@ def analyse_opportunities(**kwargs):
 
 # --------------------------------------------------------------------------------------------------
 
-def strip(value):
-    if (type(value) is not None):
-        return str(value).strip()
-    else:
-        return value
-
-# --------------------------------------------------------------------------------------------------
-
 def get_values(data, sought_parent_keys, sought_child_keys=None, continue_to_next_layer=True):
     values = []
 
@@ -980,11 +1002,27 @@ def get_values(data, sought_parent_keys, sought_child_keys=None, continue_to_nex
 
 # --------------------------------------------------------------------------------------------------
 
-def update_values_counts(values_counts, key, presence):
-    if (key not in values_counts.keys()):
-        values_counts[key] = presence
+def update_values_presence(values_presence, key, presence):
+    if (key not in values_presence.keys()):
+        values_presence[key] = presence
     else:
-        values_counts[key] = [x + y for x, y in zip(values_counts[key], presence)]
+        values_presence[key] = [x + y for x, y in zip(values_presence[key], presence)]
+
+# --------------------------------------------------------------------------------------------------
+
+def update_values_counts(values_counts, key):
+    if (key not in values_counts.keys()):
+        values_counts[key] = 1
+    else:
+        values_counts[key] += 1
+
+# --------------------------------------------------------------------------------------------------
+
+def strip(value):
+    if (type(value) is not None):
+        return str(value).strip()
+    else:
+        return value
 
 # --------------------------------------------------------------------------------------------------
 
