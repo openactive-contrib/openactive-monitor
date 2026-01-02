@@ -480,6 +480,11 @@ def analyse_separate_opportunities(**kwargs):
 
                 # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
 
+                # Note that the point-by-point region/district mapping is slower than the bulk sjoin approach on GeoPandas
+                # dataframe input but much more accurate. The more data given to the bulk sjoin approach, the fewer
+                # entries are matched. If there is a future need to use the bulk sjoin approach, it may be possible
+                # to improve performance by twiddling gpd settings. Search for gpd.sjoin inaccuracies for info.
+
                 locations = get_values(item_data, 'location')
                 try:
                     postcode = strip(locations[0]['address']['postalCode'])
@@ -494,45 +499,18 @@ def analyse_separate_opportunities(**kwargs):
                 except:
                     longitude = None
 
-                if (    (   (postcode is None)
-                        or  (latitude is None)
-                        or  (longitude is None) )
-                    and (partner_item is not None)
-                ):
-                    partner_locations = get_values(partner_item_data, 'location')
-                    if (postcode is None):
-                        try:
-                            postcode = strip(partner_locations[0]['address']['postalCode'])
-                        except:
-                            postcode = None
-                    if (latitude is None):
-                        try:
-                            latitude = round(float(partner_locations[0]['geo']['latitude']), 6)
-                        except:
-                            latitude = None
-                    if (longitude is None):
-                        try:
-                            longitude = round(float(partner_locations[0]['geo']['longitude']), 6)
-                        except:
-                            longitude = None
-
-                # Note that this point-by-point region/district mapping is slower than the bulk sjoin approach on GeoPandas
-                # dataframe input but much more accurate. The more data given to the bulk sjoin approach, the fewer
-                # entries are matched. If there is a future need to use the bulk sjoin approach, it may be possible
-                # to improve performance by twiddling gpd settings. Search for gpd.sjoin inaccuracies for info.
                 region = None
                 district = None
                 if (    (longitude is not None)
                     and (latitude is not None)
                 ):
-                    point = None
                     try:
                         point = gpd.points_from_xy(
                             [longitude],
                             [latitude]
                         )[0]
                     except:
-                        pass
+                        point = None
                     if (point is not None):
                         try:
                             region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
@@ -542,6 +520,70 @@ def analyse_separate_opportunities(**kwargs):
                             district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
                         except:
                             pass
+
+                if (    (partner_item is not None)
+                    and (   (postcode is None)
+                        or  (latitude is None)
+                        or  (longitude is None)
+                        or  (region is None)
+                        or  (district is None) )
+                ):
+                    partner_locations = get_values(partner_item_data, 'location')
+                    try:
+                        partner_postcode = strip(partner_locations[0]['address']['postalCode'])
+                    except:
+                        partner_postcode = None
+                    try:
+                        partner_latitude = round(float(partner_locations[0]['geo']['latitude']), 6)
+                    except:
+                        partner_latitude = None
+                    try:
+                        partner_longitude = round(float(partner_locations[0]['geo']['longitude']), 6)
+                    except:
+                        partner_longitude = None
+
+                    partner_region = None
+                    partner_district = None
+                    if (    (partner_longitude is not None)
+                        and (partner_latitude is not None)
+                    ):
+                        try:
+                            point = gpd.points_from_xy(
+                                [partner_longitude],
+                                [partner_latitude]
+                            )[0]
+                        except:
+                            point = None
+                        if (point is not None):
+                            try:
+                                partner_region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
+                            except:
+                                pass
+                            try:
+                                partner_district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
+                            except:
+                                pass
+
+                    if (    (postcode is None)
+                        and (partner_postcode is not None)
+                    ):
+                        postcode = partner_postcode
+                    if (    (latitude is None)
+                        and (partner_latitude is not None)
+                    ):
+                        latitude = partner_latitude
+                    if (    (longitude is None)
+                        and (partner_longitude is not None)
+                    ):
+                        longitude = partner_longitude
+                    if (    (region is None)
+                        and (partner_region is not None)
+                    ):
+                        region = partner_region
+                    if (    (district is None)
+                        and (partner_district is not None)
+                    ):
+                        district = partner_district
 
                 update_values_counts(regions_counts, region)
                 update_values_counts(districts_counts, district)
