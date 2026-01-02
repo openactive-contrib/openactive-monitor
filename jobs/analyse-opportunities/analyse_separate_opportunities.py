@@ -26,9 +26,9 @@ def analyse_separate_opportunities(**kwargs):
     gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_DISTRICTS_FILENAME)
     gdf_districts = gdf_districts.to_crs(4326)
 
-    # todays_date = datetime.now().date()
+    todays_date = datetime.now().date()
     # todays_date = datetime(2025,12,15).date() # TODO: Remove temporary adjustment
-    # next_weeks_date = todays_date + timedelta(days=7)
+    next_weeks_date = todays_date + timedelta(days=7)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -270,28 +270,15 @@ def analyse_separate_opportunities(**kwargs):
 
             # --------------------------------------------------------------------------------------------------
 
-            # When
-
-            num_opportunity_start_dates, \
-            num_future_opportunity_start_dates, \
-            num_future_week_opportunity_start_dates, \
-            num_opportunity_items, \
-            num_future_opportunity_items, \
-            num_future_week_opportunity_items, \
-            opportunity_item_ids, \
-            future_opportunity_item_ids, \
-            future_week_opportunity_item_ids = get_future(opportunities, event_type_pair[opportunity_idx])
-
-            if (num_future_week_opportunity_items > 0):
-                filenames_sampleitems[filename_pair[opportunity_idx]] = {
-                    item_id: opportunities['items'][item_id]
-                    for item_id in random.sample(future_week_opportunity_item_ids, min(2, num_future_week_opportunity_items))
-                }
-
-            # --------------------------------------------------------------------------------------------------
-
             num_items = len(opportunities['items'].keys())
 
+            total_num_opportunity_start_dates = 0
+            total_num_future_opportunity_start_dates = 0
+            total_num_future_week_opportunity_start_dates = 0
+
+            opportunity_item_ids = []
+            future_opportunity_item_ids = []
+            future_week_opportunity_item_ids = []
             item_kinds_counts = {}
             item_types_counts = {}
             organizer_names_counts = {}
@@ -300,6 +287,7 @@ def analyse_separate_opportunities(**kwargs):
             accessibilities_counts = {}
             regions_counts = {}
             districts_counts = {}
+
             for item_idx, item in enumerate(opportunities['items'].values()):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
                 # you'll just end up with a long list of numbers if this is enabled:
@@ -314,21 +302,103 @@ def analyse_separate_opportunities(**kwargs):
 
                 # --------------------------------------------------------------------------------------------------
 
+                # When
+
+                # Don't use .astimezone(tz.UTC) here - if there is a date but no time then it defaults to midnight,
+                # so giving e.g. '2025-06-18' would then be converted to '2025-06-17' by the tz.UTC conversion.
+
+                start_dates = []
+                for start_datetime in get_values(item_data, ['startDate', 'dateStart'], continue_to_next_layer=False):
+                    try:
+                        start_dates.append(parser.parse(start_datetime).date())
+                    except:
+                        pass
+
+                subevent_start_dates = []
+                for subevent_start_datetime in get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False):
+                    try:
+                        subevent_start_dates.append(parser.parse(subevent_start_datetime).date())
+                    except:
+                        pass
+
+                if (len(start_dates) > 0):
+                    start_date = start_dates[0] # There should only be one i.e. zeroth index
+                else:
+                    start_date = None
+
+                # Note that a superevent feed with a partnered subevent feed may nonetheless also have some embedded
+                # subevent items e.g. https://bookwhen.com/api/openactive/sessionseries. Not sure if this is totally
+                # kosher, but it is done.
+
+                # If looking for eventSchedule in further iterations of this code, take care that subEvent with startDate
+                # is not also present e.g. https://api.clubspark.uk/odi/public/courses
+
+                # Regardless of classification of this item as a superevent or subevent, if there are embedded subevent
+                # start dates then these are likely to be the ones we want for the individual sessions/slots which
+                # are usually thought of as the individual "opportunities". If we don't have such start dates, then
+                # we choose to accept root level start dates from subevents only, as those from superevents are (or
+                # should be) for the start of a set of sessions/slots, which, as just indicated, are not usually thought
+                # of as the individual "opportunities". We therefore have a distinction between:
+                #     1) Item - any item of any superevent/subevent classification and any content
+                #     2) Future item - an item with at least one future start date, either at the root level or from
+                #        embedded subevents
+                #     3) Opportunity item - a superevent/subevent item with embedded subevent start dates, or a subevent
+                #        with a root level start date
+                #     4) Future opportunity item - an opportunity item with at least one future start date, either
+                #        at the root level or from embedded subevents
+                # Ultimately, it is the future opportunity items that we end up counting below. We also count the start
+                # dates and future start dates, and it may be preferable to re-cast the sense of "an opportunity" from
+                # an item to an instance of a start date within an item. TODO: Consider this and adjust accordingly.
+
+                if (len(subevent_start_dates) > 0):
+                    opportunity_start_dates = subevent_start_dates
+                elif (  (event_type_pair[opportunity_idx] == 'subevent')
+                    and (start_date is not None)
+                ):
+                    opportunity_start_dates = [start_date]
+                else:
+                    opportunity_start_dates = None
+
+                if (opportunity_start_dates is not None):
+                    num_opportunity_start_dates = len(opportunity_start_dates)
+                    num_future_opportunity_start_dates = len([
+                        opportunity_start_date
+                        for opportunity_start_date in opportunity_start_dates
+                        if (opportunity_start_date >= todays_date)
+                    ])
+                    num_future_week_opportunity_start_dates = len([
+                        opportunity_start_date
+                        for opportunity_start_date in opportunity_start_dates
+                        if (    (opportunity_start_date >= todays_date)
+                            and (opportunity_start_date < next_weeks_date) )
+                    ])
+                else:
+                    num_opportunity_start_dates = 0
+                    num_future_opportunity_start_dates = 0
+                    num_future_week_opportunity_start_dates = 0
+
+                total_num_opportunity_start_dates += num_opportunity_start_dates
+                total_num_future_opportunity_start_dates += num_future_opportunity_start_dates
+                total_num_future_week_opportunity_start_dates += num_future_week_opportunity_start_dates
+
+                if (num_opportunity_start_dates > 0):
+                    opportunity_item_ids.append(item['id'])
+                if (num_future_opportunity_start_dates > 0):
+                    future_opportunity_item_ids.append(item['id'])
+                if (num_future_week_opportunity_start_dates > 0):
+                    future_week_opportunity_item_ids.append(item['id'])
+
+                # --------------------------------------------------------------------------------------------------
+
                 # If this is a superevent item with subevents via ID and no subevents via embedding, then it will be
                 # wholly used and referred to by the subevents via ID, so we skip over it here as it is not something
                 # to separately analyse by itself:
 
                 if (    (event_type_pair[opportunity_idx] == 'superevent')
                     and (item['id'] in superevent_id_v_subevent_ids.keys())
+                    and (len(subevent_start_dates) == 0)
                 ):
-                    subevent_start_dates = []
-                    for subevent_start_datetime in get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False):
-                        try:
-                            subevent_start_dates.append(parser.parse(subevent_start_datetime).date())
-                        except:
-                            pass
-                    if (len(subevent_start_dates) == 0):
-                        continue
+                    continue
 
                 # --------------------------------------------------------------------------------------------------
 
@@ -486,6 +556,16 @@ def analyse_separate_opportunities(**kwargs):
             else:
                 partner_feed_id = None
 
+            total_num_opportunity_items = len(opportunity_item_ids)
+            total_num_future_opportunity_items = len(future_opportunity_item_ids)
+            total_num_future_week_opportunity_items = len(future_week_opportunity_item_ids)
+
+            if (total_num_future_week_opportunity_items > 0):
+                filenames_sampleitems[filename_pair[opportunity_idx]] = {
+                    item_id: opportunities['items'][item_id]
+                    for item_id in random.sample(future_week_opportunity_item_ids, min(2, total_num_future_week_opportunity_items))
+                }
+
             separate_analysis.loc[len(separate_analysis)] = {
                 'feed_id': opportunities['feed']['id'],
                 'partner_feed_id': partner_feed_id,
@@ -517,13 +597,13 @@ def analyse_separate_opportunities(**kwargs):
                     else num_unpartnered_subevent_items if (event_type_pair[opportunity_idx] == 'subevent')
                     else None,
 
-                'num_opportunity_start_dates': num_opportunity_start_dates,
-                'num_future_opportunity_start_dates': num_future_opportunity_start_dates,
-                'num_future_week_opportunity_start_dates': num_future_week_opportunity_start_dates,
+                'num_opportunity_start_dates': total_num_opportunity_start_dates,
+                'num_future_opportunity_start_dates': total_num_future_opportunity_start_dates,
+                'num_future_week_opportunity_start_dates': total_num_future_week_opportunity_start_dates,
 
-                'num_opportunity_items': num_opportunity_items,
-                'num_future_opportunity_items': num_future_opportunity_items,
-                'num_future_week_opportunity_items': num_future_week_opportunity_items,
+                'num_opportunity_items': total_num_opportunity_items,
+                'num_future_opportunity_items': total_num_future_opportunity_items,
+                'num_future_week_opportunity_items': total_num_future_week_opportunity_items,
 
                 'organizer_names_counts': organizer_names_counts,
                 'activities_counts': activities_counts,
@@ -589,122 +669,6 @@ def analyse_separate_opportunities(**kwargs):
         pickle.dump(filenames_sampleitems, file_out)
     t2 = datetime.now()
     print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
-
-# --------------------------------------------------------------------------------------------------
-
-def get_future(opportunities, event_type):
-    todays_date = datetime.now().date()
-    # todays_date = datetime(2025,12,15).date() # TODO: Remove temporary adjustment
-    next_weeks_date = todays_date + timedelta(days=7)
-
-    feed_num_opportunity_start_dates = 0
-    feed_num_future_opportunity_start_dates = 0
-    feed_num_future_week_opportunity_start_dates = 0
-    opportunity_item_ids = []
-    future_opportunity_item_ids = []
-    future_week_opportunity_item_ids = []
-    for item_id, item in opportunities['items'].items():
-
-        item_data = item.get('data', {})
-
-        # Don't use .astimezone(tz.UTC) here - if there is a date but no time then it defaults to midnight,
-        # so giving e.g. '2025-06-18' would then be converted to '2025-06-17' by the tz.UTC conversion.
-
-        start_dates = []
-        for start_datetime in get_values(item_data, ['startDate', 'dateStart'], continue_to_next_layer=False):
-            try:
-                start_dates.append(parser.parse(start_datetime).date())
-            except:
-                pass
-
-        subevent_start_dates = []
-        for subevent_start_datetime in get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False):
-            try:
-                subevent_start_dates.append(parser.parse(subevent_start_datetime).date())
-            except:
-                pass
-
-        if (len(start_dates) > 0):
-            start_date = start_dates[0] # There should only be one i.e. zeroth index
-        else:
-            start_date = None
-
-        # Note that a superevent feed with a partnered subevent feed may nonetheless also have some embedded
-        # subevent items e.g. https://bookwhen.com/api/openactive/sessionseries. Not sure if this is totally
-        # kosher, but it is done.
-
-        # If looking for eventSchedule in further iterations of this code, take care that subEvent with startDate
-        # is not also present e.g. https://api.clubspark.uk/odi/public/courses
-
-        # Regardless of classification of this item as a superevent or subevent, if there are embedded subevent
-        # start dates then these are likely to be the ones we want for the individual sessions/slots which
-        # are usually thought of as the individual "opportunities". If we don't have such start dates, then
-        # we choose to accept root level start dates from subevents only, as those from superevents are (or
-        # should be) for the start of a set of sessions/slots, which, as just indicated, are not usually thought
-        # of as the individual "opportunities". We therefore have a distinction between:
-        #     1) Item - any item of any superevent/subevent classification and any content
-        #     2) Future item - an item with at least one future start date, either at the root level or from
-        #        embedded subevents
-        #     3) Opportunity item - a superevent/subevent item with embedded subevent start dates, or a subevent
-        #        with a root level start date
-        #     4) Future opportunity item - an opportunity item with at least one future start date, either
-        #        at the root level or from embedded subevents
-        # Ultimately, it is the future opportunity items that we end up counting below. We also count the start
-        # dates and future start dates, and it may be preferable to re-cast the sense of "an opportunity" from
-        # an item to an instance of a start date within an item. TODO: Consider this and adjust accordingly.
-
-        if (len(subevent_start_dates) > 0):
-            opportunity_start_dates = subevent_start_dates
-        elif (  (event_type == 'subevent')
-            and (start_date is not None)
-        ):
-            opportunity_start_dates = [start_date]
-        else:
-            opportunity_start_dates = None
-
-        if (opportunity_start_dates is not None):
-            num_opportunity_start_dates = len(opportunity_start_dates)
-            num_future_opportunity_start_dates = len([
-                opportunity_start_date
-                for opportunity_start_date in opportunity_start_dates
-                if (opportunity_start_date >= todays_date)
-            ])
-            num_future_week_opportunity_start_dates = len([
-                opportunity_start_date
-                for opportunity_start_date in opportunity_start_dates
-                if (    (opportunity_start_date >= todays_date)
-                    and (opportunity_start_date < next_weeks_date) )
-            ])
-        else:
-            num_opportunity_start_dates = 0
-            num_future_opportunity_start_dates = 0
-            num_future_week_opportunity_start_dates = 0
-
-        feed_num_opportunity_start_dates += num_opportunity_start_dates
-        feed_num_future_opportunity_start_dates += num_future_opportunity_start_dates
-        feed_num_future_week_opportunity_start_dates += num_future_week_opportunity_start_dates
-
-        if (num_opportunity_start_dates > 0):
-            opportunity_item_ids.append(item_id)
-        if (num_future_opportunity_start_dates > 0):
-            future_opportunity_item_ids.append(item_id)
-        if (num_future_week_opportunity_start_dates > 0):
-            future_week_opportunity_item_ids.append(item_id)
-
-    feed_num_opportunity_items = len(opportunity_item_ids)
-    feed_num_future_opportunity_items = len(future_opportunity_item_ids)
-    feed_num_future_week_opportunity_items = len(future_week_opportunity_item_ids)
-
-    return \
-        feed_num_opportunity_start_dates, \
-        feed_num_future_opportunity_start_dates, \
-        feed_num_future_week_opportunity_start_dates, \
-        feed_num_opportunity_items, \
-        feed_num_future_opportunity_items, \
-        feed_num_future_week_opportunity_items, \
-        opportunity_item_ids, \
-        future_opportunity_item_ids, \
-        future_week_opportunity_item_ids
 
 # --------------------------------------------------------------------------------------------------
 
