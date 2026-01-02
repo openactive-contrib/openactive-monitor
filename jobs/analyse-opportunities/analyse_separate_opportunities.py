@@ -77,6 +77,8 @@ def analyse_separate_opportunities(**kwargs):
         'feed_type', # STR
         'item_kinds_counts', # {STR: INT}
         'item_types_counts', # {STR: INT}
+        'merged_item_kinds_counts', # {STR: INT}
+        'merged_item_types_counts', # {STR: INT}
         'event_type', # STR
 
         'num_items', # INT
@@ -279,8 +281,9 @@ def analyse_separate_opportunities(**kwargs):
             opportunity_item_ids = []
             future_opportunity_item_ids = []
             future_week_opportunity_item_ids = []
-            item_kinds_counts = {}
-            item_types_counts = {}
+
+            merged_item_kinds_counts = {}
+            merged_item_types_counts = {}
             organizer_names_counts = {}
             activities_counts = {}
             facilities_counts = {}
@@ -444,8 +447,8 @@ def analyse_separate_opportunities(**kwargs):
                     item_kind = '_x_'.join([str(item_kind), str(partner_item_kind)])
                     item_type = '_x_'.join([str(item_type), str(partner_item_type)])
 
-                update_values_counts(item_kinds_counts, item_kind)
-                update_values_counts(item_types_counts, item_type)
+                update_values_counts(merged_item_kinds_counts, item_kind)
+                update_values_counts(merged_item_types_counts, item_type)
 
                 activities = list(set([strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]))
                 if (    (len(activities) == 0)
@@ -582,8 +585,10 @@ def analyse_separate_opportunities(**kwargs):
                 'status': opportunities['status'],
                 'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
                 'feed_type': opportunities['feed']['type'],
-                'item_kinds_counts': item_kinds_counts,
-                'item_types_counts': item_types_counts,
+                'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
+                'item_types_counts': item_types_counts_pair[opportunity_idx],
+                'merged_item_kinds_counts': merged_item_kinds_counts,
+                'merged_item_types_counts': merged_item_types_counts,
                 'event_type': event_type_pair[opportunity_idx],
 
                 'num_items': num_items,
