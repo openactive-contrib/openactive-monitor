@@ -451,30 +451,24 @@ def analyse_separate_opportunities(**kwargs):
                 update_values_counts(merged_item_types_counts, item_type)
 
                 activities = list(set([strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]))
-                if (    (len(activities) == 0)
-                    and (partner_item is not None)
-                ):
-                    activities = list(set([strip(value) for value in get_values(partner_item_data, 'activity', 'prefLabel')]))
+                if (partner_item is not None):
+                    activities = list(set(activities + [strip(value) for value in get_values(partner_item_data, 'activity', 'prefLabel')]))
                 if (len(activities) == 0):
                     activities = [None]
                 for activity in activities:
                     update_values_counts(activities_counts, activity)
 
                 facilities = list(set([strip(value) for value in get_values(item_data, 'facilityType', 'prefLabel')]))
-                if (    (len(facilities) == 0)
-                    and (partner_item is not None)
-                ):
-                    facilities = list(set([strip(value) for value in get_values(partner_item_data, 'facilityType', 'prefLabel')]))
+                if (partner_item is not None):
+                    facilities = list(set(facilities + [strip(value) for value in get_values(partner_item_data, 'facilityType', 'prefLabel')]))
                 if (len(facilities) == 0):
                     facilities = [None]
                 for facility in facilities:
                     update_values_counts(facilities_counts, facility)
 
                 accessibilities = list(set([strip(value) for value in get_values(item_data, 'accessibilitySupport', 'prefLabel')]))
-                if (    (len(accessibilities) == 0)
-                    and (partner_item is not None)
-                ):
-                    accessibilities = list(set([strip(value) for value in get_values(partner_item_data, 'accessibilitySupport', 'prefLabel')]))
+                if (partner_item is not None):
+                    accessibilities = list(set(accessibilities + [strip(value) for value in get_values(partner_item_data, 'accessibilitySupport', 'prefLabel')]))
                 if (len(accessibilities) == 0):
                     accessibilities = [None]
                 for accessibility in accessibilities:
