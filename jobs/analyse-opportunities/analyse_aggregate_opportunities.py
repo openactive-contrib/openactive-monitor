@@ -235,7 +235,7 @@ def analyse_aggregate_opportunities(**kwargs):
     # Pull out non-matching activities before they are changed to 'No Match', as then they will be indistinguishable
     # from the existing 'No Match' entries in the mapping file:
     df_total_sad_counts_na = df_total_sad_counts.loc[df_total_sad_counts['sport_and_discipline'].isna()]
-    df_total_sad_counts_na.to_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + 'unmatched_activities.csv', index=False)
+    df_total_sad_counts_na.to_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + 'unmatched-activities.csv', index=False)
 
     df_total_sad_counts['sport_and_discipline'].fillna('No Match', inplace=True)
     df_total_sad_counts_matched = df_total_sad_counts.loc[df_total_sad_counts['sport_and_discipline'] != 'No Match']
