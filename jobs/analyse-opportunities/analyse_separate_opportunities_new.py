@@ -15,7 +15,7 @@ from settings import *
 
 # --------------------------------------------------------------------------------------------------
 
-def analyse_opportunities(**kwargs):
+def analyse_separate_opportunities_new(**kwargs):
     verbose = kwargs.get('verbose', False)
 
     # --------------------------------------------------------------------------------------------------
@@ -1069,7 +1069,7 @@ def strip(value):
 
 if (__name__ == '__main__'):
     try:
-        analyse_opportunities()
+        analyse_separate_opportunities_new()
     except Exception as error:
         print('ERROR:', error)
 
