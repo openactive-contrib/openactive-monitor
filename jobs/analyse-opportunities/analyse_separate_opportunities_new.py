@@ -1,7 +1,7 @@
 import copy
 import geopandas as gpd
 import gzip
-# import pandas as pd
+import pandas as pd
 import pickle
 import random
 import sys
@@ -964,7 +964,7 @@ def analyse_opportunities(**kwargs):
     # a crash, so at least some useful output is given from this run:
 
     t1 = datetime.now()
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'analysis.pickle', 'wb') as file_out:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + CROSS_ANALYSIS_FILENAME, 'wb') as file_out:
         pickle.dump(analysis, file_out)
     t2 = datetime.now()
     print(f'\tTime taken: {t2 - t1}') # ~4sec (~1.2MB) on M1 8GB MacBook Air
@@ -983,9 +983,14 @@ def analyse_opportunities(**kwargs):
 
     print('Writing out feeds ...')
 
+    # Currently converting to a dataframe and using SEPARATE_ANALYSIS_FILENAME in order for this code to
+    # directly replace analyse_separate_opportunities.py if desired:
+
     t1 = datetime.now()
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'feeds.pickle', 'wb') as file_out:
-        pickle.dump(feeds, file_out)
+    # with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'feeds.pickle', 'wb') as file_out:
+    #     pickle.dump(feeds, file_out)
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SEPARATE_ANALYSIS_FILENAME, 'wb') as file_out:
+        pickle.dump(pd.DataFrame(feeds, columns=feeds.keys()), file_out)
     t2 = datetime.now()
     print(f'\tTime taken: {t2 - t1}') # ~0.5sec (~0.3MB) on M1 8GB MacBook Air
 
@@ -994,7 +999,7 @@ def analyse_opportunities(**kwargs):
     print('Writing out items ...')
 
     t1 = datetime.now()
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + 'items.pickle', 'wb') as file_out:
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ALL_ITEMS_FILENAME, 'wb') as file_out:
         pickle.dump(items, file_out)
     t2 = datetime.now()
     print(f'\tTime taken: {t2 - t1}') # ~1hr4min (~4.25GB) on M1 8GB MacBook Air
