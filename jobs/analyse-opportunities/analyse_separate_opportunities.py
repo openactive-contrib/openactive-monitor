@@ -614,7 +614,7 @@ def analyse_separate_opportunities(**kwargs):
                 'feed_id': opportunities['feed']['id'],
                 'partner_feed_id': partner_feed_id,
                 'file_name': filename_pair[opportunity_idx],
-                'dataset_name': opportunities['feed']['name'], # TODO: Change to 'dataset_name' to accommodate changed openactive_custom
+                'dataset_name': opportunities['feed']['dataset_name'],
                 'publisher_name': opportunities['feed']['publisher_name'],
 
                 'feed_url': opportunities['feed']['url'],

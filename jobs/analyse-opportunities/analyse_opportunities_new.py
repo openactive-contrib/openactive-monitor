@@ -75,7 +75,7 @@ def analyse_opportunities(**kwargs):
         'feed_id': [], # STR
         'partner_feed_id': [], # STR
         'file_name': [], # STR
-        'feed_name': [], # STR
+        'dataset_name': [], # STR
         'publisher_name': [], # STR
 
         'feed_url': [], # STR
@@ -326,7 +326,7 @@ def analyse_opportunities(**kwargs):
             else:
                 feeds['partner_feed_id'].append(None)
             feeds['file_name'].append(filename_pair[opportunity_idx])
-            feeds['feed_name'].append(opportunities['feed']['name'])
+            feeds['dataset_name'].append(opportunities['feed']['dataset_name'])
             feeds['publisher_name'].append(opportunities['feed']['publisher_name'])
 
             feeds['feed_url'].append(opportunities['feed']['url'])
