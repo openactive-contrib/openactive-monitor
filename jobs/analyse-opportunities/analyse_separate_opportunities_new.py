@@ -26,8 +26,8 @@ def analyse_opportunities(**kwargs):
     gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_DISTRICTS_FILENAME)
     gdf_districts = gdf_districts.to_crs(4326)
 
-    todays_date = datetime.now().date()
-    # todays_date = datetime(2025,12,15).date() # TODO: Remove temporary adjustment:
+    # todays_date = datetime.now().date()
+    todays_date = datetime(2025,12,15).date() # TODO: Remove temporary adjustment
     next_weeks_date = todays_date + timedelta(days=7)
 
     # --------------------------------------------------------------------------------------------------
@@ -157,8 +157,8 @@ def analyse_opportunities(**kwargs):
 
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
 
-    #    if (filename_pair_idx == 10):
-    #        break
+        # if (filename_pair_idx == 1):
+        #     break
 
         t1 = datetime.now()
 
