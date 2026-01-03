@@ -3,6 +3,7 @@ import geopandas as gpd
 import gzip
 # import pandas as pd
 import pickle
+import random
 import sys
 
 from datetime import datetime, timedelta
@@ -50,7 +51,7 @@ def analyse_opportunities(**kwargs):
         raise Exception('At least one filename has been partnered with more than one other filename. This should not occur and the filename pairing procedure needs to be investigated.')
 
     # If we want to know the total number of items in all opportunities files before they are processed,
-    # (in order to e.g. pre-set container sizes such as lists or dataframes) then we can determine this
+    # (in order to e.g. pre-size containers such as lists or dataframes) then we can determine this
     # from the file name stamps as follows, which is much quicker than opening the files to count the
     # items:
 
@@ -63,7 +64,10 @@ def analyse_opportunities(**kwargs):
     # The keys of these dictionaries are essentially column headings, and the values are lists of row entries,
     # one per feed in the case of feeds and one per item in the case of items. Inserting values into such
     # a dictionary is much faster than inserting rows into a dataframe, which makes a lot of difference
-    # in the case of items where we are dealing with millions of rows.
+    # in the case of items where we are dealing with millions of rows. Also, if we pre-size the lists within
+    # these dictionaries, by using [None]*total_num_items, and then modify entries by index in the main
+    # loop, then overall processing time for all files is actually increased by ~1hr (on M1 8GB MacBook
+    # Air), so it seems best to use empty lists at the start and append values into them.
 
     # The comments after each line show the data types. Note that some data types are themselves lists,
     # which occurs for attributes that may have multiple values for the same item e.g. activity, facility.
@@ -147,6 +151,8 @@ def analyse_opportunities(**kwargs):
         'start_date': [], # DATE
         'subevent_start_dates': [], # [DATE]
     }
+
+    filenames_sampleitems = {}
 
     # --------------------------------------------------------------------------------------------------
 
@@ -613,6 +619,8 @@ def analyse_opportunities(**kwargs):
     total_num_future_opportunity_items = 0
     total_num_future_week_opportunity_items = 0
 
+    feed_idx_future_week_opportunity_all_item_idxs = {}
+
     organizer_names_counts = {}
     item_kinds_counts = {}
     item_types_counts = {}
@@ -818,6 +826,9 @@ def analyse_opportunities(**kwargs):
         if (num_future_week_opportunity_start_dates > 0):
             feeds['num_future_week_opportunity_items'][feed_idx] += 1
             total_num_future_week_opportunity_items += 1
+            if (feed_idx not in feed_idx_future_week_opportunity_all_item_idxs.keys()):
+                feed_idx_future_week_opportunity_all_item_idxs[feed_idx] = []
+            feed_idx_future_week_opportunity_all_item_idxs[feed_idx].append(all_item_idx)
 
         # --------------------------------------------------------------------------------------------------
 
@@ -888,6 +899,8 @@ def analyse_opportunities(**kwargs):
             update_values_presence(regions_accessibilities_counts[item['region']], accessibility, presence)
             update_values_presence(districts_accessibilities_counts[item['district']], accessibility, presence)
 
+    # --------------------------------------------------------------------------------------------------
+
     analysis = {
         'organizer_names_counts': organizer_names_counts,
         'item_kinds_counts': item_kinds_counts,
@@ -928,6 +941,17 @@ def analyse_opportunities(**kwargs):
         'total_num_future_week_opportunity_items': total_num_future_week_opportunity_items,
     }
 
+    for feed_idx, future_week_opportunity_all_item_idxs in feed_idx_future_week_opportunity_all_item_idxs.items():
+        feed_num_future_week_opportunity_items = len(future_week_opportunity_all_item_idxs)
+        if (feed_num_future_week_opportunity_items > 0):
+            filenames_sampleitems[feeds['file_name'][feed_idx]] = {
+                items['item_id'][all_item_idx]: {
+                    key: val[all_item_idx]
+                    for key, val in items.items()
+                }
+                for all_item_idx in random.sample(future_week_opportunity_all_item_idxs, min(2, feed_num_future_week_opportunity_items))
+            }
+
     t2 = datetime.now()
     print(f'\tTime taken: {t2 - t1}') # ~12min on M1 8GB MacBook Air
     print('--------------------------------------------------')
@@ -944,6 +968,16 @@ def analyse_opportunities(**kwargs):
         pickle.dump(analysis, file_out)
     t2 = datetime.now()
     print(f'\tTime taken: {t2 - t1}') # ~4sec (~1.2MB) on M1 8GB MacBook Air
+
+    # --------------------------------------------------------------------------------------------------
+
+    print('Writing out samples ...')
+
+    t1 = datetime.now()
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:
+        pickle.dump(filenames_sampleitems, file_out)
+    t2 = datetime.now()
+    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
 
     # --------------------------------------------------------------------------------------------------
 
