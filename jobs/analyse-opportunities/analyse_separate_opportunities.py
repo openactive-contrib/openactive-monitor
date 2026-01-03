@@ -274,17 +274,19 @@ def analyse_separate_opportunities(**kwargs):
 
             num_items = len(opportunities['items'].keys())
 
-            total_num_opportunity_start_dates = 0
-            total_num_future_opportunity_start_dates = 0
-            total_num_future_week_opportunity_start_dates = 0
+            feed_num_opportunity_start_dates = 0
+            feed_num_future_opportunity_start_dates = 0
+            feed_num_future_week_opportunity_start_dates = 0
 
-            opportunity_item_ids = []
-            future_opportunity_item_ids = []
+            feed_num_opportunity_items = 0
+            feed_num_future_opportunity_items = 0
+            feed_num_future_week_opportunity_items = 0
+
             future_week_opportunity_item_ids = []
 
+            organizer_names_counts = {}
             merged_item_kinds_counts = {}
             merged_item_types_counts = {}
-            organizer_names_counts = {}
             activities_counts = {}
             facilities_counts = {}
             accessibilities_counts = {}
@@ -380,15 +382,16 @@ def analyse_separate_opportunities(**kwargs):
                     num_future_opportunity_start_dates = 0
                     num_future_week_opportunity_start_dates = 0
 
-                total_num_opportunity_start_dates += num_opportunity_start_dates
-                total_num_future_opportunity_start_dates += num_future_opportunity_start_dates
-                total_num_future_week_opportunity_start_dates += num_future_week_opportunity_start_dates
+                feed_num_opportunity_start_dates += num_opportunity_start_dates
+                feed_num_future_opportunity_start_dates += num_future_opportunity_start_dates
+                feed_num_future_week_opportunity_start_dates += num_future_week_opportunity_start_dates
 
                 if (num_opportunity_start_dates > 0):
-                    opportunity_item_ids.append(item['id'])
+                    feed_num_opportunity_items += 1
                 if (num_future_opportunity_start_dates > 0):
-                    future_opportunity_item_ids.append(item['id'])
+                    feed_num_future_opportunity_items += 1
                 if (num_future_week_opportunity_start_dates > 0):
+                    feed_num_future_week_opportunity_items += 1
                     future_week_opportunity_item_ids.append(item['id'])
 
                 # --------------------------------------------------------------------------------------------------
@@ -600,14 +603,10 @@ def analyse_separate_opportunities(**kwargs):
             else:
                 partner_feed_id = None
 
-            total_num_opportunity_items = len(opportunity_item_ids)
-            total_num_future_opportunity_items = len(future_opportunity_item_ids)
-            total_num_future_week_opportunity_items = len(future_week_opportunity_item_ids)
-
-            if (total_num_future_week_opportunity_items > 0):
+            if (feed_num_future_week_opportunity_items > 0):
                 filenames_sampleitems[filename_pair[opportunity_idx]] = {
                     item_id: opportunities['items'][item_id]
-                    for item_id in random.sample(future_week_opportunity_item_ids, min(2, total_num_future_week_opportunity_items))
+                    for item_id in random.sample(future_week_opportunity_item_ids, min(2, feed_num_future_week_opportunity_items))
                 }
 
             separate_analysis.loc[len(separate_analysis)] = {
@@ -643,13 +642,13 @@ def analyse_separate_opportunities(**kwargs):
                     else num_unpartnered_subevent_items if (event_type_pair[opportunity_idx] == 'subevent')
                     else None,
 
-                'num_opportunity_start_dates': total_num_opportunity_start_dates,
-                'num_future_opportunity_start_dates': total_num_future_opportunity_start_dates,
-                'num_future_week_opportunity_start_dates': total_num_future_week_opportunity_start_dates,
+                'num_opportunity_start_dates': feed_num_opportunity_start_dates,
+                'num_future_opportunity_start_dates': feed_num_future_opportunity_start_dates,
+                'num_future_week_opportunity_start_dates': feed_num_future_week_opportunity_start_dates,
 
-                'num_opportunity_items': total_num_opportunity_items,
-                'num_future_opportunity_items': total_num_future_opportunity_items,
-                'num_future_week_opportunity_items': total_num_future_week_opportunity_items,
+                'num_opportunity_items': feed_num_opportunity_items,
+                'num_future_opportunity_items': feed_num_future_opportunity_items,
+                'num_future_week_opportunity_items': feed_num_future_week_opportunity_items,
 
                 'organizer_names_counts': organizer_names_counts,
                 'activities_counts': activities_counts,
