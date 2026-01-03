@@ -2,6 +2,7 @@ import geopandas as gpd
 import pandas as pd
 import pickle
 import sys
+from datetime import datetime
 from numpy import nan
 
 sys.path.append('../volume-1/common')
@@ -385,8 +386,13 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    print('Writing out aggregate analysis ...')
+
+    t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + AGGREGATE_ANALYSIS_FILENAME, 'wb') as file_out:
         pickle.dump(aggregate_analysis, file_out)
+    t2 = datetime.now()
+    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
 
 # --------------------------------------------------------------------------------------------------
 

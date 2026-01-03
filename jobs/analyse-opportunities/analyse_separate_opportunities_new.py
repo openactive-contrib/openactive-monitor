@@ -5,7 +5,6 @@ import pandas as pd
 import pickle
 import random
 import sys
-
 from datetime import datetime, timedelta
 from dateutil import parser
 
@@ -958,7 +957,7 @@ def analyse_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Writing out analysis ...')
+    print('Writing out cross analysis ...')
 
     # We write out the analysis before writing out items in case the latter bigger operation results in
     # a crash, so at least some useful output is given from this run:
@@ -971,17 +970,7 @@ def analyse_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Writing out samples ...')
-
-    t1 = datetime.now()
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:
-        pickle.dump(filenames_sampleitems, file_out)
-    t2 = datetime.now()
-    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
-
-    # --------------------------------------------------------------------------------------------------
-
-    print('Writing out feeds ...')
+    print('Writing out separate analysis ...')
 
     # Currently converting to a dataframe and using SEPARATE_ANALYSIS_FILENAME in order for this code to
     # directly replace analyse_separate_opportunities.py if desired:
@@ -996,7 +985,17 @@ def analyse_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Writing out items ...')
+    print('Writing out sample items ...')
+
+    t1 = datetime.now()
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:
+        pickle.dump(filenames_sampleitems, file_out)
+    t2 = datetime.now()
+    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
+
+    # --------------------------------------------------------------------------------------------------
+
+    print('Writing out all items ...')
 
     t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ALL_ITEMS_FILENAME, 'wb') as file_out:

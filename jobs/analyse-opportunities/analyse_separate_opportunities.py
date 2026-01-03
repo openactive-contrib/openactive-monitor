@@ -4,7 +4,6 @@ import pandas as pd
 import pickle
 import random
 import sys
-
 from datetime import datetime, timedelta
 from dateutil import parser
 
@@ -697,7 +696,7 @@ def analyse_separate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Writing out analysis ...')
+    print('Writing out separate analysis ...')
 
     t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SEPARATE_ANALYSIS_FILENAME, 'wb') as file_out:
@@ -707,7 +706,7 @@ def analyse_separate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Writing out samples ...')
+    print('Writing out sample items ...')
 
     t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:
