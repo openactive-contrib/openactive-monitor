@@ -621,24 +621,24 @@ def analyse_separate_opportunities_new(**kwargs):
     feed_idx_future_week_opportunity_all_item_idxs = {}
 
     organizer_names_counts = {}
-    item_kinds_counts = {}
-    item_types_counts = {}
+    merged_item_kinds_counts = {}
+    merged_item_types_counts = {}
     activities_counts = {}
     facilities_counts = {}
     accessibilities_counts = {}
     regions_counts = {}
     districts_counts = {}
 
-    item_kinds_item_types_counts = {}
-    item_types_item_kinds_counts = {}
+    merged_item_kinds_item_types_counts = {}
+    merged_item_types_item_kinds_counts = {}
 
     regions_values_counts = {
         region: {}
         for region in [None] + list(gdf_regions['eer18nm'])
     }
     regions_organizer_names_counts = copy.deepcopy(regions_values_counts)
-    regions_item_kinds_counts = copy.deepcopy(regions_values_counts)
-    regions_item_types_counts = copy.deepcopy(regions_values_counts)
+    regions_merged_item_kinds_counts = copy.deepcopy(regions_values_counts)
+    regions_merged_item_types_counts = copy.deepcopy(regions_values_counts)
     regions_activities_counts = copy.deepcopy(regions_values_counts)
     regions_facilities_counts = copy.deepcopy(regions_values_counts)
     regions_accessibilities_counts = copy.deepcopy(regions_values_counts)
@@ -649,8 +649,8 @@ def analyse_separate_opportunities_new(**kwargs):
         for district in [None] + list(gdf_districts['LAD24NM'])
     }
     districts_organizer_names_counts = copy.deepcopy(districts_values_counts)
-    districts_item_kinds_counts = copy.deepcopy(districts_values_counts)
-    districts_item_types_counts = copy.deepcopy(districts_values_counts)
+    districts_merged_item_kinds_counts = copy.deepcopy(districts_values_counts)
+    districts_merged_item_types_counts = copy.deepcopy(districts_values_counts)
     districts_activities_counts = copy.deepcopy(districts_values_counts)
     districts_facilities_counts = copy.deepcopy(districts_values_counts)
     districts_accessibilities_counts = copy.deepcopy(districts_values_counts)
@@ -727,7 +727,7 @@ def analyse_separate_opportunities_new(**kwargs):
             partner_item = None
 
         if (partner_item is not None):
-            # Define a new item kind and item type for these partnered items:
+            # Define a new merged item kind and item type for these partnered items:
             item['item_kind'] = '_x_'.join([str(item['item_kind']), str(partner_item['item_kind'])])
             item['item_type'] = '_x_'.join([str(item['item_type']), str(partner_item['item_type'])])
 
@@ -747,7 +747,7 @@ def analyse_separate_opportunities_new(**kwargs):
                     item[key] += partner_item[key]
                     item[key] = list(set(item[key]))
 
-            # Overwrite the subevent location info with that from the superevent if the former are None:
+            # Overwrite the subevent organizer and location info with that from the superevent if the former are None:
             for key in [
                 'organizer_name',
                 'postcode',
@@ -843,14 +843,14 @@ def analyse_separate_opportunities_new(**kwargs):
         update_values_presence(districts_organizer_names_counts[item['district']], item['organizer_name'], presence)
 
         update_values_counts(feeds['merged_item_kinds_counts'][feed_idx], item['item_kind'])
-        update_values_presence(item_kinds_counts, item['item_kind'], presence)
-        update_values_presence(regions_item_kinds_counts[item['region']], item['item_kind'], presence)
-        update_values_presence(districts_item_kinds_counts[item['district']], item['item_kind'], presence)
+        update_values_presence(merged_item_kinds_counts, item['item_kind'], presence)
+        update_values_presence(regions_merged_item_kinds_counts[item['region']], item['item_kind'], presence)
+        update_values_presence(districts_merged_item_kinds_counts[item['district']], item['item_kind'], presence)
 
         update_values_counts(feeds['merged_item_types_counts'][feed_idx], item['item_type'])
-        update_values_presence(item_types_counts, item['item_type'], presence)
-        update_values_presence(regions_item_types_counts[item['region']], item['item_type'], presence)
-        update_values_presence(districts_item_types_counts[item['district']], item['item_type'], presence)
+        update_values_presence(merged_item_types_counts, item['item_type'], presence)
+        update_values_presence(regions_merged_item_types_counts[item['region']], item['item_type'], presence)
+        update_values_presence(districts_merged_item_types_counts[item['district']], item['item_type'], presence)
 
         update_values_counts(feeds['regions_counts'][feed_idx], item['region'])
         update_values_presence(regions_counts, item['region'], presence)
@@ -860,13 +860,13 @@ def analyse_separate_opportunities_new(**kwargs):
         update_values_presence(districts_counts, item['district'], presence)
         update_values_presence(regions_districts_counts[item['region']], item['district'], presence)
 
-        if (item['item_kind'] not in item_kinds_item_types_counts.keys()):
-            item_kinds_item_types_counts[item['item_kind']] = {}
-        if (item['item_type'] not in item_types_item_kinds_counts.keys()):
-            item_types_item_kinds_counts[item['item_type']] = {}
+        if (item['item_kind'] not in merged_item_kinds_item_types_counts.keys()):
+            merged_item_kinds_item_types_counts[item['item_kind']] = {}
+        if (item['item_type'] not in merged_item_types_item_kinds_counts.keys()):
+            merged_item_types_item_kinds_counts[item['item_type']] = {}
 
-        update_values_presence(item_kinds_item_types_counts[item['item_kind']], item['item_type'], presence)
-        update_values_presence(item_types_item_kinds_counts[item['item_type']], item['item_kind'], presence)
+        update_values_presence(merged_item_kinds_item_types_counts[item['item_kind']], item['item_type'], presence)
+        update_values_presence(merged_item_types_item_kinds_counts[item['item_type']], item['item_kind'], presence)
 
         if (item['activities'] is not None):
             activities = item['activities']
@@ -902,28 +902,28 @@ def analyse_separate_opportunities_new(**kwargs):
 
     analysis = {
         'organizer_names_counts': organizer_names_counts,
-        'item_kinds_counts': item_kinds_counts,
-        'item_types_counts': item_types_counts,
+        'merged_item_kinds_counts': merged_item_kinds_counts,
+        'merged_item_types_counts': merged_item_types_counts,
         'activities_counts': activities_counts,
         'facilities_counts': facilities_counts,
         'accessibilities_counts': accessibilities_counts,
         'regions_counts': regions_counts,
         'districts_counts': districts_counts,
 
-        'item_kinds_item_types_counts': item_kinds_item_types_counts,
-        'item_types_item_kinds_counts': item_types_item_kinds_counts,
+        'merged_item_kinds_item_types_counts': merged_item_kinds_item_types_counts,
+        'merged_item_types_item_kinds_counts': merged_item_types_item_kinds_counts,
 
         'regions_organizer_names_counts': regions_organizer_names_counts,
-        'regions_item_kinds_counts': regions_item_kinds_counts,
-        'regions_item_types_counts': regions_item_types_counts,
+        'regions_merged_item_kinds_counts': regions_merged_item_kinds_counts,
+        'regions_merged_item_types_counts': regions_merged_item_types_counts,
         'regions_activities_counts': regions_activities_counts,
         'regions_facilities_counts': regions_facilities_counts,
         'regions_accessibilities_counts': regions_accessibilities_counts,
         'regions_districts_counts': regions_districts_counts,
 
         'districts_organizer_names_counts': districts_organizer_names_counts,
-        'districts_item_kinds_counts': districts_item_kinds_counts,
-        'districts_item_types_counts': districts_item_types_counts,
+        'districts_merged_item_kinds_counts': districts_merged_item_kinds_counts,
+        'districts_merged_item_types_counts': districts_merged_item_types_counts,
         'districts_activities_counts': districts_activities_counts,
         'districts_facilities_counts': districts_facilities_counts,
         'districts_accessibilities_counts': districts_accessibilities_counts,
