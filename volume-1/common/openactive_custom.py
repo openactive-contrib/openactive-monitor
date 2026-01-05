@@ -325,8 +325,8 @@ def get_partner_feed_url(feed1_url, feed2_url_options):
 # On subsequent automated internal calls to the helper function, the opportunities dictionary will
 # already exist and have content to be added to. If a call fails for some reason when running in some
 # other code (i.e. when not running on a server), then the returned dictionary can be manually resubmitted
-# as the argument instead of a starting URL string, and the code will continue from the 'next_url' in
-# the opportunities dictionary.
+# as the argument instead of a starting URL string, and the code will continue from the 'next_url'
+# in the opportunities dictionary.
 
 opportunities_template = {
     'items': {},
@@ -571,6 +571,40 @@ def get_event_type(label):
 
 # --------------------------------------------------------------------------------------------------
 
+def get_superevents(subevent, superevent_opportunities, skip_superevent_ids=[]):
+    superevents = []
+
+    subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
+
+    if (subevent_superevent_modified_id is not None):
+        for superevent_id, superevent in superevent_opportunities['items'].items():
+            if (superevent_id not in skip_superevent_ids):
+                superevent_modified_ids = get_item_modified_ids(superevent)
+                if (subevent_superevent_modified_id in superevent_modified_ids):
+                    superevents.append(superevent)
+
+    return superevents
+
+# --------------------------------------------------------------------------------------------------
+
+def get_subevents(superevent, subevent_opportunities, skip_subevent_ids=[]):
+    subevents = []
+
+    superevent_modified_ids = get_item_modified_ids(superevent)
+
+    if (any(superevent_modified_ids)):
+        for subevent_id, subevent in subevent_opportunities['items'].items():
+            if (subevent_id not in skip_subevent_ids):
+                subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
+                if (    (subevent_superevent_modified_id is not None)
+                    and (subevent_superevent_modified_id in superevent_modified_ids)
+                ):
+                    subevents.append(subevent)
+
+    return subevents
+
+# --------------------------------------------------------------------------------------------------
+
 def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportunities, **kwargs):
     verbose = kwargs.get('verbose', False)
 
@@ -679,40 +713,6 @@ def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportun
     # --------------------------------------------------------------------------------------------------
 
     return superevent_id_v_subevent_ids
-
-# --------------------------------------------------------------------------------------------------
-
-def get_superevents(subevent, superevent_opportunities, skip_superevent_ids):
-    superevents = []
-
-    subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
-
-    if (subevent_superevent_modified_id is not None):
-        for superevent_id, superevent in superevent_opportunities['items'].items():
-            if (superevent_id not in skip_superevent_ids):
-                superevent_modified_ids = get_item_modified_ids(superevent)
-                if (subevent_superevent_modified_id in superevent_modified_ids):
-                    superevents.append(superevent)
-
-    return superevents
-
-# --------------------------------------------------------------------------------------------------
-
-def get_subevents(superevent, subevent_opportunities, skip_subevent_ids):
-    subevents = []
-
-    superevent_modified_ids = get_item_modified_ids(superevent)
-
-    if (any(superevent_modified_ids)):
-        for subevent_id, subevent in subevent_opportunities['items'].items():
-            if (subevent_id not in skip_subevent_ids):
-                subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
-                if (    (subevent_superevent_modified_id is not None)
-                    and (subevent_superevent_modified_id in superevent_modified_ids)
-                ):
-                    subevents.append(subevent)
-
-    return subevents
 
 # --------------------------------------------------------------------------------------------------
 
