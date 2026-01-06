@@ -423,3 +423,15 @@ def get_df_total_values_counts(separate_analysis, values_counts, feeds_to_includ
     # ['value', 'count', 'percentage']
 
     return df_total_values_counts, total_num_values, total_num_items_with_values
+
+# --------------------------------------------------------------------------------------------------
+
+if (__name__ == '__main__'):
+    try:
+        analyse_aggregate_opportunities()
+    except Exception as error:
+        print('ERROR:', error)
+
+    # --------------------------------------------------------------------------------------------------
+
+    print('\nFinished')

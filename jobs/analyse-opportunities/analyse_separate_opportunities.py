@@ -767,3 +767,15 @@ def strip(value):
         return str(value).strip()
     else:
         return value
+
+# --------------------------------------------------------------------------------------------------
+
+if (__name__ == '__main__'):
+    try:
+        analyse_separate_opportunities()
+    except Exception as error:
+        print('ERROR:', error)
+
+    # --------------------------------------------------------------------------------------------------
+
+    print('\nFinished')
