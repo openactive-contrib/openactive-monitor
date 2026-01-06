@@ -387,10 +387,10 @@ def analyse_separate_opportunities_new(**kwargs):
             for item_idx, item in enumerate(opportunities['items'].values()):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
                 # you'll just end up with a long list of numbers if this is enabled:
-                if (   ((item_idx + 1) % 10 == 0)
-                    or ((item_idx + 1) == num_items)
-                ):
-                    print(f'\t\tItem: {item_idx + 1}/{num_items}', end=('\n' if ((item_idx + 1) == num_items) else '\r'))
+                # if (   ((item_idx + 1) % 10 == 0)
+                #     or ((item_idx + 1) == num_items)
+                # ):
+                #     print(f'\t\tItem: {item_idx + 1}/{num_items}', end=('\n' if ((item_idx + 1) == num_items) else '\r'))
 
                 # Leave this in play, we can and do have instances where an item has no data field, so this is a needed
                 # safety check:
@@ -677,10 +677,10 @@ def analyse_separate_opportunities_new(**kwargs):
     for all_item_idx in range(total_num_items):
         # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
         # you'll just end up with a long list of numbers if this is enabled:
-        if (   ((all_item_idx + 1) % 10 == 0)
-            or ((all_item_idx + 1) == total_num_items)
-        ):
-            print(f'\tItem: {all_item_idx + 1}/{total_num_items}', end=('\n' if ((all_item_idx + 1) == total_num_items) else '\r'))
+        # if (   ((all_item_idx + 1) % 10 == 0)
+        #     or ((all_item_idx + 1) == total_num_items)
+        # ):
+        #     print(f'\tItem: {all_item_idx + 1}/{total_num_items}', end=('\n' if ((all_item_idx + 1) == total_num_items) else '\r'))
 
         # --------------------------------------------------------------------------------------------------
 
