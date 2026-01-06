@@ -213,7 +213,11 @@ if (__name__ == '__main__'):
 
                     try:
                         opportunities = run_get_opportunities(
-                            feed,
+                            {
+                                key: val
+                                for key, val in feed.items()
+                                if key not in ['time_started', 'num_tries', 'status'] # These are just for top-level monitoring, not for inclusion in the opportunities object itself, so remove them here
+                            },
                             headers = HEADERS,
                             log_memory = LOG_MEMORY,
                             preview = preview,
