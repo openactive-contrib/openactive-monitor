@@ -67,7 +67,7 @@ def analyse_separate_opportunities(**kwargs):
     # Entries which can't be determined are filled with None rather than the empty version of the type
     # they relate to e.g. an empty string for strings, or zero for integers etc.
 
-    separate_analysis = pd.DataFrame(columns=[
+    feeds = pd.DataFrame(columns=[
         'feed_id', # STR
         'partner_feed_id', # STR
         'file_name', # STR
@@ -637,7 +637,7 @@ def analyse_separate_opportunities(**kwargs):
                     for item_id in random.sample(future_week_opportunity_item_ids, min(2, feed_num_future_week_opportunity_items))
                 }
 
-            separate_analysis.loc[len(separate_analysis)] = {
+            feeds.loc[len(feeds)] = {
                 'feed_id': opportunities['feed']['id'],
                 'partner_feed_id': partner_feed_id,
                 'file_name': filename_pair[opportunity_idx],
@@ -726,11 +726,11 @@ def analyse_separate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Writing out separate analysis ...')
+    print('Writing out separate feed analysis ...')
 
     t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SEPARATE_ANALYSIS_FILENAME, 'wb') as file_out:
-        pickle.dump(separate_analysis, file_out)
+        pickle.dump(feeds, file_out)
     t2 = datetime.now()
     print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
 

@@ -983,7 +983,7 @@ def analyse_separate_opportunities_new(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Writing out separate analysis ...')
+    print('Writing out separate feed analysis ...')
 
     # Currently converting to a dataframe and using SEPARATE_ANALYSIS_FILENAME in order for this code to
     # directly replace analyse_separate_opportunities.py if desired:
