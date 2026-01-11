@@ -126,15 +126,16 @@ def analyse_separate_opportunities_new(**kwargs):
         'partner_feed_id': [], # STR
         'partner_item_ids': [], # [STR/INT]
 
+        'is_regular': [], # BOOL
+        'event_type': [], # STR
+        'item_kind': [], # STR
+        'item_type': [], # STR
+        'item_name': [], # STR
+
         # Who
         'organizer_name': [], # STR
 
         # What
-        'is_regular': [], # BOOL
-        'item_name': [], # STR
-        'item_kind': [], # STR
-        'item_type': [], # STR
-        'event_type': [], # STR
         'activities': [], # [STR]
         'facilities': [], # [STR]
         'accessibilities': [], # [STR]
@@ -422,6 +423,14 @@ def analyse_separate_opportunities_new(**kwargs):
 
                 # --------------------------------------------------------------------------------------------------
 
+                items['is_regular'].append(feeds['is_regular'][-1])
+                items['event_type'].append(event_type_pair[opportunity_idx])
+                items['item_kind'].append(strip(item.get('kind', None)))
+                items['item_type'].append(strip(item_data.get('type', None) or item_data.get('@type', None)))
+                items['item_name'].append(strip(item_data.get('name', None)))
+
+                # --------------------------------------------------------------------------------------------------
+
                 # Who
 
                 # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
@@ -435,12 +444,6 @@ def analyse_separate_opportunities_new(**kwargs):
                 # --------------------------------------------------------------------------------------------------
 
                 # What
-
-                items['is_regular'].append(feeds['is_regular'][-1])
-                items['item_name'].append(strip(item_data.get('name', None)))
-                items['item_kind'].append(strip(item.get('kind', None)))
-                items['item_type'].append(strip(item_data.get('type', None) or item_data.get('@type', None)))
-                items['event_type'].append(event_type_pair[opportunity_idx])
 
                 activities = list(set([strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]))
                 if (len(activities) > 0):
