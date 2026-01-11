@@ -347,62 +347,6 @@ def analyse_separate_opportunities(**kwargs):
                 # If looking for eventSchedule in further iterations of this code, take care that subEvent with startDate
                 # is not also present e.g. https://api.clubspark.uk/odi/public/courses
 
-                # Regardless of classification of this item as a superevent or subevent, if there are embedded subevent
-                # start dates then these are likely to be the ones we want for the individual sessions/slots which
-                # are usually thought of as the individual "opportunities". If we don't have such start dates, then
-                # we choose to accept root level start dates from subevents only, as those from superevents are (or
-                # should be) for the start of a set of sessions/slots, which, as just indicated, are not usually thought
-                # of as the individual "opportunities". We therefore have a distinction between:
-                #     1) Item - any item of any superevent/subevent classification and any content
-                #     2) Future item - an item with at least one future start date, either at the root level or from
-                #        embedded subevents
-                #     3) Opportunity item - a superevent/subevent item with embedded subevent start dates, or a subevent
-                #        with a root level start date
-                #     4) Future opportunity item - an opportunity item with at least one future start date, either
-                #        at the root level or from embedded subevents
-                # Ultimately, it is the future opportunity items that we end up counting below. We also count the start
-                # dates and future start dates, and it may be preferable to re-cast the sense of "an opportunity" from
-                # an item to an instance of a start date within an item. TODO: Consider this and adjust accordingly.
-
-                if (len(subevent_start_dates) > 0):
-                    opportunity_start_dates = subevent_start_dates
-                elif (  (event_type_pair[opportunity_idx] == 'subevent')
-                    and (start_date is not None)
-                ):
-                    opportunity_start_dates = [start_date]
-                else:
-                    opportunity_start_dates = None
-
-                if (opportunity_start_dates is not None):
-                    num_opportunity_start_dates = len(opportunity_start_dates)
-                    num_future_opportunity_start_dates = len([
-                        opportunity_start_date
-                        for opportunity_start_date in opportunity_start_dates
-                        if (opportunity_start_date >= todays_date)
-                    ])
-                    num_future_week_opportunity_start_dates = len([
-                        opportunity_start_date
-                        for opportunity_start_date in opportunity_start_dates
-                        if (    (opportunity_start_date >= todays_date)
-                            and (opportunity_start_date < next_weeks_date) )
-                    ])
-                else:
-                    num_opportunity_start_dates = 0
-                    num_future_opportunity_start_dates = 0
-                    num_future_week_opportunity_start_dates = 0
-
-                feed_num_opportunity_start_dates += num_opportunity_start_dates
-                feed_num_future_opportunity_start_dates += num_future_opportunity_start_dates
-                feed_num_future_week_opportunity_start_dates += num_future_week_opportunity_start_dates
-
-                if (num_opportunity_start_dates > 0):
-                    feed_num_opportunity_items += 1
-                if (num_future_opportunity_start_dates > 0):
-                    feed_num_future_opportunity_items += 1
-                if (num_future_week_opportunity_start_dates > 0):
-                    feed_num_future_week_opportunity_items += 1
-                    future_week_opportunity_item_ids.append(item['id'])
-
                 # --------------------------------------------------------------------------------------------------
 
                 # If this is a superevent item with subevents via ID and no subevents via embedding, then it will be
@@ -428,6 +372,18 @@ def analyse_separate_opportunities(**kwargs):
 
                 # --------------------------------------------------------------------------------------------------
 
+                item_kind = strip(item.get('kind', None))
+                item_type = strip(item_data.get('type', None) or item_data.get('@type', None))
+
+                if (partner_item is not None):
+                    # Define a new item kind and item type for these partnered items:
+                    partner_item_kind = strip(partner_item.get('kind', None))
+                    partner_item_type = strip(partner_item_data.get('type', None) or partner_item_data.get('@type', None))
+                    item_kind = '_x_'.join([str(item_kind), str(partner_item_kind)])
+                    item_type = '_x_'.join([str(item_type), str(partner_item_type)])
+
+                # --------------------------------------------------------------------------------------------------
+
                 # Who
 
                 # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
@@ -448,48 +404,30 @@ def analyse_separate_opportunities(**kwargs):
                     except:
                         organizer_name = None
 
-                update_values_counts(organizer_names_counts, organizer_name)
-
                 # --------------------------------------------------------------------------------------------------
 
                 # What
 
-                item_kind = strip(item.get('kind', None))
-                item_type = strip(item_data.get('type', None) or item_data.get('@type', None))
-
-                if (partner_item is not None):
-                    # Define a new item kind and item type for these partnered items:
-                    partner_item_kind = strip(partner_item.get('kind', None))
-                    partner_item_type = strip(partner_item_data.get('type', None) or partner_item_data.get('@type', None))
-                    item_kind = '_x_'.join([str(item_kind), str(partner_item_kind)])
-                    item_type = '_x_'.join([str(item_type), str(partner_item_type)])
-
-                update_values_counts(merged_item_kinds_counts, item_kind)
-                update_values_counts(merged_item_types_counts, item_type)
-
                 activities = list(set([strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]))
                 if (partner_item is not None):
-                    activities = list(set(activities + [strip(value) for value in get_values(partner_item_data, 'activity', 'prefLabel')]))
+                    partner_activities = list(set([strip(value) for value in get_values(partner_item_data, 'activity', 'prefLabel')]))
+                    activities = list(set(activities + partner_activities))
                 if (len(activities) == 0):
                     activities = [None]
-                for activity in activities:
-                    update_values_counts(activities_counts, activity)
 
                 facilities = list(set([strip(value) for value in get_values(item_data, 'facilityType', 'prefLabel')]))
                 if (partner_item is not None):
-                    facilities = list(set(facilities + [strip(value) for value in get_values(partner_item_data, 'facilityType', 'prefLabel')]))
+                    partner_facilities = list(set([strip(value) for value in get_values(partner_item_data, 'facilityType', 'prefLabel')]))
+                    facilities = list(set(facilities + partner_facilities))
                 if (len(facilities) == 0):
                     facilities = [None]
-                for facility in facilities:
-                    update_values_counts(facilities_counts, facility)
 
                 accessibilities = list(set([strip(value) for value in get_values(item_data, 'accessibilitySupport', 'prefLabel')]))
                 if (partner_item is not None):
-                    accessibilities = list(set(accessibilities + [strip(value) for value in get_values(partner_item_data, 'accessibilitySupport', 'prefLabel')]))
+                    partner_accessibilities = list(set([strip(value) for value in get_values(partner_item_data, 'accessibilitySupport', 'prefLabel')]))
+                    accessibilities = list(set(accessibilities + partner_accessibilities))
                 if (len(accessibilities) == 0):
                     accessibilities = [None]
-                for accessibility in accessibilities:
-                    update_values_counts(accessibilities_counts, accessibility)
 
                 # --------------------------------------------------------------------------------------------------
 
@@ -601,6 +539,80 @@ def analyse_separate_opportunities(**kwargs):
                         and (partner_district is not None)
                     ):
                         district = partner_district
+
+                # --------------------------------------------------------------------------------------------------
+
+                # Regardless of classification of this item as a superevent or subevent, if there are embedded subevent
+                # start dates then these are likely to be the ones we want for the individual sessions/slots which
+                # are usually thought of as the individual "opportunities". If we don't have such start dates, then
+                # we choose to accept root level start dates from subevents only, as those from superevents are (or
+                # should be) for the start of a set of sessions/slots, which, as just indicated, are not usually thought
+                # of as the individual "opportunities". We therefore have a distinction between:
+                #     1) Item - any item of any superevent/subevent classification and any content
+                #     2) Future item - an item with at least one future start date, either at the root level or from
+                #        embedded subevents
+                #     3) Opportunity item - a superevent/subevent item with embedded subevent start dates, or a subevent
+                #        with a root level start date
+                #     4) Future opportunity item - an opportunity item with at least one future start date, either
+                #        at the root level or from embedded subevents
+                # Ultimately, it is the future opportunity items that we end up counting below. We also count the start
+                # dates and future start dates, and it may be preferable to re-cast the sense of "an opportunity" from
+                # an item to an instance of a start date within an item. TODO: Consider this and adjust accordingly.
+
+                if (len(subevent_start_dates) > 0):
+                    opportunity_start_dates = subevent_start_dates
+                elif (  (event_type_pair[opportunity_idx] == 'subevent')
+                    and (start_date is not None)
+                ):
+                    opportunity_start_dates = [start_date]
+                else:
+                    opportunity_start_dates = None
+
+                if (opportunity_start_dates is not None):
+                    num_opportunity_start_dates = len(opportunity_start_dates)
+                    num_future_opportunity_start_dates = len([
+                        opportunity_start_date
+                        for opportunity_start_date in opportunity_start_dates
+                        if (opportunity_start_date >= todays_date)
+                    ])
+                    num_future_week_opportunity_start_dates = len([
+                        opportunity_start_date
+                        for opportunity_start_date in opportunity_start_dates
+                        if (    (opportunity_start_date >= todays_date)
+                            and (opportunity_start_date < next_weeks_date) )
+                    ])
+                else:
+                    num_opportunity_start_dates = 0
+                    num_future_opportunity_start_dates = 0
+                    num_future_week_opportunity_start_dates = 0
+
+                feed_num_opportunity_start_dates += num_opportunity_start_dates
+                feed_num_future_opportunity_start_dates += num_future_opportunity_start_dates
+                feed_num_future_week_opportunity_start_dates += num_future_week_opportunity_start_dates
+
+                if (num_opportunity_start_dates > 0):
+                    feed_num_opportunity_items += 1
+                if (num_future_opportunity_start_dates > 0):
+                    feed_num_future_opportunity_items += 1
+                if (num_future_week_opportunity_start_dates > 0):
+                    feed_num_future_week_opportunity_items += 1
+                    future_week_opportunity_item_ids.append(item['id'])
+
+                # --------------------------------------------------------------------------------------------------
+
+                update_values_counts(merged_item_kinds_counts, item_kind)
+                update_values_counts(merged_item_types_counts, item_type)
+
+                update_values_counts(organizer_names_counts, organizer_name)
+
+                for activity in activities:
+                    update_values_counts(activities_counts, activity)
+
+                for facility in facilities:
+                    update_values_counts(facilities_counts, facility)
+
+                for accessibility in accessibilities:
+                    update_values_counts(accessibilities_counts, accessibility)
 
                 update_values_counts(regions_counts, region)
                 update_values_counts(districts_counts, district)
