@@ -104,6 +104,7 @@ def analyse_separate_opportunities_new(**kwargs):
         'districts_counts': [], # {STR: INT}
 
         'num_items': [], # INT
+        'num_analysis_items': [], # INT
 
         'num_partnered_items': [], # INT
         'num_unpartnered_items': [], # INT
@@ -359,6 +360,7 @@ def analyse_separate_opportunities_new(**kwargs):
             feeds['districts_counts'].append({})
 
             feeds['num_items'].append(num_items)
+            feeds['num_analysis_items'].append(0)
 
             if (event_type_pair[opportunity_idx] == 'superevent'):
                 feeds['num_partnered_items'].append(num_partnered_superevent_items)
@@ -613,6 +615,7 @@ def analyse_separate_opportunities_new(**kwargs):
 
     # TODO: Remove this if using total_num_items from filenames above. They should be the same anyway.
     total_num_items = len(items['unique_item_id'])
+    total_num_analysis_items = 0
 
     total_num_opportunity_start_dates = 0
     total_num_future_opportunity_start_dates = 0
@@ -706,6 +709,9 @@ def analyse_separate_opportunities_new(**kwargs):
             and (item['subevent_start_dates'] is None)
         ):
             continue
+
+        feeds['num_analysis_items'][feed_idx] += 1
+        total_num_analysis_items += 1
 
         # --------------------------------------------------------------------------------------------------
 

@@ -97,6 +97,7 @@ def analyse_separate_opportunities(**kwargs):
         'districts_counts', # {STR: INT}
 
         'num_items', # INT
+        'num_analysis_items', # INT
 
         'num_partnered_items', # INT
         'num_unpartnered_items', # INT
@@ -282,6 +283,7 @@ def analyse_separate_opportunities(**kwargs):
             # --------------------------------------------------------------------------------------------------
 
             feed_num_items = len(opportunities['items'].keys())
+            feed_num_analysis_items = 0
 
             feed_num_opportunity_start_dates = 0
             feed_num_future_opportunity_start_dates = 0
@@ -358,6 +360,8 @@ def analyse_separate_opportunities(**kwargs):
                     and (len(subevent_start_dates) == 0)
                 ):
                     continue
+
+                feed_num_analysis_items += 1
 
                 # --------------------------------------------------------------------------------------------------
 
@@ -663,6 +667,7 @@ def analyse_separate_opportunities(**kwargs):
                 'districts_counts': districts_counts,
 
                 'num_items': feed_num_items,
+                'num_analysis_items': feed_num_analysis_items,
 
                 'num_partnered_items':
                     num_partnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
