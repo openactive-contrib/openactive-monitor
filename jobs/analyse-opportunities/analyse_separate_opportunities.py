@@ -82,12 +82,19 @@ def analyse_separate_opportunities(**kwargs):
 
         'status', # STR
         'is_regular', # BOOL
+        'event_type', # STR
         'feed_type', # STR
         'item_kinds_counts', # {STR: INT}
         'item_types_counts', # {STR: INT}
         'merged_item_kinds_counts', # {STR: INT}
         'merged_item_types_counts', # {STR: INT}
-        'event_type', # STR
+
+        'organizer_names_counts', # {STR: INT}
+        'activities_counts', # {STR: INT}
+        'facilities_counts', # {STR: INT}
+        'accessibilities_counts', # {STR: INT}
+        'regions_counts', # {STR: INT}
+        'districts_counts', # {STR: INT}
 
         'num_items', # INT
 
@@ -101,13 +108,6 @@ def analyse_separate_opportunities(**kwargs):
         'num_opportunity_items', # INT
         'num_future_opportunity_items', # INT
         'num_future_week_opportunity_items', # INT
-
-        'organizer_names_counts', # {STR: INT}
-        'activities_counts', # {STR: INT}
-        'facilities_counts', # {STR: INT}
-        'accessibilities_counts', # {STR: INT}
-        'regions_counts', # {STR: INT}
-        'districts_counts', # {STR: INT}
     ])
 
     filenames_sampleitems = {}
@@ -243,18 +243,18 @@ def analyse_separate_opportunities(**kwargs):
         print(f'\tFile-1:')
         print(f'\t\tName: {filename_pair[0]}')
         print(f'\t\tLoaded: {opportunities_pair[0] is not None}')
+        print(f'\t\tEvent type: {event_type_pair[0]}')
         print(f'\t\tFeed type: {feed_type_pair[0]}')
         print(f'\t\tItem kinds: {item_kinds_counts_pair[0]}')
         print(f'\t\tItem types: {item_types_counts_pair[0]}')
-        print(f'\t\tEvent type: {event_type_pair[0]}')
 
         print(f'\tFile-2:')
         print(f'\t\tName: {filename_pair[1]}')
         print(f'\t\tLoaded: {opportunities_pair[1] is not None}')
+        print(f'\t\tEvent type: {event_type_pair[1]}')
         print(f'\t\tFeed type: {feed_type_pair[1]}')
         print(f'\t\tItem kinds: {item_kinds_counts_pair[1]}')
         print(f'\t\tItem types: {item_types_counts_pair[1]}')
-        print(f'\t\tEvent type: {event_type_pair[1]}')
 
         print(f'\tItem partnering:')
         print(f'\t\tnum_superevent_items: {num_superevent_items}')
@@ -281,7 +281,7 @@ def analyse_separate_opportunities(**kwargs):
 
             # --------------------------------------------------------------------------------------------------
 
-            num_items = len(opportunities['items'].keys())
+            feed_num_items = len(opportunities['items'].keys())
 
             feed_num_opportunity_start_dates = 0
             feed_num_future_opportunity_start_dates = 0
@@ -293,9 +293,9 @@ def analyse_separate_opportunities(**kwargs):
 
             future_week_opportunity_item_ids = []
 
-            organizer_names_counts = {}
             merged_item_kinds_counts = {}
             merged_item_types_counts = {}
+            organizer_names_counts = {}
             activities_counts = {}
             facilities_counts = {}
             accessibilities_counts = {}
@@ -306,9 +306,9 @@ def analyse_separate_opportunities(**kwargs):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
                 # you'll just end up with a long list of numbers if this is enabled:
                 # if (   ((item_idx + 1) % 10 == 0)
-                #     or ((item_idx + 1) == num_items)
+                #     or ((item_idx + 1) == feed_num_items)
                 # ):
-                #     print(f'\t\tItem: {item_idx + 1}/{num_items}', end=('\n' if ((item_idx + 1) == num_items) else '\r'))
+                #     print(f'\t\tItem: {item_idx + 1}/{feed_num_items}', end=('\n' if ((item_idx + 1) == feed_num_items) else '\r'))
 
                 # Leave this in play, we can and do have instances where an item has no data field, so this is a needed
                 # safety check:
@@ -633,14 +633,21 @@ def analyse_separate_opportunities(**kwargs):
 
                 'status': opportunities['status'],
                 'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
+                'event_type': event_type_pair[opportunity_idx],
                 'feed_type': opportunities['feed']['type'],
                 'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
                 'item_types_counts': item_types_counts_pair[opportunity_idx],
                 'merged_item_kinds_counts': merged_item_kinds_counts,
                 'merged_item_types_counts': merged_item_types_counts,
-                'event_type': event_type_pair[opportunity_idx],
 
-                'num_items': num_items,
+                'organizer_names_counts': organizer_names_counts,
+                'activities_counts': activities_counts,
+                'facilities_counts': facilities_counts,
+                'accessibilities_counts': accessibilities_counts,
+                'regions_counts': regions_counts,
+                'districts_counts': districts_counts,
+
+                'num_items': feed_num_items,
 
                 'num_partnered_items':
                     num_partnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
@@ -658,13 +665,6 @@ def analyse_separate_opportunities(**kwargs):
                 'num_opportunity_items': feed_num_opportunity_items,
                 'num_future_opportunity_items': feed_num_future_opportunity_items,
                 'num_future_week_opportunity_items': feed_num_future_week_opportunity_items,
-
-                'organizer_names_counts': organizer_names_counts,
-                'activities_counts': activities_counts,
-                'facilities_counts': facilities_counts,
-                'accessibilities_counts': accessibilities_counts,
-                'regions_counts': regions_counts,
-                'districts_counts': districts_counts,
             }
 
         # --------------------------------------------------------------------------------------------------
