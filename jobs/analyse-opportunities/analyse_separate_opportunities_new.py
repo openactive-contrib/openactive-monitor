@@ -27,7 +27,7 @@ def analyse_separate_opportunities_new(**kwargs):
     gdf_districts = gdf_districts.to_crs(4326)
 
     todays_date = datetime.now().date()
-    # todays_date = datetime(2025,12,15).date() # TODO: Remove temporary adjustment
+    # todays_date = datetime(2026,1,6).date() # Use this to set to a fixed date if needed for testing e.g. running on the same input data but working over multiple days
     next_weeks_date = todays_date + timedelta(days=7)
 
     # --------------------------------------------------------------------------------------------------
