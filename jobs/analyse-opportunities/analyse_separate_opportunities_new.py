@@ -912,7 +912,7 @@ def analyse_separate_opportunities_new(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    analysis = {
+    cross_analysis = {
         'merged_item_kinds_counts': merged_item_kinds_counts,
         'merged_item_types_counts': merged_item_types_counts,
         'organizer_names_counts': organizer_names_counts,
@@ -977,7 +977,7 @@ def analyse_separate_opportunities_new(**kwargs):
 
     t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + CROSS_ANALYSIS_FILENAME, 'wb') as file_out:
-        pickle.dump(analysis, file_out)
+        pickle.dump(cross_analysis, file_out)
     t2 = datetime.now()
     print(f'\tTime taken: {t2 - t1}') # ~5sec (~1.3MB) on M1 8GB MacBook Air
 
