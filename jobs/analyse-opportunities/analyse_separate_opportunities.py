@@ -48,6 +48,15 @@ def analyse_separate_opportunities(**kwargs):
     if (num_filenames != num_unique_filenames):
         raise Exception('At least one filename has been partnered with more than one other filename. This should not occur and the filename pairing procedure needs to be investigated.')
 
+    # If we want to know the total number of items in all opportunities files before they are processed,
+    # (in order to e.g. pre-size containers such as lists or dataframes) then we can determine this
+    # from the file name stamps as follows, which is much quicker than opening the files to count the
+    # items:
+
+    # total_num_items = 0
+    # for filename in filenames:
+    #     total_num_items += int(filename.split('numItems-')[1].split('--')[0])
+
     # --------------------------------------------------------------------------------------------------
 
     # List the items we want to collect for each feed. These column headers need to be specified here in
