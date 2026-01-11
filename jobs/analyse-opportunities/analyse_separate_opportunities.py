@@ -121,6 +121,7 @@ def analyse_separate_opportunities(**kwargs):
 
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
 
+        # Use if need to do a limited run for testing:
         # if (filename_pair_idx == 1):
         #     break
 
