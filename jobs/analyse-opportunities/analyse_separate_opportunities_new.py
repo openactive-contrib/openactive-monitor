@@ -89,12 +89,19 @@ def analyse_separate_opportunities_new(**kwargs):
 
         'status': [], # STR
         'is_regular': [], # BOOL
+        'event_type': [], # STR
         'feed_type': [], # STR
         'item_kinds_counts': [], # {STR: INT}
         'item_types_counts': [], # {STR: INT}
         'merged_item_kinds_counts': [], # {STR: INT}
         'merged_item_types_counts': [], # {STR: INT}
-        'event_type': [], # STR
+
+        'organizer_names_counts': [], # {STR: INT}
+        'activities_counts': [], # {STR: INT}
+        'facilities_counts': [], # {STR: INT}
+        'accessibilities_counts': [], # {STR: INT}
+        'regions_counts': [], # {STR: INT}
+        'districts_counts': [], # {STR: INT}
 
         'num_items': [], # INT
 
@@ -108,13 +115,6 @@ def analyse_separate_opportunities_new(**kwargs):
         'num_opportunity_items': [], # INT
         'num_future_opportunity_items': [], # INT
         'num_future_week_opportunity_items': [], # INT
-
-        'organizer_names_counts': [], # {STR: INT}
-        'activities_counts': [], # {STR: INT}
-        'facilities_counts': [], # {STR: INT}
-        'accessibilities_counts': [], # {STR: INT}
-        'regions_counts': [], # {STR: INT}
-        'districts_counts': [], # {STR: INT}
     }
 
     items = {
@@ -283,18 +283,18 @@ def analyse_separate_opportunities_new(**kwargs):
         print(f'\tFile-1:')
         print(f'\t\tName: {filename_pair[0]}')
         print(f'\t\tLoaded: {opportunities_pair[0] is not None}')
+        print(f'\t\tEvent type: {event_type_pair[0]}')
         print(f'\t\tFeed type: {feed_type_pair[0]}')
         print(f'\t\tItem kinds: {item_kinds_counts_pair[0]}')
         print(f'\t\tItem types: {item_types_counts_pair[0]}')
-        print(f'\t\tEvent type: {event_type_pair[0]}')
 
         print(f'\tFile-2:')
         print(f'\t\tName: {filename_pair[1]}')
         print(f'\t\tLoaded: {opportunities_pair[1] is not None}')
+        print(f'\t\tEvent type: {event_type_pair[1]}')
         print(f'\t\tFeed type: {feed_type_pair[1]}')
         print(f'\t\tItem kinds: {item_kinds_counts_pair[1]}')
         print(f'\t\tItem types: {item_types_counts_pair[1]}')
-        print(f'\t\tEvent type: {event_type_pair[1]}')
 
         print(f'\tItem partnering:')
         print(f'\t\tnum_superevent_items: {num_superevent_items}')
@@ -342,12 +342,19 @@ def analyse_separate_opportunities_new(**kwargs):
 
             feeds['status'].append(opportunities['status'])
             feeds['is_regular'].append(filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE))
+            feeds['event_type'].append(event_type_pair[opportunity_idx]),
             feeds['feed_type'].append(opportunities['feed']['type'])
             feeds['item_kinds_counts'].append(item_kinds_counts_pair[opportunity_idx])
             feeds['item_types_counts'].append(item_types_counts_pair[opportunity_idx])
             feeds['merged_item_kinds_counts'].append({})
             feeds['merged_item_types_counts'].append({})
-            feeds['event_type'].append(event_type_pair[opportunity_idx]),
+
+            feeds['organizer_names_counts'].append({})
+            feeds['activities_counts'].append({})
+            feeds['facilities_counts'].append({})
+            feeds['accessibilities_counts'].append({})
+            feeds['regions_counts'].append({})
+            feeds['districts_counts'].append({})
 
             feeds['num_items'].append(num_items)
 
@@ -372,13 +379,6 @@ def analyse_separate_opportunities_new(**kwargs):
             feeds['num_opportunity_items'].append(0)
             feeds['num_future_opportunity_items'].append(0)
             feeds['num_future_week_opportunity_items'].append(0)
-
-            feeds['organizer_names_counts'].append({})
-            feeds['activities_counts'].append({})
-            feeds['facilities_counts'].append({})
-            feeds['accessibilities_counts'].append({})
-            feeds['regions_counts'].append({})
-            feeds['districts_counts'].append({})
 
             # --------------------------------------------------------------------------------------------------
 
