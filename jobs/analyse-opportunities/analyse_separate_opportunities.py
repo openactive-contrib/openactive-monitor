@@ -361,6 +361,9 @@ def analyse_separate_opportunities(**kwargs):
 
                 # --------------------------------------------------------------------------------------------------
 
+                # If this is a subevent item with a superevent partner, then we modify the subevent content with the
+                # contextual superevent info:
+
                 if (    (event_type_pair[opportunity_idx] == 'subevent')
                     and (item['id'] in subevent_id_v_superevent_id.keys())
                 ):
