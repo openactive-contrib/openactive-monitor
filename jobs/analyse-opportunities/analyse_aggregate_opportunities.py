@@ -386,13 +386,13 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    print('Writing out aggregate analysis ...')
+    print('Writing out aggregate feed analysis ...')
 
     t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + AGGREGATE_ANALYSIS_FILENAME, 'wb') as file_out:
         pickle.dump(aggregate_analysis, file_out)
     t2 = datetime.now()
-    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
+    print(f'\tTime taken: {t2 - t1}') # ~6ms (~1.1MB) on M1 8GB MacBook Air
 
 # --------------------------------------------------------------------------------------------------
 
