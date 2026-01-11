@@ -602,7 +602,7 @@ def analyse_separate_opportunities_new(**kwargs):
     # t1 = datetime.now()
     # df_feeds = pd.DataFrame(feeds, columns=feeds.keys())
     # t2 = datetime.now()
-    # print(f'Converting dictionary feeds to dataframe feeds: {t2 - t1}') # ??? on M1 8GB MacBook Air
+    # print(f'Converting dictionary feeds to dataframe feeds: {t2 - t1}') # ~1sec on M1 8GB MacBook Air
 
     # t1 = datetime.now()
     # df_items = pd.DataFrame(items, columns=items.keys())
@@ -970,7 +970,7 @@ def analyse_separate_opportunities_new(**kwargs):
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + CROSS_ANALYSIS_FILENAME, 'wb') as file_out:
         pickle.dump(analysis, file_out)
     t2 = datetime.now()
-    print(f'\tTime taken: {t2 - t1}') # ~4sec (~1.2MB) on M1 8GB MacBook Air
+    print(f'\tTime taken: {t2 - t1}') # ~5sec (~1.3MB) on M1 8GB MacBook Air
 
     # --------------------------------------------------------------------------------------------------
 
@@ -985,7 +985,7 @@ def analyse_separate_opportunities_new(**kwargs):
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SEPARATE_ANALYSIS_FILENAME, 'wb') as file_out:
         pickle.dump(pd.DataFrame(feeds, columns=feeds.keys()), file_out)
     t2 = datetime.now()
-    print(f'\tTime taken: {t2 - t1}') # ~0.5sec (~0.3MB) on M1 8GB MacBook Air
+    print(f'\tTime taken: {t2 - t1}') # ~1sec (~0.650MB) on M1 8GB MacBook Air
 
     # --------------------------------------------------------------------------------------------------
 
@@ -995,7 +995,7 @@ def analyse_separate_opportunities_new(**kwargs):
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:
         pickle.dump(filenames_sampleitems, file_out)
     t2 = datetime.now()
-    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
+    print(f'\tTime taken: {t2 - t1}') # ~0.2sec (~0.230MB) on M1 8GB MacBook Air
 
     # --------------------------------------------------------------------------------------------------
 
@@ -1005,7 +1005,7 @@ def analyse_separate_opportunities_new(**kwargs):
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + ALL_ITEMS_FILENAME, 'wb') as file_out:
         pickle.dump(items, file_out)
     t2 = datetime.now()
-    print(f'\tTime taken: {t2 - t1}') # ~1hr4min (~4.25GB) on M1 8GB MacBook Air
+    print(f'\tTime taken: {t2 - t1}') # ~1hr20min (~4.6GB) on M1 8GB MacBook Air
 
 # --------------------------------------------------------------------------------------------------
 
