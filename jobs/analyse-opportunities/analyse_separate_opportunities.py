@@ -793,7 +793,7 @@ def update_values_counts(values_counts, key):
 # --------------------------------------------------------------------------------------------------
 
 def strip(value):
-    if (type(value) is not None):
+    if (value is not None):
         return str(value).strip()
     else:
         return value
