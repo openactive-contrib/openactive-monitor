@@ -2,6 +2,7 @@ import geopandas as gpd
 import pandas as pd
 import pickle
 import sys
+from datetime import datetime
 from numpy import nan
 
 sys.path.append('../volume-1/common')
@@ -51,15 +52,16 @@ def analyse_aggregate_opportunities(**kwargs):
     # are not entirely up-to-date, they may still contain future items and still contribute to the analysis,
     # hence their inclusion in these counts:
 
-    num_feeds_with_analysed_data_regular = \
-            (separate_analysis.loc[separate_analysis['is_regular'] & separate_analysis['is_merged_with_partner']].shape[0] * 2) \
-        +   (separate_analysis.loc[separate_analysis['is_regular'] & ~separate_analysis['is_merged_with_partner']].shape[0])
-    num_feeds_with_analysed_data_preview = \
-            (separate_analysis.loc[~separate_analysis['is_regular'] & separate_analysis['is_merged_with_partner']].shape[0] * 2) \
-        +   (separate_analysis.loc[~separate_analysis['is_regular'] & ~separate_analysis['is_merged_with_partner']].shape[0])
+    num_feeds_with_analysed_data_regular = separate_analysis.loc[separate_analysis['is_regular']].shape[0]
+    num_feeds_with_analysed_data_preview = separate_analysis.loc[~separate_analysis['is_regular']].shape[0]
     num_feeds_with_analysed_data = num_feeds_with_analysed_data_regular + num_feeds_with_analysed_data_preview
 
-    # TODO: Get counts of feeds with future items. This will be the most relevant count to best represent the live ecosystem.
+    # The number of feeds here are the number of feeds that have been available and serving data and have
+    # future opportunity items:
+
+    num_feeds_with_future_opportunity_items_regular = separate_analysis.loc[separate_analysis['is_regular'] & (separate_analysis['num_future_opportunity_items'] > 0)].shape[0]
+    num_feeds_with_future_opportunity_items_preview = separate_analysis.loc[~separate_analysis['is_regular'] & (separate_analysis['num_future_opportunity_items'] > 0)].shape[0]
+    num_feeds_with_future_opportunity_items = num_feeds_with_future_opportunity_items_regular + num_feeds_with_future_opportunity_items_preview
 
     total_num_items_regular = separate_analysis['num_items'].loc[separate_analysis['is_regular']].sum()
     total_num_items_preview = separate_analysis['num_items'].loc[~separate_analysis['is_regular']].sum()
@@ -67,13 +69,13 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    total_num_future_items_regular = separate_analysis['num_future_items'].loc[separate_analysis['is_regular']].sum()
-    total_num_future_items_preview = separate_analysis['num_future_items'].loc[~separate_analysis['is_regular']].sum()
-    total_num_future_items = total_num_future_items_regular + total_num_future_items_preview
+    total_num_future_opportunity_items_regular = separate_analysis['num_future_opportunity_items'].loc[separate_analysis['is_regular']].sum()
+    total_num_future_opportunity_items_preview = separate_analysis['num_future_opportunity_items'].loc[~separate_analysis['is_regular']].sum()
+    total_num_future_opportunity_items = total_num_future_opportunity_items_regular + total_num_future_opportunity_items_preview
 
-    total_num_future_week_items_regular = separate_analysis['num_future_week_items'].loc[separate_analysis['is_regular']].sum()
-    total_num_future_week_items_preview = separate_analysis['num_future_week_items'].loc[~separate_analysis['is_regular']].sum()
-    total_num_future_week_items = total_num_future_week_items_regular + total_num_future_week_items_preview
+    total_num_future_week_opportunity_items_regular = separate_analysis['num_future_week_opportunity_items'].loc[separate_analysis['is_regular']].sum()
+    total_num_future_week_opportunity_items_preview = separate_analysis['num_future_week_opportunity_items'].loc[~separate_analysis['is_regular']].sum()
+    total_num_future_week_opportunity_items = total_num_future_week_opportunity_items_regular + total_num_future_week_opportunity_items_preview
 
     # --------------------------------------------------------------------------------------------------
 
@@ -86,12 +88,21 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    df_total_item_data_types_counts, \
-    total_num_item_data_types, \
-    total_num_items_with_data_types = get_df_total_values_counts(separate_analysis, 'item_data_types_counts', feeds_to_include='all')
+    df_total_item_types_counts, \
+    total_num_item_types, \
+    total_num_items_with_types = get_df_total_values_counts(separate_analysis, 'item_types_counts', feeds_to_include='all')
 
-    # Columns: ['item_data_type', 'count', 'percentage']
-    df_total_item_data_types_counts.rename(columns={'value': 'item_data_type'}, inplace=True)
+    # Columns: ['item_type', 'count', 'percentage']
+    df_total_item_types_counts.rename(columns={'value': 'item_type'}, inplace=True)
+
+    # --------------------------------------------------------------------------------------------------
+
+    df_total_organizer_names_counts, \
+    total_num_organizer_names, \
+    total_num_items_with_organizer_names = get_df_total_values_counts(separate_analysis, 'organizer_names_counts', feeds_to_include='all')
+
+    # Columns: ['organizer', 'count', 'percentage']
+    df_total_organizer_names_counts.rename(columns={'value': 'organizer'}, inplace=True)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -104,38 +115,45 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
-    df_total_organisers_counts, \
-    total_num_organisers, \
-    total_num_items_with_organisers = get_df_total_values_counts(separate_analysis, 'organisers_counts', feeds_to_include='all')
+    df_total_facilities_counts, \
+    total_num_facilities, \
+    total_num_items_with_facilities = get_df_total_values_counts(separate_analysis, 'facilities_counts', feeds_to_include='all')
 
-    # Columns: ['organiser', 'count', 'percentage']
-    df_total_organisers_counts.rename(columns={'value': 'organiser'}, inplace=True)
-
-    # --------------------------------------------------------------------------------------------------
-
-    df_total_postcodes_counts, \
-    total_num_postcodes, \
-    total_num_items_with_postcodes = get_df_total_values_counts(separate_analysis, 'postcodes_counts', feeds_to_include='all')
-
-    # Columns: ['postcode', 'count', 'percentage']
-    df_total_postcodes_counts.rename(columns={'value': 'postcode'}, inplace=True)
+    # Columns: ['facility', 'count', 'percentage']
+    df_total_facilities_counts.rename(columns={'value': 'facility'}, inplace=True)
 
     # --------------------------------------------------------------------------------------------------
 
-    df_total_latlons_counts, \
-    total_num_latlons, \
-    total_num_items_with_latlons = get_df_total_values_counts(separate_analysis, 'latlons_counts', feeds_to_include='all')
+    # Note that this drops None:
 
-    # Columns: ['latlon', 'count', 'percentage']
-    df_total_latlons_counts.rename(columns={'value': 'latlon'}, inplace=True)
+    df_total_activitiesfacilities_counts = pd.concat([
+            df_total_activities_counts[['activity', 'count']],
+            df_total_facilities_counts[['facility', 'count']].rename(columns={'facility': 'activity'}),
+        ],
+        ignore_index=True
+    ) \
+    .dropna() \
+    .sort_values('count', ascending=False)
 
-    # Columns: ['latlon', 'count', 'percentage', 'latitude', 'longitude']
-    df_total_latlons_counts[['latitude', 'longitude']] = pd.DataFrame(df_total_latlons_counts['latlon'].apply(lambda latlon: [float(coord) for coord in latlon.split(',')]).tolist())
-
-    # Columns: ['latitude', 'longitude', 'count', 'percentage']
-    df_total_latlons_counts = df_total_latlons_counts[['latitude', 'longitude', 'count', 'percentage']]
+    df_total_activitiesfacilities_counts['percentage'] = (df_total_activitiesfacilities_counts['count'] / df_total_activitiesfacilities_counts['count'].sum()) * 100
 
     # --------------------------------------------------------------------------------------------------
+
+    df_total_accessibilities_counts, \
+    total_num_accessibilities, \
+    total_num_items_with_accessibilities = get_df_total_values_counts(separate_analysis, 'accessibilities_counts', feeds_to_include='all')
+
+    # Columns: ['accessibility', 'count', 'percentage']
+    df_total_accessibilities_counts.rename(columns={'value': 'accessibility'}, inplace=True)
+
+    # --------------------------------------------------------------------------------------------------
+
+    df_total_regions_counts, \
+    total_num_regions, \
+    total_num_items_with_regions = get_df_total_values_counts(separate_analysis, 'regions_counts', feeds_to_include='all')
+
+    # Columns: ['eer18nm', 'count', 'percentage']
+    df_total_regions_counts.rename(columns={'value': 'eer18nm'}, inplace=True)
 
     # The first few rows of gdf_regions are like:
     #    OBJECTID  eer18cd    eer18nm                   bng_e   bng_n   long       lat        GlobalID                              geometry
@@ -149,11 +167,16 @@ def analyse_aggregate_opportunities(**kwargs):
     gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
 
     # Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
-    gdf_total_regions_counts, \
-    total_num_regions, \
-    total_num_items_with_regions = get_gdf_total_locations_counts(df_total_latlons_counts, gdf_regions, 'eer18nm')
+    gdf_total_regions_counts = pd.merge(gdf_regions, df_total_regions_counts[['eer18nm', 'count', 'percentage']], on='eer18nm', how='left')
 
     # --------------------------------------------------------------------------------------------------
+
+    df_total_districts_counts, \
+    total_num_districts, \
+    total_num_items_with_districts = get_df_total_values_counts(separate_analysis, 'districts_counts', feeds_to_include='all')
+
+    # Columns: ['LAD24NM', 'count', 'percentage']
+    df_total_districts_counts.rename(columns={'value': 'LAD24NM'}, inplace=True)
 
     # LADs = Local Authority Districts, which are much smaller than regions, hence the higher row count.
 
@@ -166,12 +189,10 @@ def analyse_aggregate_opportunities(**kwargs):
     # 4  5    E06000005  Darlington                      428029  515648  -1.56835  54.53534  bf2173db-02e1-4b58-9617-e775100f58ec  POLYGON ((436388.002 522354.197, 437351.702 52...
     # 361 rows total
 
-    gdf_lads = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_LADS_FILENAME)
+    gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_DISTRICTS_FILENAME)
 
     # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
-    gdf_total_lads_counts, \
-    total_num_lads, \
-    total_num_items_with_lads = get_gdf_total_locations_counts(df_total_latlons_counts, gdf_lads, 'LAD24NM')
+    gdf_total_districts_counts = pd.merge(gdf_districts, df_total_districts_counts[['LAD24NM', 'count', 'percentage']], on='LAD24NM', how='left')
 
     # --------------------------------------------------------------------------------------------------
 
@@ -205,7 +226,7 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # Columns: ['activity', 'count', 'sport_and_discipline']
     df_total_sad_counts = pd.merge(
-        df_total_activities_counts \
+        df_total_activitiesfacilities_counts \
         .drop(columns=['percentage']) \
         .assign(activity=lambda x: x['activity'].str.strip()),
         df_oa_se_mapping,
@@ -215,7 +236,7 @@ def analyse_aggregate_opportunities(**kwargs):
     # Pull out non-matching activities before they are changed to 'No Match', as then they will be indistinguishable
     # from the existing 'No Match' entries in the mapping file:
     df_total_sad_counts_na = df_total_sad_counts.loc[df_total_sad_counts['sport_and_discipline'].isna()]
-    df_total_sad_counts_na.to_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + 'unmatched_activities.csv', index=False)
+    df_total_sad_counts_na.to_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + 'unmatched-activities.csv', index=False)
 
     df_total_sad_counts['sport_and_discipline'].fillna('No Match', inplace=True)
     df_total_sad_counts_matched = df_total_sad_counts.loc[df_total_sad_counts['sport_and_discipline'] != 'No Match']
@@ -295,49 +316,55 @@ def analyse_aggregate_opportunities(**kwargs):
         'num_feeds_with_analysed_data_preview': num_feeds_with_analysed_data_preview,
         'num_feeds_with_analysed_data': num_feeds_with_analysed_data,
 
+        'num_feeds_with_future_opportunity_items_regular': num_feeds_with_future_opportunity_items_regular,
+        'num_feeds_with_future_opportunity_items_preview': num_feeds_with_future_opportunity_items_preview,
+        'num_feeds_with_future_opportunity_items': num_feeds_with_future_opportunity_items,
+
         'total_num_items_regular': total_num_items_regular,
         'total_num_items_preview': total_num_items_preview,
         'total_num_items': total_num_items,
 
-        'total_num_future_items_regular': total_num_future_items_regular,
-        'total_num_future_items_preview': total_num_future_items_preview,
-        'total_num_future_items': total_num_future_items,
+        'total_num_future_opportunity_items_regular': total_num_future_opportunity_items_regular,
+        'total_num_future_opportunity_items_preview': total_num_future_opportunity_items_preview,
+        'total_num_future_opportunity_items': total_num_future_opportunity_items,
 
-        'total_num_future_week_items_regular': total_num_future_week_items_regular,
-        'total_num_future_week_items_preview': total_num_future_week_items_preview,
-        'total_num_future_week_items': total_num_future_week_items,
+        'total_num_future_week_opportunity_items_regular': total_num_future_week_opportunity_items_regular,
+        'total_num_future_week_opportunity_items_preview': total_num_future_week_opportunity_items_preview,
+        'total_num_future_week_opportunity_items': total_num_future_week_opportunity_items,
 
         'df_total_item_kinds_counts': df_total_item_kinds_counts,
         'total_num_item_kinds': total_num_item_kinds,
         'total_num_items_with_kinds': total_num_items_with_kinds,
 
-        'df_total_item_data_types_counts': df_total_item_data_types_counts,
-        'total_num_item_data_types': total_num_item_data_types,
-        'total_num_items_with_data_types': total_num_items_with_data_types,
+        'df_total_item_types_counts': df_total_item_types_counts,
+        'total_num_item_types': total_num_item_types,
+        'total_num_items_with_types': total_num_items_with_types,
+
+        'df_total_organizer_names_counts': df_total_organizer_names_counts,
+        'total_num_organizer_names': total_num_organizer_names,
+        'total_num_items_with_organizer_names': total_num_items_with_organizer_names,
 
         'df_total_activities_counts': df_total_activities_counts,
         'total_num_activities': total_num_activities,
         'total_num_items_with_activities': total_num_items_with_activities,
 
-        'df_total_organisers_counts': df_total_organisers_counts,
-        'total_num_organisers': total_num_organisers,
-        'total_num_items_with_organisers': total_num_items_with_organisers,
+        'df_total_facilities_counts': df_total_facilities_counts,
+        'total_num_facilities': total_num_facilities,
+        'total_num_items_with_facilities': total_num_items_with_facilities,
 
-        'df_total_postcodes_counts': df_total_postcodes_counts,
-        'total_num_postcodes': total_num_postcodes,
-        'total_num_items_with_postcodes': total_num_items_with_postcodes,
+        'df_total_activitiesfacilities_counts': df_total_activitiesfacilities_counts,
 
-        'df_total_latlons_counts': df_total_latlons_counts,
-        'total_num_latlons': total_num_latlons,
-        'total_num_items_with_latlons': total_num_items_with_latlons,
+        'df_total_accessibilities_counts': df_total_accessibilities_counts,
+        'total_num_accessibilities': total_num_accessibilities,
+        'total_num_items_with_accessibilities': total_num_items_with_accessibilities,
 
         'gdf_total_regions_counts': gdf_total_regions_counts,
         'total_num_regions': total_num_regions,
         'total_num_items_with_regions': total_num_items_with_regions,
 
-        'gdf_total_lads_counts': gdf_total_lads_counts,
-        'total_num_lads': total_num_lads,
-        'total_num_items_with_lads': total_num_items_with_lads,
+        'gdf_total_districts_counts': gdf_total_districts_counts,
+        'total_num_districts': total_num_districts,
+        'total_num_items_with_districts': total_num_items_with_districts,
 
         'df_total_sad_counts': df_total_sad_counts,
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
@@ -359,8 +386,13 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    print('Writing out aggregate feed analysis ...')
+
+    t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + AGGREGATE_ANALYSIS_FILENAME, 'wb') as file_out:
         pickle.dump(aggregate_analysis, file_out)
+    t2 = datetime.now()
+    print(f'\tTime taken: {t2 - t1}') # ~6ms (~1.1MB) on M1 8GB MacBook Air
 
 # --------------------------------------------------------------------------------------------------
 
@@ -394,78 +426,12 @@ def get_df_total_values_counts(separate_analysis, values_counts, feeds_to_includ
 
 # --------------------------------------------------------------------------------------------------
 
-def get_gdf_total_locations_counts(df_total_latlons_counts, gdf_locations, gdf_locations_name_column):
-    # A 'geometry' column contains a set of POINT coordinate objects, the contents of which depends on
-    # exactly what Coordinate Reference System (CRS) is in use. In the following, we at first define such
-    # a column as lonlat pairs (not latlon pairs!) before immediately converting to the CRS of an existing
-    # input file i.e. the regions or Local Authority Districts (LADs) file. These happen to be in terms
-    # of easting and northing, which have units of metres. Say we start with the following latlon pair:
-    #   51.09163 -0.749606
-    # This then gets converted to the following lonlat POINT object:
-    #   POINT (-0.74961 51.09163)
-    # Which then gets converted to the following easting northing POINT object:
-    #   POINT (487662.910 133223.698)
-    # There are a number of online tools to check these conversions if needed.
-
-    # Columns: ['latitude', 'longitude', 'count', 'percentage', 'geometry']
-    gdf_total_latlons_counts = gpd.GeoDataFrame(
-        df_total_latlons_counts,
-        geometry=gpd.points_from_xy(
-            df_total_latlons_counts['longitude'],
-            df_total_latlons_counts['latitude'],
-        ),
-        crs='epsg:4326', # Set Coordinate Reference System (CRS) to World Geodetic System 1984 (WGS84). See https://epsg.io/4326.
-    ) \
-    .to_crs(gdf_locations.crs)
+if (__name__ == '__main__'):
+    try:
+        analyse_aggregate_opportunities()
+    except Exception as error:
+        print('ERROR:', error)
 
     # --------------------------------------------------------------------------------------------------
 
-    # Match the geometry POINT objects within gdf_total_latlons_counts to the geometry POLYGON and MULTIPOLYGON
-    # objects within gdf_locations i.e. find the matching location (region or LAD) for each given POINT.
-    # Group the counts by location and sum to get total counts for each location:
-
-    # Columns: [<gdf_locations_name_column>, 'count']
-    gdf_total_locations_counts = gpd.GeoDataFrame(
-        gpd.sjoin(
-            gdf_total_latlons_counts[['geometry', 'count']], # Left dataframe
-            gdf_locations[['geometry', gdf_locations_name_column]], # Right dataframe
-            how='left', # Use keys (i.e. rows) from left dataframe, and retain only left dataframe geometry column
-            predicate='intersects',
-        ) \
-        .groupby(gdf_locations_name_column)['count'] \
-        .sum()
-    ) \
-    .reset_index()
-
-    # --------------------------------------------------------------------------------------------------
-
-    # Merge the count values just obtained into the given location info dataframe. We use this as a basis
-    # for the output of this function as the geometry info is needed for the front-end map display:
-
-    # If gdf_locations is for regions:
-    #     Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count']
-    # If gdf_locations is for LADs:
-    #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count']
-    gdf_total_locations_counts = \
-        gdf_locations \
-        .merge(gdf_total_locations_counts, on=gdf_locations_name_column, how='left') \
-        .sort_values(by='count', ascending=False) \
-        .fillna(0)
-
-    # If we had any NaN count rows during the last manipulation, then the count column would have been
-    # converted to float, so re-type back to int:
-
-    gdf_total_locations_counts['count'] = gdf_total_locations_counts['count'].astype(int)
-
-    # --------------------------------------------------------------------------------------------------
-
-    total_num_locations = gdf_total_locations_counts.shape[0]
-    total_num_items_with_locations = gdf_total_locations_counts['count'].sum()
-
-    # If gdf_locations is for regions:
-    #     Columns: ['OBJECTID', 'eer18cd', 'eer18nm', 'bng_e', 'bng_n', 'long', 'lat', 'GlobalID', 'geometry', 'count', 'percentage']
-    # If gdf_locations is for LADs:
-    #     Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
-    gdf_total_locations_counts['percentage'] = (gdf_total_locations_counts['count'] / total_num_items_with_locations) * 100
-
-    return gdf_total_locations_counts, total_num_locations, total_num_items_with_locations
+    print('\nFinished')

@@ -59,12 +59,14 @@ OPPORTUNITIES_RELATIVE_FILEPATH_SKIP_FILENAMES = [
 
 # Files in ANALYSIS_RELATIVE_FILEPATH
 
+CROSS_ANALYSIS_FILENAME = 'cross-analysis.pickle'
 SEPARATE_ANALYSIS_FILENAME = 'separate-analysis.pickle'
 AGGREGATE_ANALYSIS_FILENAME = 'aggregate-analysis.pickle'
 SAMPLE_ITEMS_FILENAME = 'sample-items.pickle'
+ALL_ITEMS_FILENAME = 'all-items.pickle'
 
 GEO_REGIONS_FILENAME = '000-location-regions.geojson'
-GEO_LADS_FILENAME = '000-location-lads.geojson'
+GEO_DISTRICTS_FILENAME = '000-location-districts.geojson'
 SE_SPORT_AND_DISCIPLINE_FILENAME = '000-SE-sport-and-discipline.csv'
 OA_SE_MAPPING_FILENAME = '000-OA-SE-mapping.csv'
 

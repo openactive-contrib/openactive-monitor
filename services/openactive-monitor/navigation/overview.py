@@ -27,8 +27,8 @@ if ('buttons' not in st.session_state):
         'providers': f"**{st.session_state.aggregate_analysis['num_publishers']:,}**\n\nData Providers",
         #Note next figure based on feeds.pickle to tally with type counts
         'feeds': f"**{st.session_state.num_feeds:,}**\n\nData feeds",
-        'activities': f"**{st.session_state.aggregate_analysis['total_num_activities']:,}**\n\nActivities and facilities",
-        'opportunities': f"**{millify(st.session_state.aggregate_analysis['total_num_future_items'], precision=1)}**\n\nLive opportunities",
+        'activities': f"**{st.session_state.aggregate_analysis['total_num_activities'] + st.session_state.aggregate_analysis['total_num_facilities']:,}**\n\nActivities and facilities",
+        'opportunities': f"**{millify(st.session_state.aggregate_analysis['total_num_future_opportunity_items'], precision=1)}**\n\nLive opportunities",
         'kpis': f"Draft\n\nKPIs"
     }
     st.session_state.button_name_clicked = 'providers'
@@ -66,7 +66,7 @@ with cols[1]:
         st.markdown(" ")
         st.markdown("Some data providers are National Governing Bodies, some are big leisure providers, while others create systems to allow smaller activity providers to open their data.")
         st.markdown(" ")
-        orgs = len(st.session_state.aggregate_analysis['df_total_organisers_counts'])
+        orgs = len(st.session_state.aggregate_analysis['df_total_organizer_names_counts'])
         st.markdown(f"This snapshot of the data contains activities and facilities from **{orgs:,}** different activity providers.")
         st.divider()
 
@@ -116,11 +116,11 @@ with cols[1]:
             st.markdown(" ")
             st.markdown("Using standardised names helps improve user experience and search, though publishers can and do use their own wording for activity and facility labels.")
             st.markdown(" ")
-            st.write(f"There are currently **{st.session_state.aggregate_analysis['total_num_activities']:,}** different activities and facility types in the OpenActive data.")
+            st.write(f"There are currently **{st.session_state.aggregate_analysis['total_num_activities'] + st.session_state.aggregate_analysis['total_num_facilities']:,}** different activities and facility types in the OpenActive data.")
 
         with cols[1]:
             st.dataframe(
-                st.session_state.aggregate_analysis['df_total_activities_counts'][['activity','percentage']],
+                st.session_state.aggregate_analysis['df_total_activitiesfacilities_counts'][['activity', 'percentage']],
                 use_container_width=True,
                 hide_index=True,
                 column_config={
@@ -143,7 +143,7 @@ with cols[1]:
             st.markdown(" ")
             st.markdown("Because the feeds vary in level of detail they represent (e.g. a series of sessions or an individual session), the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
             st.markdown(" ")
-            st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.aggregate_analysis['total_num_future_items'], precision=1)} opportunities** to get active over the coming weeks.")
+            st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.aggregate_analysis['total_num_future_opportunity_items'], precision=1)} opportunities** to get active over the coming weeks.")
 
         with cols[1]:
             fig, ax = plt.subplots(1, 1, figsize=(3, 6))
@@ -215,7 +215,7 @@ with cols[1]:
             st.markdown('These are the sports governed by the list of national governing bodies recognised by the UK Sports Councils. Source: spreadsheet downloaded from the [Sport England website](https://www.sportengland.org/guidance-and-support/national-governing-bodies?section=recognised_ngbs) on 2024-01-24.')
             st.write('Disciplines are categories within each of the recognised sports. For example: "crown", "federation", and "short mat" are all distinct disciplines of bowls.')
 
-        gdf = st.session_state.aggregate_analysis['gdf_total_lads_counts']
+        gdf = st.session_state.aggregate_analysis['gdf_total_districts_counts']
 
         # Filter for counts 50 or greater (important to include NaNs as 'not greater than or equal to 50')
         gdf_filtered = gdf[(gdf['count'] >= 1000) | (gdf['count'].isna())]
@@ -232,7 +232,7 @@ with cols[1]:
             with cols[0]:
 
                 st.dataframe(
-                    st.session_state.aggregate_analysis['gdf_total_lads_counts'][['LAD24NM', 'count', 'percentage']],
+                    st.session_state.aggregate_analysis['gdf_total_districts_counts'][['LAD24NM', 'count', 'percentage']],
                     use_container_width=True,
                     hide_index=True,
                     column_config={
@@ -244,11 +244,11 @@ with cols[1]:
                         ),
                     },
                 )
-                #st.write(f"Num. locations: {st.session_state.aggregate_analysis['total_num_lads']:,}")
-                #st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_lads']:,}")
+                #st.write(f"Num. locations: {st.session_state.aggregate_analysis['total_num_districts']:,}")
+                #st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_districts']:,}")
             with cols[1]:
                 fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-                st.session_state.aggregate_analysis['gdf_total_lads_counts'].plot(
+                st.session_state.aggregate_analysis['gdf_total_districts_counts'].plot(
                     column='percentage',
                     # cmap='YlOrRd',
                     cmap='inferno_r',
@@ -311,8 +311,8 @@ with cols[1]:
             st.write(' ')
 
 #print(st.session_state.aggregate_analysis.keys())
-#print(st.session_state.aggregate_analysis['total_num_lads'])
-#print(st.session_state.aggregate_analysis['gdf_total_lads_counts'])
+#print(st.session_state.aggregate_analysis['total_num_districts'])
+#print(st.session_state.aggregate_analysis['gdf_total_districts_counts'])
 
 #  Alternatively, to explicitly handle NaNs:
 #count_less_than_50 = gdf[ (gdf['count'] < 50) | (gdf['count'].isna()) ].shape[0]

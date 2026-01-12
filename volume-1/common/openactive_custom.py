@@ -195,10 +195,6 @@ def get_feeds(**kwargs):
                             feed_out = {}
 
                             try:
-                                feed_out['name'] = jsonld['name']
-                            except:
-                                feed_out['name'] = ''
-                            try:
                                 feed_out['type'] = feed_in['name']
                             except:
                                 feed_out['type'] = ''
@@ -206,6 +202,10 @@ def get_feeds(**kwargs):
                                 feed_out['url'] = feed_in['contentUrl']
                             except:
                                 feed_out['url'] = ''
+                            try:
+                                feed_out['dataset_name'] = jsonld['name']
+                            except:
+                                feed_out['dataset_name'] = ''
                             try:
                                 feed_out['dataset_url'] = dataset_url
                             except:
@@ -268,6 +268,10 @@ feed_url_parts_groups = {
         'facilityuse',
     ],
     'Slot': [
+        'individual-facility-use/slots',
+        'individual-facility-use/slot',
+        'individual-facility-use-slots',
+        'individual-facility-use-slot',
         'facility-uses/events',
         'facility-uses/event',
         'facility-uses-events',
@@ -321,8 +325,8 @@ def get_partner_feed_url(feed1_url, feed2_url_options):
 # On subsequent automated internal calls to the helper function, the opportunities dictionary will
 # already exist and have content to be added to. If a call fails for some reason when running in some
 # other code (i.e. when not running on a server), then the returned dictionary can be manually resubmitted
-# as the argument instead of a starting URL string, and the code will continue from the 'next_url' in
-# the opportunities dictionary.
+# as the argument instead of a starting URL string, and the code will continue from the 'next_url'
+# in the opportunities dictionary.
 
 opportunities_template = {
     'items': {},
@@ -511,30 +515,38 @@ def get_item_kinds(opportunities):
     item_kinds = {}
 
     for item in opportunities['items'].values():
+        item_kind = None
+
         if ('kind' in item.keys()):
-            if (item['kind'] not in item_kinds.keys()):
-                item_kinds[item['kind']] = 1
-            else:
-                item_kinds[item['kind']] += 1
+            item_kind = item['kind']
+
+        if (item_kind not in item_kinds.keys()):
+            item_kinds[item_kind] = 1
+        else:
+            item_kinds[item_kind] += 1
 
     return item_kinds
 
 # --------------------------------------------------------------------------------------------------
 
-def get_item_data_types(opportunities):
-    item_data_types = {}
+def get_item_types(opportunities):
+    item_types = {}
 
     for item in opportunities['items'].values():
-        if ('data' in item.keys()):
-            for key in ['type', '@type']:
-                if (key in item['data'].keys()):
-                    if (item['data'][key] not in item_data_types.keys()):
-                        item_data_types[item['data'][key]] = 1
-                    else:
-                        item_data_types[item['data'][key]] += 1
-                    break
+        item_type = None
 
-    return item_data_types
+        if ('data' in item.keys()):
+            if ('type' in item['data'].keys()):
+                item_type = item['data']['type']
+            elif ('@type' in item['data'].keys()):
+                item_type = item['data']['@type']
+
+        if (item_type not in item_types.keys()):
+            item_types[item_type] = 1
+        else:
+            item_types[item_type] += 1
+
+    return item_types
 
 # --------------------------------------------------------------------------------------------------
 
@@ -545,7 +557,7 @@ superevent_labels = \
     +   ['league']
 subevent_labels = \
         ['ScheduledSession', 'ScheduledSessions', 'Session', 'Sessions', 'session', 'sessions', 'ScheduledSession.SessionSeries'] \
-    +   ['Slot', 'Slot for FacilityUse', 'FacilityUse/Slot', 'FacilityUse.Slot', 'IndividualFacilityUse/Slot'] \
+    +   ['Slot', 'Slot for FacilityUse', 'FacilityUse/Slot', 'FacilityUse.Slot', 'IndividualFacilityUse/Slot', 'IndividualFacilityUse.Slot'] \
     +   ['Event', 'event', 'HeadlineEvent', 'OnDemandEvent'] \
     +   ['CourseInstance']
 
@@ -559,11 +571,50 @@ def get_event_type(label):
 
 # --------------------------------------------------------------------------------------------------
 
+def get_superevents(subevent, superevent_opportunities, skip_superevent_ids=[]):
+    superevents = []
+
+    subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
+
+    if (subevent_superevent_modified_id is not None):
+        for superevent_id, superevent in superevent_opportunities['items'].items():
+            if (superevent_id not in skip_superevent_ids):
+                superevent_modified_ids = get_item_modified_ids(superevent)
+                if (subevent_superevent_modified_id in superevent_modified_ids):
+                    superevents.append(superevent)
+
+    return superevents
+
+# --------------------------------------------------------------------------------------------------
+
+def get_subevents(superevent, subevent_opportunities, skip_subevent_ids=[]):
+    subevents = []
+
+    superevent_modified_ids = get_item_modified_ids(superevent)
+
+    if (any(superevent_modified_ids)):
+        for subevent_id, subevent in subevent_opportunities['items'].items():
+            if (subevent_id not in skip_subevent_ids):
+                subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
+                if (    (subevent_superevent_modified_id is not None)
+                    and (subevent_superevent_modified_id in superevent_modified_ids)
+                ):
+                    subevents.append(subevent)
+
+    return subevents
+
+# --------------------------------------------------------------------------------------------------
+
 def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportunities, **kwargs):
     verbose = kwargs.get('verbose', False)
 
     if (verbose):
         print(stack()[0].function)
+
+    superevent_modified_id_v_superevent_id = {}
+    superevent_data_modified_id_v_superevent_id = {}
+    subevent_id_v_subevent_superevent_modified_id = {}
+    superevent_id_v_subevent_ids = {}
 
     # --------------------------------------------------------------------------------------------------
 
@@ -585,14 +636,7 @@ def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportun
             and (num_subevents == 0)
         ):
             print('\tNo superevents and no subevents - merging not possible')
-        return None
-
-    # --------------------------------------------------------------------------------------------------
-
-    superevent_modified_id_v_superevent_id = {}
-    superevent_data_modified_id_v_superevent_id = {}
-    subevent_id_v_subevent_superevent_modified_id = {}
-    superevent_id_v_subevent_ids = {}
+        return superevent_id_v_subevent_ids
 
     # --------------------------------------------------------------------------------------------------
 
@@ -633,7 +677,7 @@ def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportun
     if (num_subevents_with_superevent_modified_id == 0):
         if (verbose):
             print('\t\tNo subevents with superevent modified ID - merging not possible')
-        return None
+        return superevent_id_v_subevent_ids
 
     # --------------------------------------------------------------------------------------------------
 
@@ -664,45 +708,11 @@ def get_superevent_id_v_subevent_ids(superevent_opportunities, subevent_opportun
     if (num_superevents_with_subevent_ids == 0):
         if (verbose):
             print('\t\tNo superevents with subevent IDs - merging not possible')
-        return None
+        return superevent_id_v_subevent_ids
 
     # --------------------------------------------------------------------------------------------------
 
     return superevent_id_v_subevent_ids
-
-# --------------------------------------------------------------------------------------------------
-
-def get_superevents(subevent, superevent_opportunities, skip_superevent_ids):
-    superevents = []
-
-    subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
-
-    if (subevent_superevent_modified_id is not None):
-        for superevent_id, superevent in superevent_opportunities['items'].items():
-            if (superevent_id not in skip_superevent_ids):
-                superevent_modified_ids = get_item_modified_ids(superevent)
-                if (subevent_superevent_modified_id in superevent_modified_ids):
-                    superevents.append(superevent)
-
-    return superevents
-
-# --------------------------------------------------------------------------------------------------
-
-def get_subevents(superevent, subevent_opportunities, skip_subevent_ids):
-    subevents = []
-
-    superevent_modified_ids = get_item_modified_ids(superevent)
-
-    if (any(superevent_modified_ids)):
-        for subevent_id, subevent in subevent_opportunities['items'].items():
-            if (subevent_id not in skip_subevent_ids):
-                subevent_superevent_modified_id = get_subevent_superevent_modified_id(subevent)
-                if (    (subevent_superevent_modified_id is not None)
-                    and (subevent_superevent_modified_id in superevent_modified_ids)
-                ):
-                    subevents.append(subevent)
-
-    return subevents
 
 # --------------------------------------------------------------------------------------------------
 

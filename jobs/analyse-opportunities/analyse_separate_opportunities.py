@@ -1,32 +1,33 @@
+import geopandas as gpd
 import gzip
-import json
-# import openactive as oa
 import pandas as pd
 import pickle
 import random
 import sys
 from datetime import datetime, timedelta
-from dateutil import parser, tz
+from dateutil import parser
 
 sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
-from openactive_custom import get_item_kinds, get_item_data_types, get_event_type, get_superevent_id_v_subevent_ids
+from openactive_custom import get_item_kinds, get_item_types, get_event_type, get_superevent_id_v_subevent_ids
 from settings import *
-
-# --------------------------------------------------------------------------------------------------
-
-# Moving away from the former nominatum approach, which creates coords from postcodes.
-# Moving towards creating a postcode for each record, from coords if necessary for NSPL matching.
-# 4 positions:
-# 1) Item has postcode, has coords - use postcode
-# 2) Item has postcode, has no coords - use postcode
-# 3) Item has no postcode, has coords - find nearest centroid and use that postcode
-# 4) Item has no postcode, has no coords - if not online event, use an organiser postcode, otherwise flag as missing
 
 # --------------------------------------------------------------------------------------------------
 
 def analyse_separate_opportunities(**kwargs):
     verbose = kwargs.get('verbose', False)
+
+    # --------------------------------------------------------------------------------------------------
+
+    gdf_regions = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_REGIONS_FILENAME)
+    gdf_regions = gdf_regions.to_crs(4326)
+
+    gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_DISTRICTS_FILENAME)
+    gdf_districts = gdf_districts.to_crs(4326)
+
+    todays_date = datetime.now().date()
+    # todays_date = datetime(2026,1,6).date() # Use this to set to a fixed date if needed for testing e.g. running on the same input data but working over multiple days
+    next_weeks_date = todays_date + timedelta(days=7)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -45,57 +46,90 @@ def analyse_separate_opportunities(**kwargs):
     num_unique_filenames = len(unique_filenames)
 
     if (num_filenames != num_unique_filenames):
-        raise Exception('At least one filename has been matched to more than one other filename. This should not occur and the filename pairing procedure needs to be investigated.')
+        raise Exception('At least one filename has been partnered with more than one other filename. This should not occur and the filename pairing procedure needs to be investigated.')
+
+    # If we want to know the total number of items in all opportunities files before they are processed,
+    # (in order to e.g. pre-size containers such as lists or dataframes) then we can determine this
+    # from the file name stamps as follows, which is much quicker than opening the files to count the
+    # items:
+
+    # total_num_items = 0
+    # for filename in filenames:
+    #     total_num_items += int(filename.split('numItems-')[1].split('--')[0])
 
     # --------------------------------------------------------------------------------------------------
 
     # List the items we want to collect for each feed. These column headers need to be specified here in
-    # advance of row insertion into the DataFrame:
-    separate_analysis = pd.DataFrame(columns=[
-        'feed_id',
-        'feed_name',
-        'feed_type',
-        'feed_url',
-        'dataset_url',
-        'discussion_url',
-        'license_url',
-        'logo_url',
-        'publisher_name',
+    # advance of row insertion into the DataFrame.
 
-        'file_name',
-        'file_name_partner',
+    # The comments after each line show the data types.
 
-        'event_type',
-        'event_type_partner',
+    # Entries which can't be determined are filled with None rather than the empty version of the type
+    # they relate to e.g. an empty string for strings, or zero for integers etc.
 
-        'status',
-        'is_regular',
-        'is_merged_with_partner',
+    feeds = pd.DataFrame(columns=[
+        'feed_id', # STR
+        'partner_feed_id', # STR
+        'file_name', # STR
+        'dataset_name', # STR
+        'publisher_name', # STR
 
-        'num_urls',
-        'num_items',
-        'num_future_items',
-        'num_future_week_items',
-        'num_matched_superevent_items',
-        'num_matched_subevent_items',
-        'num_unmatched_superevent_items',
-        'num_unmatched_subevent_items',
+        'feed_url', # STR
+        'dataset_url', # STR
+        'discussion_url', # STR
+        'license_url', # STR
+        'logo_url', # STR
 
-        'item_kinds_counts',
-        'item_data_types_counts',
-        'organisers_counts',
-        'activities_counts',
-        'postcodes_counts',
-        'latlons_counts',
+        'status', # STR
+        'is_regular', # BOOL
+        'event_type', # STR
+        'feed_type', # STR
+        'item_kinds_counts', # {STR: INT}
+        'item_types_counts', # {STR: INT}
+        'merged_item_kinds_counts', # {STR: INT}
+        'merged_item_types_counts', # {STR: INT}
+
+        'organizer_names_counts', # {STR: INT}
+        'activities_counts', # {STR: INT}
+        'facilities_counts', # {STR: INT}
+        'accessibilities_counts', # {STR: INT}
+        'regions_counts', # {STR: INT}
+        'districts_counts', # {STR: INT}
+
+        'num_items', # INT
+        'num_analysis_items', # INT
+
+        'num_partnered_items', # INT
+        'num_unpartnered_items', # INT
+
+        'num_opportunity_start_dates', # INT
+        'num_future_opportunity_start_dates', # INT
+        'num_future_week_opportunity_start_dates', # INT
+
+        'num_opportunity_items', # INT
+        'num_future_opportunity_items', # INT
+        'num_future_week_opportunity_items', # INT
     ])
 
     filenames_sampleitems = {}
 
     # --------------------------------------------------------------------------------------------------
 
+    prepare_times = []
+    process_times = []
+
+    t1_overall = datetime.now()
+
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
 
+        # Use if need to do a limited run for testing:
+        # if (filename_pair_idx == 1):
+        #     break
+
+        t1 = datetime.now()
+
         print(f'File pair: {filename_pair_idx + 1}/{num_filename_pairs}')
+        print('Preparing ...')
 
         # --------------------------------------------------------------------------------------------------
 
@@ -136,15 +170,15 @@ def analyse_separate_opportunities(**kwargs):
 
         # --------------------------------------------------------------------------------------------------
 
-        item_data_types_counts_pair = []
+        item_types_counts_pair = []
         for opportunities in opportunities_pair:
-            item_data_types_counts = None
+            item_types_counts = None
             if (opportunities is not None):
                 try:
-                    item_data_types_counts = get_item_data_types(opportunities)
+                    item_types_counts = get_item_types(opportunities)
                 except Exception as error:
                     print('ERROR:', error)
-            item_data_types_counts_pair.append(item_data_types_counts)
+            item_types_counts_pair.append(item_types_counts)
 
         # --------------------------------------------------------------------------------------------------
 
@@ -153,275 +187,562 @@ def analyse_separate_opportunities(**kwargs):
             event_type = None
             if (opportunities is not None):
                 try:
-                    if (    (item_data_types_counts_pair[opportunity_idx] is not None)
-                        and (len(item_data_types_counts_pair[opportunity_idx].keys()) == 1)
+                    if (item_types_counts_pair[opportunity_idx] is not None):
+                        event_types = [
+                            get_event_type(item_type)
+                            for item_type in item_types_counts_pair[opportunity_idx].keys()
+                        ]
+                        if (len(set(event_types)) == 1):
+                            event_type = event_types[0]
+                    if (    (event_type is None)
+                        and (item_kinds_counts_pair[opportunity_idx] is not None)
                     ):
-                        event_type = get_event_type(list(item_data_types_counts_pair[opportunity_idx].keys())[0])
-                    else:
+                        event_types = [
+                            get_event_type(item_kind)
+                            for item_kind in item_kinds_counts_pair[opportunity_idx].keys()
+                        ]
+                        if (len(set(event_types)) == 1):
+                            event_type = event_types[0]
+                    if (    (event_type is None)
+                        and (feed_type_pair[opportunity_idx] is not None)
+                    ):
                         event_type = get_event_type(feed_type_pair[opportunity_idx])
                 except Exception as error:
                     print('ERROR:', error)
             event_type_pair.append(event_type)
 
-        is_superevent_subevent_pair = ('superevent' in event_type_pair) and ('subevent' in event_type_pair)
-
         # --------------------------------------------------------------------------------------------------
 
-        superevent_id_v_subevent_ids = None
-        if (is_superevent_subevent_pair):
+        superevent_id_v_subevent_ids = {}
+        subevent_id_v_superevent_id = {}
+        num_partnered_superevent_items = None
+        num_partnered_subevent_items = None
+        num_unpartnered_superevent_items = None
+        num_unpartnered_subevent_items = None
+        if (    ('superevent' in event_type_pair)
+            and ('subevent' in event_type_pair)
+        ):
             try:
                 superevent_id_v_subevent_ids = get_superevent_id_v_subevent_ids(
                     opportunities_pair[event_type_pair.index('superevent')],
                     opportunities_pair[event_type_pair.index('subevent')]
                 )
-            except Exception as error:
-                print('ERROR:', error)
-
-        # --------------------------------------------------------------------------------------------------
-
-        print(f'File-1')
-        print(f'\tName: {filename_pair[0]}')
-        print(f'\tLoaded: {opportunities_pair[0] is not None}')
-        print(f'\tFeed type: {feed_type_pair[0]}')
-        print(f'\tItem kinds: {item_kinds_counts_pair[0]}')
-        print(f'\tItem data types: {item_data_types_counts_pair[0]}')
-        print(f'\tEvent type: {event_type_pair[0]}')
-
-        print(f'File-2')
-        print(f'\tName: {filename_pair[1]}')
-        print(f'\tLoaded: {opportunities_pair[1] is not None}')
-        print(f'\tFeed type: {feed_type_pair[1]}')
-        print(f'\tItem kinds: {item_kinds_counts_pair[1]}')
-        print(f'\tItem data types: {item_data_types_counts_pair[1]}')
-        print(f'\tEvent type: {event_type_pair[1]}')
-
-        # --------------------------------------------------------------------------------------------------
-
-        # Merging happens if:
-        #   we have a pair of feeds ...
-        #   the event type (superevent/subevent) for each feed has been unambiguously identified ...
-        #   the subevent items refer to existing superevent items.
-
-        # If merging does happen, then superevent items are inserted into related subevent items, and the superevent
-        # opportunities object is completely removed from play. We therefore discard any potential counts from
-        # superevent items that weren't associated with subevent items.
-
-        # If merging doesn't happen (due to the above conditions not being fulfilled, and usually because of
-        # at least one of the feeds having no items), then both opportunities files (if present) go on for
-        # independent item content counting. Nothing is discarded. This retention of all such items may not
-        # in fact be desirable, and yield superfluous counts of e.g. activities. However, this should be a
-        # relative minority. If concerned, then check for cases where we do indeed have both opportunities
-        # objects in an unmerged pair, and discard at least the superevent object before running counts.
-
-        num_matched_superevent_items = None
-        num_matched_subevent_items = None
-        num_unmatched_superevent_items = None
-        num_unmatched_subevent_items = None
-        is_merged_with_partner = False
-        if (superevent_id_v_subevent_ids is not None):
-            try:
-                num_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
-                num_subevent_items = len(opportunities_pair[event_type_pair.index('subevent')]['items'].keys())
-
-                # Merge superevent items into associated subevent items under a new key called 'superevent_item', and
-                # remove the superevent item from its original opportunities dictionary. Both superevent and subevent
-                # opportunities dictionaries are therefore changed by this procedure.
                 for superevent_id, subevent_ids in superevent_id_v_subevent_ids.items():
                     for subevent_id in subevent_ids:
-                        opportunities_pair[event_type_pair.index('subevent')]['items'][subevent_id]['superevent_item'] = opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id]
-                    del(opportunities_pair[event_type_pair.index('superevent')]['items'][superevent_id])
-
-                num_unmatched_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
-                num_unmatched_subevent_items = len([True for item in opportunities_pair[event_type_pair.index('subevent')]['items'].values() if 'superevent_item' not in item.keys()])
-                num_matched_superevent_items = num_superevent_items - num_unmatched_superevent_items
-                num_matched_subevent_items = num_subevent_items - num_unmatched_subevent_items
-
-                print(f'num_superevent_items: {num_superevent_items}')
-                print(f'num_subevent_items: {num_subevent_items}')
-                print(f'num_matched_superevent_items: {num_matched_superevent_items}')
-                print(f'num_matched_subevent_items: {num_matched_subevent_items}')
-                print(f'num_unmatched_superevent_items: {num_unmatched_superevent_items}')
-                print(f'num_unmatched_subevent_items: {num_unmatched_subevent_items}')
-
-                if (    (num_matched_superevent_items > 0)
-                    and (num_matched_subevent_items == 0)
-                ):
-                    raise('Matched superevents but no matched subevents ... should not be possible')
-                elif (  (num_matched_superevent_items == 0)
-                    and (num_matched_subevent_items > 0)
-                ):
-                    raise('No matched superevents but matched subevents ... should not be possible')
-                elif (  (num_matched_superevent_items > 0)
-                    and (num_matched_subevent_items > 0)
-                ):
-                    opportunities_pair[event_type_pair.index('superevent')] = None
-                    is_merged_with_partner = True
+                        subevent_id_v_superevent_id[subevent_id] = superevent_id
             except Exception as error:
                 print('ERROR:', error)
-
-        print(f'Feeds merged: {is_merged_with_partner}')
+            num_superevent_items = len(opportunities_pair[event_type_pair.index('superevent')]['items'].keys())
+            num_subevent_items = len(opportunities_pair[event_type_pair.index('subevent')]['items'].keys())
+            num_partnered_superevent_items = len(superevent_id_v_subevent_ids.keys())
+            num_partnered_subevent_items = len(subevent_id_v_superevent_id.keys())
+            num_unpartnered_superevent_items = num_superevent_items - num_partnered_superevent_items
+            num_unpartnered_subevent_items = num_subevent_items - num_partnered_subevent_items
 
         # --------------------------------------------------------------------------------------------------
 
-        print('Running counts and adding entry to dataframe ...')
+        print(f'\tFile-1:')
+        print(f'\t\tName: {filename_pair[0]}')
+        print(f'\t\tLoaded: {opportunities_pair[0] is not None}')
+        print(f'\t\tEvent type: {event_type_pair[0]}')
+        print(f'\t\tFeed type: {feed_type_pair[0]}')
+        print(f'\t\tItem kinds: {item_kinds_counts_pair[0]}')
+        print(f'\t\tItem types: {item_types_counts_pair[0]}')
+
+        print(f'\tFile-2:')
+        print(f'\t\tName: {filename_pair[1]}')
+        print(f'\t\tLoaded: {opportunities_pair[1] is not None}')
+        print(f'\t\tEvent type: {event_type_pair[1]}')
+        print(f'\t\tFeed type: {feed_type_pair[1]}')
+        print(f'\t\tItem kinds: {item_kinds_counts_pair[1]}')
+        print(f'\t\tItem types: {item_types_counts_pair[1]}')
+
+        print(f'\tItem partnering:')
+        print(f'\t\tnum_superevent_items: {num_superevent_items}')
+        print(f'\t\tnum_subevent_items: {num_subevent_items}')
+        print(f'\t\tnum_partnered_superevent_items: {num_partnered_superevent_items}')
+        print(f'\t\tnum_partnered_subevent_items: {num_partnered_subevent_items}')
+        print(f'\t\tnum_unpartnered_superevent_items: {num_unpartnered_superevent_items}')
+        print(f'\t\tnum_unpartnered_subevent_items: {num_unpartnered_subevent_items}')
+
+        # --------------------------------------------------------------------------------------------------
+
+        t2 = datetime.now()
+        prepare_times.append((t2 - t1).total_seconds())
+
+        t1 = datetime.now()
+
+        print('Processing ...')
 
         for opportunity_idx, opportunities in enumerate(opportunities_pair):
             if (opportunities is None):
                 continue
 
-            try:
-                # Note that a future item is one for which there is at least one future start date. A given item could
-                # have more than one future start date in certain cases e.g. a superevent item with embedded future
-                # subevents, but such items are still classed as one future item. These numbers ultimately contribute
-                # to the future opportunities count on the front-end with this style of analysis i.e. we are in effect
-                # defining a future opportunity as an item with at least one future start date. A future opportunity
-                # could instead be defined as an occurrence of a future start date, in which case the analysis would
-                # need to be adjusted to suit. The embedded style to which this applies is not the dominant form of
-                # feed type, and so adjusting to accommodate this point may not alter the final numbers by a significant
-                # fraction, but there will be some effect.
-                future_item_ids, \
-                future_week_item_ids = get_future_item_ids(opportunities)
+            print(f'\tFile-{opportunity_idx + 1}:')
 
-                num_future_items = len(future_item_ids)
-                num_future_week_items = len(future_week_item_ids)
+            # --------------------------------------------------------------------------------------------------
 
-                if (num_future_week_items > 0):
-                    filenames_sampleitems[filename_pair[opportunity_idx]] = {
-                        item_id: opportunities['items'][item_id]
-                        for item_id in random.sample(future_week_item_ids, min(2, num_future_week_items))
-                    }
+            feed_num_items = len(opportunities['items'].keys())
+            feed_num_analysis_items = 0
 
-                separate_analysis.loc[len(separate_analysis)] = {
-                    'id': opportunities['feed']['id'],
-                    'name': opportunities['feed']['name'],
-                    'type': opportunities['feed']['type'],
-                    'url': opportunities['feed']['url'],
-                    'dataset_url': opportunities['feed']['dataset_url'],
-                    'discussion_url': opportunities['feed']['discussion_url'],
-                    'license_url': opportunities['feed']['license_url'],
-                    'logo_url': opportunities['feed']['logo_url'],
-                    'publisher_name': opportunities['feed']['publisher_name'],
+            feed_num_opportunity_start_dates = 0
+            feed_num_future_opportunity_start_dates = 0
+            feed_num_future_week_opportunity_start_dates = 0
 
-                    'file_name': filename_pair[opportunity_idx],
-                    'file_name_partner': filename_pair[1-opportunity_idx],
+            feed_num_opportunity_items = 0
+            feed_num_future_opportunity_items = 0
+            feed_num_future_week_opportunity_items = 0
 
-                    'event_type': event_type_pair[opportunity_idx],
-                    'event_type_partner': event_type_pair[1-opportunity_idx],
+            future_week_opportunity_item_ids = []
 
-                    'status': opportunities['status'],
-                    'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
-                    'is_merged_with_partner': is_merged_with_partner, # If this field is true, then this feed is the subevent feed and the partner feed is the superevent feed, which will not have an independent entry in this table. If a partner feed was identified but this field is false, this is because one or both of the feed event types were not unambiguously identified or merging was otherwise inhibited, including simply due to no item id matches being found.
+            merged_item_kinds_counts = {}
+            merged_item_types_counts = {}
+            organizer_names_counts = {}
+            activities_counts = {}
+            facilities_counts = {}
+            accessibilities_counts = {}
+            regions_counts = {}
+            districts_counts = {}
 
-                    'num_urls': opportunities['num_urls'],
-                    'num_items': len(opportunities['items'].keys()),
-                    'num_future_items': num_future_items,
-                    'num_future_week_items': num_future_week_items,
-                    'num_matched_superevent_items': num_matched_superevent_items,
-                    'num_matched_subevent_items': num_matched_subevent_items,
-                    'num_unmatched_superevent_items': num_unmatched_superevent_items,
-                    'num_unmatched_subevent_items': num_unmatched_subevent_items,
+            for item_idx, item in enumerate(opportunities['items'].values()):
+                # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
+                # you'll just end up with a long list of numbers if this is enabled:
+                # if (   ((item_idx + 1) % 10 == 0)
+                #     or ((item_idx + 1) == feed_num_items)
+                # ):
+                #     print(f'\t\tItem: {item_idx + 1}/{feed_num_items}', end=('\n' if ((item_idx + 1) == feed_num_items) else '\r'))
 
-                    # TODO: The counts obtained here are regardless of whether or not they're for future dates. May want to cater for this depending on how the data are to be displayed and interpreted:
-                    'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
-                    'item_data_types_counts': item_data_types_counts_pair[opportunity_idx],
-                    'organisers_counts': get_values_counts(opportunities, 'organizer', 'name'),
-                    'activities_counts': get_values_counts(opportunities, ['activity', 'facilityType'], 'prefLabel'), # Note that this returns prefLabels from both 'activity' and 'facilityType' lists, which are somewhat similar in use.
-                    'postcodes_counts': get_values_counts(opportunities, 'address', 'postalCode'),
-                    'latlons_counts': get_latlons_counts(opportunities),
+                # Leave this in play, we can and do have instances where an item has no data field, so this is a needed
+                # safety check:
+                item_data = item.get('data', {})
+
+                # --------------------------------------------------------------------------------------------------
+
+                # When
+
+                # Don't use .astimezone(tz.UTC) here - if there is a date but no time then it defaults to midnight,
+                # so giving e.g. '2025-06-18' would then be converted to '2025-06-17' by the tz.UTC conversion.
+
+                start_dates = []
+                for start_datetime in get_values(item_data, ['startDate', 'dateStart'], continue_to_next_layer=False):
+                    try:
+                        start_dates.append(parser.parse(start_datetime).date())
+                    except:
+                        pass
+
+                subevent_start_dates = []
+                for subevent_start_datetime in get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False):
+                    try:
+                        subevent_start_dates.append(parser.parse(subevent_start_datetime).date())
+                    except:
+                        pass
+
+                if (len(start_dates) > 0):
+                    start_date = start_dates[0] # There should only be one i.e. zeroth index
+                else:
+                    start_date = None
+
+                # Note that a superevent feed with a partnered subevent feed may nonetheless also have some embedded
+                # subevent items e.g. https://bookwhen.com/api/openactive/sessionseries. Not sure if this is totally
+                # kosher, but it is done.
+
+                # If looking for eventSchedule in further iterations of this code, take care that subEvent with startDate
+                # is not also present e.g. https://api.clubspark.uk/odi/public/courses
+
+                # --------------------------------------------------------------------------------------------------
+
+                # If this is a superevent item with subevents via ID and no subevents via embedding, then it will be
+                # wholly used and referred to by the subevents via ID, so we skip over it here as it is not something
+                # to separately analyse by itself:
+
+                if (    (event_type_pair[opportunity_idx] == 'superevent')
+                    and (item['id'] in superevent_id_v_subevent_ids.keys())
+                    and (len(subevent_start_dates) == 0)
+                ):
+                    continue
+
+                feed_num_analysis_items += 1
+
+                # --------------------------------------------------------------------------------------------------
+
+                # If this is a subevent item with a superevent partner, then we modify the subevent content with the
+                # contextual superevent info:
+
+                if (    (event_type_pair[opportunity_idx] == 'subevent')
+                    and (item['id'] in subevent_id_v_superevent_id.keys())
+                ):
+                    partner_item_id = subevent_id_v_superevent_id[item['id']]
+                    partner_item = opportunities_pair[1-opportunity_idx]['items'][partner_item_id]
+                    partner_item_data = partner_item.get('data', {})
+                else:
+                    partner_item = None
+
+                # --------------------------------------------------------------------------------------------------
+
+                item_kind = strip(item.get('kind', None))
+                item_type = strip(item_data.get('type', None) or item_data.get('@type', None))
+
+                if (partner_item is not None):
+                    # Define a new item kind and item type for these partnered items:
+                    partner_item_kind = strip(partner_item.get('kind', None))
+                    partner_item_type = strip(partner_item_data.get('type', None) or partner_item_data.get('@type', None))
+                    item_kind = '_x_'.join([str(item_kind), str(partner_item_kind)])
+                    item_type = '_x_'.join([str(item_type), str(partner_item_type)])
+
+                # --------------------------------------------------------------------------------------------------
+
+                # Who
+
+                # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
+
+                organizer_names = get_values(item_data, 'organizer', 'name')
+
+                try:
+                    organizer_name = strip(organizer_names[0])
+                except:
+                    organizer_name = None
+
+                if (    (partner_item is not None)
+                    and (organizer_name is None)
+                ):
+                    partner_organizer_names = get_values(partner_item_data, 'organizer', 'name')
+                    try:
+                        organizer_name = strip(partner_organizer_names[0])
+                    except:
+                        organizer_name = None
+
+                # --------------------------------------------------------------------------------------------------
+
+                # What
+
+                activities = list(set([strip(value) for value in get_values(item_data, 'activity', 'prefLabel')]))
+                if (partner_item is not None):
+                    partner_activities = list(set([strip(value) for value in get_values(partner_item_data, 'activity', 'prefLabel')]))
+                    activities = list(set(activities + partner_activities))
+                if (len(activities) == 0):
+                    activities = [None]
+
+                facilities = list(set([strip(value) for value in get_values(item_data, 'facilityType', 'prefLabel')]))
+                if (partner_item is not None):
+                    partner_facilities = list(set([strip(value) for value in get_values(partner_item_data, 'facilityType', 'prefLabel')]))
+                    facilities = list(set(facilities + partner_facilities))
+                if (len(facilities) == 0):
+                    facilities = [None]
+
+                accessibilities = list(set([strip(value) for value in get_values(item_data, 'accessibilitySupport', 'prefLabel')]))
+                if (partner_item is not None):
+                    partner_accessibilities = list(set([strip(value) for value in get_values(partner_item_data, 'accessibilitySupport', 'prefLabel')]))
+                    accessibilities = list(set(accessibilities + partner_accessibilities))
+                if (len(accessibilities) == 0):
+                    accessibilities = [None]
+
+                # --------------------------------------------------------------------------------------------------
+
+                # Where
+
+                # If we get multiple values back (not expected but possible), use the first only i.e. zeroth index:
+
+                # Note that the point-by-point region/district mapping is slower than the bulk sjoin approach on GeoPandas
+                # dataframe input but much more accurate. The more data given to the bulk sjoin approach, the fewer
+                # entries are matched. If there is a future need to use the bulk sjoin approach, it may be possible
+                # to improve performance by twiddling gpd settings. Search for gpd.sjoin inaccuracies for info.
+
+                locations = get_values(item_data, 'location')
+                try:
+                    postcode = strip(locations[0]['address']['postalCode'])
+                except:
+                    postcode = None
+                try:
+                    latitude = round(float(locations[0]['geo']['latitude']), 6)
+                except:
+                    latitude = None
+                try:
+                    longitude = round(float(locations[0]['geo']['longitude']), 6)
+                except:
+                    longitude = None
+
+                region = None
+                district = None
+                if (    (longitude is not None)
+                    and (latitude is not None)
+                ):
+                    try:
+                        point = gpd.points_from_xy(
+                            [longitude],
+                            [latitude]
+                        )[0]
+                    except:
+                        point = None
+                    if (point is not None):
+                        try:
+                            region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
+                        except:
+                            pass
+                        try:
+                            district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
+                        except:
+                            pass
+
+                if (    (partner_item is not None)
+                    and (   (postcode is None)
+                        or  (latitude is None)
+                        or  (longitude is None)
+                        or  (region is None)
+                        or  (district is None) )
+                ):
+                    partner_locations = get_values(partner_item_data, 'location')
+                    try:
+                        partner_postcode = strip(partner_locations[0]['address']['postalCode'])
+                    except:
+                        partner_postcode = None
+                    try:
+                        partner_latitude = round(float(partner_locations[0]['geo']['latitude']), 6)
+                    except:
+                        partner_latitude = None
+                    try:
+                        partner_longitude = round(float(partner_locations[0]['geo']['longitude']), 6)
+                    except:
+                        partner_longitude = None
+
+                    partner_region = None
+                    partner_district = None
+                    if (    (partner_longitude is not None)
+                        and (partner_latitude is not None)
+                    ):
+                        try:
+                            point = gpd.points_from_xy(
+                                [partner_longitude],
+                                [partner_latitude]
+                            )[0]
+                        except:
+                            point = None
+                        if (point is not None):
+                            try:
+                                partner_region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
+                            except:
+                                pass
+                            try:
+                                partner_district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
+                            except:
+                                pass
+
+                    if (    (postcode is None)
+                        and (partner_postcode is not None)
+                    ):
+                        postcode = partner_postcode
+                    if (    (latitude is None)
+                        and (partner_latitude is not None)
+                    ):
+                        latitude = partner_latitude
+                    if (    (longitude is None)
+                        and (partner_longitude is not None)
+                    ):
+                        longitude = partner_longitude
+                    if (    (region is None)
+                        and (partner_region is not None)
+                    ):
+                        region = partner_region
+                    if (    (district is None)
+                        and (partner_district is not None)
+                    ):
+                        district = partner_district
+
+                # --------------------------------------------------------------------------------------------------
+
+                # Regardless of classification of this item as a superevent or subevent, if there are embedded subevent
+                # start dates then these are likely to be the ones we want for the individual sessions/slots which
+                # are usually thought of as the individual "opportunities". If we don't have such start dates, then
+                # we choose to accept root level start dates from subevents only, as those from superevents are (or
+                # should be) for the start of a set of sessions/slots, which, as just indicated, are not usually thought
+                # of as the individual "opportunities". We therefore have a distinction between:
+                #     1) Item - any item of any superevent/subevent classification and any content
+                #     2) Future item - an item with at least one future start date, either at the root level or from
+                #        embedded subevents
+                #     3) Opportunity item - a superevent/subevent item with embedded subevent start dates, or a subevent
+                #        with a root level start date
+                #     4) Future opportunity item - an opportunity item with at least one future start date, either
+                #        at the root level or from embedded subevents
+                # Ultimately, it is the future opportunity items that we end up counting below. We also count the start
+                # dates and future start dates, and it may be preferable to re-cast the sense of "an opportunity" from
+                # an item to an instance of a start date within an item. TODO: Consider this and adjust accordingly.
+
+                if (len(subevent_start_dates) > 0):
+                    opportunity_start_dates = subevent_start_dates
+                elif (  (event_type_pair[opportunity_idx] == 'subevent')
+                    and (start_date is not None)
+                ):
+                    opportunity_start_dates = [start_date]
+                else:
+                    opportunity_start_dates = None
+
+                if (opportunity_start_dates is not None):
+                    num_opportunity_start_dates = len(opportunity_start_dates)
+                    num_future_opportunity_start_dates = len([
+                        opportunity_start_date
+                        for opportunity_start_date in opportunity_start_dates
+                        if (opportunity_start_date >= todays_date)
+                    ])
+                    num_future_week_opportunity_start_dates = len([
+                        opportunity_start_date
+                        for opportunity_start_date in opportunity_start_dates
+                        if (    (opportunity_start_date >= todays_date)
+                            and (opportunity_start_date < next_weeks_date) )
+                    ])
+                else:
+                    num_opportunity_start_dates = 0
+                    num_future_opportunity_start_dates = 0
+                    num_future_week_opportunity_start_dates = 0
+
+                feed_num_opportunity_start_dates += num_opportunity_start_dates
+                feed_num_future_opportunity_start_dates += num_future_opportunity_start_dates
+                feed_num_future_week_opportunity_start_dates += num_future_week_opportunity_start_dates
+
+                if (num_opportunity_start_dates > 0):
+                    feed_num_opportunity_items += 1
+                if (num_future_opportunity_start_dates > 0):
+                    feed_num_future_opportunity_items += 1
+                if (num_future_week_opportunity_start_dates > 0):
+                    feed_num_future_week_opportunity_items += 1
+                    future_week_opportunity_item_ids.append(item['id'])
+
+                # --------------------------------------------------------------------------------------------------
+
+                update_values_counts(merged_item_kinds_counts, item_kind)
+                update_values_counts(merged_item_types_counts, item_type)
+
+                update_values_counts(organizer_names_counts, organizer_name)
+
+                for activity in activities:
+                    update_values_counts(activities_counts, activity)
+
+                for facility in facilities:
+                    update_values_counts(facilities_counts, facility)
+
+                for accessibility in accessibilities:
+                    update_values_counts(accessibilities_counts, accessibility)
+
+                update_values_counts(regions_counts, region)
+                update_values_counts(districts_counts, district)
+
+            # --------------------------------------------------------------------------------------------------
+
+            if (opportunities_pair[1-opportunity_idx] is not None):
+                partner_feed_id = opportunities_pair[1-opportunity_idx]['feed']['id']
+            else:
+                partner_feed_id = None
+
+            if (feed_num_future_week_opportunity_items > 0):
+                filenames_sampleitems[filename_pair[opportunity_idx]] = {
+                    item_id: opportunities['items'][item_id]
+                    for item_id in random.sample(future_week_opportunity_item_ids, min(2, feed_num_future_week_opportunity_items))
                 }
 
-            except Exception as error:
-                print('ERROR:', error)
+            feeds.loc[len(feeds)] = {
+                'feed_id': opportunities['feed']['id'],
+                'partner_feed_id': partner_feed_id,
+                'file_name': filename_pair[opportunity_idx],
+                'dataset_name': opportunities['feed']['dataset_name'],
+                'publisher_name': opportunities['feed']['publisher_name'],
+
+                'feed_url': opportunities['feed']['url'],
+                'dataset_url': opportunities['feed']['dataset_url'],
+                'discussion_url': opportunities['feed']['discussion_url'],
+                'license_url': opportunities['feed']['license_url'],
+                'logo_url': opportunities['feed']['logo_url'],
+
+                'status': opportunities['status'],
+                'is_regular': filename_pair[opportunity_idx].startswith(REGULAR_OPPORTUNITIES_FILENAME_BASE),
+                'event_type': event_type_pair[opportunity_idx],
+                'feed_type': opportunities['feed']['type'],
+                'item_kinds_counts': item_kinds_counts_pair[opportunity_idx],
+                'item_types_counts': item_types_counts_pair[opportunity_idx],
+                'merged_item_kinds_counts': merged_item_kinds_counts,
+                'merged_item_types_counts': merged_item_types_counts,
+
+                'organizer_names_counts': organizer_names_counts,
+                'activities_counts': activities_counts,
+                'facilities_counts': facilities_counts,
+                'accessibilities_counts': accessibilities_counts,
+                'regions_counts': regions_counts,
+                'districts_counts': districts_counts,
+
+                'num_items': feed_num_items,
+                'num_analysis_items': feed_num_analysis_items,
+
+                'num_partnered_items':
+                    num_partnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
+                    else num_partnered_subevent_items if (event_type_pair[opportunity_idx] == 'subevent')
+                    else None,
+                'num_unpartnered_items':
+                    num_unpartnered_superevent_items if (event_type_pair[opportunity_idx] == 'superevent')
+                    else num_unpartnered_subevent_items if (event_type_pair[opportunity_idx] == 'subevent')
+                    else None,
+
+                'num_opportunity_start_dates': feed_num_opportunity_start_dates,
+                'num_future_opportunity_start_dates': feed_num_future_opportunity_start_dates,
+                'num_future_week_opportunity_start_dates': feed_num_future_week_opportunity_start_dates,
+
+                'num_opportunity_items': feed_num_opportunity_items,
+                'num_future_opportunity_items': feed_num_future_opportunity_items,
+                'num_future_week_opportunity_items': feed_num_future_week_opportunity_items,
+            }
 
         # --------------------------------------------------------------------------------------------------
 
+        t2 = datetime.now()
+        process_times.append((t2 - t1).total_seconds())
+
+        print(f'Time taken:')
+        print(f'\tPrepare: {round(prepare_times[-1], 6)} seconds')
+        print(f'\tProcess: {round(process_times[-1], 6)} seconds')
         print('--------------------------------------------------')
 
     # --------------------------------------------------------------------------------------------------
 
-    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SEPARATE_ANALYSIS_FILENAME, 'wb') as file_out:
-        pickle.dump(separate_analysis, file_out)
+    t2_overall = datetime.now()
 
+    total_prepare_time = sum(prepare_times)
+    total_process_time = sum(process_times)
+    total_prepare_process_time = total_prepare_time + total_process_time
+
+    print(f'Time taken for all file pairs:')
+    print(f'\tPrepare:')
+    print(f'\t\tsum({prepare_times})')
+    print(f'\t\t= {round(total_prepare_time, 6)} seconds')
+    print(f'\t\t= {round(total_prepare_time / 60, 2)} minutes')
+    print(f'\t\t= {round(total_prepare_time / (60 * 60), 2)} hours') # ~??? on M1 8GB MacBook Air
+    print(f'\tProcess:')
+    print(f'\t\tsum({process_times})')
+    print(f'\t\t= {round(total_process_time, 6)} seconds')
+    print(f'\t\t= {round(total_process_time / 60, 2)} minutes')
+    print(f'\t\t= {round(total_process_time / (60 * 60), 2)} hours') # ~??? on M1 8GB MacBook Air
+    print(f'\tPrepare + Process (from summing individual times):')
+    print(f'\t\t  {round(total_prepare_process_time, 6)} seconds')
+    print(f'\t\t= {round(total_prepare_process_time / 60, 2)} minutes')
+    print(f'\t\t= {round(total_prepare_process_time / (60 * 60), 2)} hours') # ~??? on M1 8GB MacBook Air
+    print(f'\tPrepare + Process (from overall start and end times):')
+    print(f'\t\t  {t2_overall - t1_overall}') # ~??? on M1 8GB MacBook Air
+    print('--------------------------------------------------')
+
+    # --------------------------------------------------------------------------------------------------
+
+    print('Writing out separate feed analysis ...')
+
+    t1 = datetime.now()
+    with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SEPARATE_ANALYSIS_FILENAME, 'wb') as file_out:
+        pickle.dump(feeds, file_out)
+    t2 = datetime.now()
+    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
+
+    # --------------------------------------------------------------------------------------------------
+
+    print('Writing out sample items ...')
+
+    t1 = datetime.now()
     with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'wb') as file_out:
         pickle.dump(filenames_sampleitems, file_out)
-
-# --------------------------------------------------------------------------------------------------
-
-def get_future_item_ids(opportunities):
-    future_item_ids = []
-    future_week_item_ids = []
-
-    todays_date = datetime.now(tz=tz.UTC).date()
-    next_weeks_date = todays_date + timedelta(days=7)
-
-    for item_id, item in opportunities['items'].items():
-        start_dates = get_start_dates(item)
-        future_start_dates = [
-            start_date
-            for start_date in start_dates
-            if start_date >= todays_date
-        ]
-        future_week_start_dates = [
-            start_date
-            for start_date in future_start_dates
-            if start_date < next_weeks_date
-        ]
-        if (len(future_start_dates) > 0):
-            future_item_ids.append(item_id)
-        if (len(future_week_start_dates) > 0):
-            future_week_item_ids.append(item_id)
-
-    return future_item_ids, future_week_item_ids
-
-# --------------------------------------------------------------------------------------------------
-
-def get_start_dates(item):
-    start_dates = []
-
-    if ('data' in item.keys()):
-        start_datetimes = []
-
-        if (    ('subEvent' in item['data'].keys())
-            and (isinstance(item['data']['subEvent'], list))
-        ):
-            for subevent in item['data']['subEvent']:
-                if (isinstance(subevent, dict)):
-                    if ('startDate' in subevent.keys()):
-                        start_datetimes.append(subevent['startDate'])
-                    elif ('dateStart' in subevent.keys()):
-                        start_datetimes.append(subevent['dateStart'])
-        elif ('startDate' in item['data'].keys()):
-            start_datetimes.append(item['data']['startDate'])
-        elif ('dateStart' in item['data'].keys()):
-            start_datetimes.append(item['data']['dateStart'])
-
-        for start_datetime in start_datetimes:
-            try:
-                start_dates.append(parser.parse(start_datetime).astimezone(tz.UTC).date())
-            except:
-                pass
-
-    return start_dates
-
-# --------------------------------------------------------------------------------------------------
-
-def get_values_counts(opportunities, sought_parent_keys, sought_child_keys=None):
-    values_counts = {}
-
-    for item in opportunities['items'].values():
-        values = get_values(item, sought_parent_keys, sought_child_keys)
-        for value in values:
-            if (isinstance(value, dict)):
-                value = json.dumps(value)
-            elif (not isinstance(value, str)):
-                value = str(value)
-            value = value.strip()
-            if (value not in values_counts.keys()):
-                values_counts[value] = 1
-            else:
-                values_counts[value] += 1
-
-    return values_counts
+    t2 = datetime.now()
+    print(f'\tTime taken: {t2 - t1}') # ~??? (~???MB) on M1 8GB MacBook Air
 
 # --------------------------------------------------------------------------------------------------
 
@@ -463,40 +784,28 @@ def get_values(data, sought_parent_keys, sought_child_keys=None, continue_to_nex
 
 # --------------------------------------------------------------------------------------------------
 
-def get_latlons_counts(opportunities):
-    latlons_counts = {}
-
-    for item in opportunities['items'].values():
-        latlon = get_latlon(item)
-        if (latlon):
-            if (latlon not in latlons_counts.keys()):
-                latlons_counts[latlon] = 1
-            else:
-                latlons_counts[latlon] += 1
-
-    return latlons_counts
+def update_values_counts(values_counts, key):
+    if (key not in values_counts.keys()):
+        values_counts[key] = 1
+    else:
+        values_counts[key] += 1
 
 # --------------------------------------------------------------------------------------------------
 
-def get_latlon(data):
-    latlon = ''
+def strip(value):
+    if (value is not None):
+        return str(value).strip()
+    else:
+        return value
 
-    for key, val in data.items():
-        if (    (key == 'geo')
-            and (isinstance(val, dict))
-            and ('latitude' in val.keys())
-            and ('longitude' in val.keys())
-        ):
-            try:
-                latlon = ','.join([
-                    str(round(float(val['latitude']), 6)),
-                    str(round(float(val['longitude']), 6))
-                ])
-            except:
-                pass
-        elif (isinstance(val, dict)):
-            latlon = get_latlon(val)
-        if (latlon):
-            break
+# --------------------------------------------------------------------------------------------------
 
-    return latlon
+if (__name__ == '__main__'):
+    try:
+        analyse_separate_opportunities()
+    except Exception as error:
+        print('ERROR:', error)
+
+    # --------------------------------------------------------------------------------------------------
+
+    print('\nFinished')

@@ -145,7 +145,7 @@ with tabs[idx_tab]:
     with cols[1]:
         st.metric(
             'Live opportunities over the next 7 days',
-            f"{st.session_state.aggregate_analysis['total_num_future_week_items']:,}",
+            f"{st.session_state.aggregate_analysis['total_num_future_week_opportunity_items']:,}",
         )
 
     st.divider()
@@ -259,11 +259,11 @@ with tabs[idx_tab]:
     cols = st.columns([1, 2])
     with cols[0]:
         st.dataframe(
-            st.session_state.aggregate_analysis['df_total_organisers_counts'],
+            st.session_state.aggregate_analysis['df_total_organizer_names_counts'],
             use_container_width=True,
             hide_index=True,
             column_config={
-                'organiser': 'OA organiser',
+                'organizer': 'OA organiser',
                 'count': 'Num. opportunities',
                 'percentage': st.column_config.NumberColumn(
                     '% opportunities',
@@ -271,14 +271,14 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. organisers: {st.session_state.aggregate_analysis['total_num_organisers']:,}")
-        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_organisers']:,}")
+        st.write(f"Num. organisers: {st.session_state.aggregate_analysis['total_num_organizer_names']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_organizer_names']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(10, 5))
         sns.barplot(
-            st.session_state.aggregate_analysis['df_total_organisers_counts'][:st.session_state.num_activities_top],
+            st.session_state.aggregate_analysis['df_total_organizer_names_counts'][:st.session_state.num_activities_top],
             x='count',
-            y='organiser',
+            y='organizer',
             ax=ax,
         )
         ax.set_xlabel('Num. opportunities')
@@ -332,7 +332,7 @@ with tabs[idx_tab]:
     cols = st.columns(3)
     with cols[0]:
         st.dataframe(
-            st.session_state.aggregate_analysis['gdf_total_lads_counts'][['LAD24NM', 'count', 'percentage']],
+            st.session_state.aggregate_analysis['gdf_total_districts_counts'][['LAD24NM', 'count', 'percentage']],
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -344,11 +344,11 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. locations: {st.session_state.aggregate_analysis['total_num_lads']:,}")
-        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_lads']:,}")
+        st.write(f"Num. locations: {st.session_state.aggregate_analysis['total_num_districts']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_districts']:,}")
     with cols[1]:
         fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-        st.session_state.aggregate_analysis['gdf_total_lads_counts'].plot(
+        st.session_state.aggregate_analysis['gdf_total_districts_counts'].plot(
             column='percentage',
             # cmap='YlOrRd',
             cmap='inferno_r',
@@ -387,11 +387,11 @@ with tabs[idx_tab]:
         st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_kinds']:,}")
     with cols[1]:
         st.dataframe(
-            st.session_state.aggregate_analysis['df_total_item_data_types_counts'],
+            st.session_state.aggregate_analysis['df_total_item_types_counts'],
             use_container_width=True,
             hide_index=True,
             column_config={
-                'item_data_type': 'OA item data type',
+                'item_type': 'OA item type',
                 'count': 'Num. opportunities',
                 'percentage': st.column_config.NumberColumn(
                     '% opportunities',
@@ -399,8 +399,8 @@ with tabs[idx_tab]:
                 ),
             },
         )
-        st.write(f"Num. item data types: {st.session_state.aggregate_analysis['total_num_item_data_types']:,}")
-        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_data_types']:,}")
+        st.write(f"Num. item types: {st.session_state.aggregate_analysis['total_num_item_types']:,}")
+        st.write(f"Num. opportunities: {st.session_state.aggregate_analysis['total_num_items_with_types']:,}")
 
 # --------------------------------------------------------------------------------------------------
 
