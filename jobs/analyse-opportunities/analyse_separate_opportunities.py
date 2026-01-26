@@ -25,6 +25,12 @@ def analyse_separate_opportunities(**kwargs):
     gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_DISTRICTS_FILENAME)
     gdf_districts = gdf_districts.to_crs(4326)
 
+    gdf_parishes = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_PARISHES_FILENAME)
+    gdf_parishes = gdf_parishes.to_crs(4326)
+
+    gdf_gps = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_GPS_FILENAME)
+    gdf_gps = gdf_gps.to_crs(4326)
+
     todays_date = datetime.now().date()
     # todays_date = datetime(2026,1,6).date() # Use this to set to a fixed date if needed for testing e.g. running on the same input data but working over multiple days
     next_weeks_date = todays_date + timedelta(days=7)
@@ -95,6 +101,8 @@ def analyse_separate_opportunities(**kwargs):
         'accessibilities_counts', # {STR: INT}
         'regions_counts', # {STR: INT}
         'districts_counts', # {STR: INT}
+        'parishes_counts', # {STR: INT}
+        'gps_counts', # {STR: INT}
 
         'num_items', # INT
         'num_analysis_items', # INT
@@ -303,6 +311,8 @@ def analyse_separate_opportunities(**kwargs):
             accessibilities_counts = {}
             regions_counts = {}
             districts_counts = {}
+            parishes_counts = {}
+            gps_counts = {}
 
             for item_idx, item in enumerate(opportunities['items'].values()):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
@@ -463,6 +473,8 @@ def analyse_separate_opportunities(**kwargs):
 
                 region = None
                 district = None
+                parish = None
+                gp = None
                 if (    (longitude is not None)
                     and (latitude is not None)
                 ):
@@ -482,13 +494,24 @@ def analyse_separate_opportunities(**kwargs):
                             district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
                         except:
                             pass
+                        try:
+                            parish = gdf_parishes['PARNCP25NM'][list(gdf_parishes.contains(point)).index(True)]
+                        except:
+                            pass
+                        try:
+                            gp = gdf_gps['Name'][list(gdf_gps.contains(point)).index(True)]
+                        except:
+                            pass
 
                 if (    (partner_item is not None)
                     and (   (postcode is None)
                         or  (latitude is None)
                         or  (longitude is None)
                         or  (region is None)
-                        or  (district is None) )
+                        or  (district is None) 
+                        or  (parish is None)
+                        or  (gp is None)
+                        )
                 ):
                     partner_locations = get_values(partner_item_data, 'location')
                     try:
@@ -506,6 +529,8 @@ def analyse_separate_opportunities(**kwargs):
 
                     partner_region = None
                     partner_district = None
+                    partner_parish = None
+                    partner_gp = None
                     if (    (partner_longitude is not None)
                         and (partner_latitude is not None)
                     ):
@@ -523,6 +548,14 @@ def analyse_separate_opportunities(**kwargs):
                                 pass
                             try:
                                 partner_district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
+                            except:
+                                pass
+                            try:
+                                partner_parish = gdf_parishes['PARNCP25NM'][list(gdf_parishes.contains(point)).index(True)]
+                            except:
+                                pass
+                            try:
+                                partner_gp = gdf_gps['Name'][list(gdf_gps.contains(point)).index(True)]
                             except:
                                 pass
 
@@ -546,6 +579,14 @@ def analyse_separate_opportunities(**kwargs):
                         and (partner_district is not None)
                     ):
                         district = partner_district
+                    if (    (parish is None)
+                        and (partner_parish is not None)
+                    ):
+                        parish = partner_parish
+                    if (    (gp is None)
+                        and (partner_gp is not None)
+                    ):
+                        gp = partner_gp
 
                 # --------------------------------------------------------------------------------------------------
 
@@ -623,6 +664,8 @@ def analyse_separate_opportunities(**kwargs):
 
                 update_values_counts(regions_counts, region)
                 update_values_counts(districts_counts, district)
+                update_values_counts(parishes_counts, parish)
+                update_values_counts(gps_counts, gp)
 
             # --------------------------------------------------------------------------------------------------
 
@@ -665,6 +708,8 @@ def analyse_separate_opportunities(**kwargs):
                 'accessibilities_counts': accessibilities_counts,
                 'regions_counts': regions_counts,
                 'districts_counts': districts_counts,
+                'parishes_counts': parishes_counts,
+                'gps_counts': gps_counts,
 
                 'num_items': feed_num_items,
                 'num_analysis_items': feed_num_analysis_items,
