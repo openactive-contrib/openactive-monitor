@@ -434,9 +434,12 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
             'future_items': stats['future_items'],
             'future_week_items': stats['future_week_items'],
             'organisation_count': len(stats['organisations']),
+            'unique_organisations': json.dumps(list(stats['organisations'])),
+            'activity_count': len(stats['activities']),
+            'unique_activities': json.dumps(list(stats['activities'])),
             'place_count': len(stats['places']),
             'facility_count': len(stats['facilities']),
-            'activity_count': len(stats['activities']),
+            'unique_facilities': json.dumps(list(stats['facilities'])),
             'future_week_activities_breakdown': json.dumps(activities_breakdown) if activities_breakdown else '{}',
             'future_week_age_range_breakdown': json.dumps(age_range_breakdown) if age_range_breakdown else '{}',
             'future_event_types': json.dumps(future_event_types) if future_event_types else '{}',
@@ -857,6 +860,9 @@ def main(geojson_path, name_property, filter_names, output_folder, verbose):
             -g ../volume-1/data-analysis/000-location-regions.geojson \\
             -n eer18nm \\
             -o ./output -v
+    \b
+        # Analyse districts
+        python analyse_location_feed.py -g ../volume-1/data-analysis/000-location-districts.geojson -n LAD24NM -o ./output4 -v
     """
     
     filter_list = list(filter_names) if filter_names else None
