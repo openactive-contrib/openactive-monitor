@@ -86,6 +86,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
             'activities': set(),
             'future_week_activities_breakdown': defaultdict(int),
             'future_week_age_range_breakdown': defaultdict(int),
+            'future_event_types': defaultdict(int),
         }
         for region_name in region_names
     }
@@ -102,6 +103,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
         'activities': set(),
         'future_week_activities_breakdown': defaultdict(int),
         'future_week_age_range_breakdown': defaultdict(int),
+        'future_event_types': defaultdict(int),
     }
     
     # Add a "no_location" category for items without location data
@@ -116,6 +118,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
         'activities': set(),
         'future_week_activities_breakdown': defaultdict(int),
         'future_week_age_range_breakdown': defaultdict(int),
+        'future_event_types': defaultdict(int),
     }
     
     # --------------------------------------------------------------------------------------------------
@@ -127,6 +130,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
     
     t1_overall = datetime.now()
     
+    count = 0
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
         
         if verbose:
@@ -354,6 +358,9 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                 
                 if is_future:
                     stats['future_items'] += 1
+                    # Track item kind breakdown
+                    item_kind = item_data.get('@type') or item_data.get('type', 'Unknown')
+                    stats['future_event_types'][item_kind] += 1
                 
                 if is_future_week:
                     stats['future_week_items'] += 1
@@ -383,6 +390,11 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                 for facility in facilities:
                     if facility:
                         stats['facilities'].add(facility)
+
+        # Test with limited files
+        # count += 1
+        # if count == 10:
+        #     break
     
     # --------------------------------------------------------------------------------------------------
     
@@ -410,6 +422,11 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
             key=lambda x: x[1],
             reverse=True
         ))
+        future_event_types = dict(sorted(
+            stats['future_event_types'].items(),
+            key=lambda x: x[1],
+            reverse=True
+        ))
         
         output_data.append({
             'region_name': stats['region_name'],
@@ -422,6 +439,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
             'activity_count': len(stats['activities']),
             'future_week_activities_breakdown': json.dumps(activities_breakdown) if activities_breakdown else '{}',
             'future_week_age_range_breakdown': json.dumps(age_range_breakdown) if age_range_breakdown else '{}',
+            'future_event_types': json.dumps(future_event_types) if future_event_types else '{}',
         })
     
     # Sort by region name, but put special categories at the end
@@ -443,6 +461,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
         'activity_count',
         'future_week_activities_breakdown',
         'future_week_age_range_breakdown',
+        'future_event_types',
     ]
     
     with open(summary_csv_path, 'w', newline='', encoding='utf-8') as f:
@@ -472,6 +491,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
         'items_per_place',
         'future_week_activities_breakdown',
         'future_week_age_range_breakdown',
+        'future_event_types',
     ]
     
     detailed_data = []
@@ -496,6 +516,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
             'items_per_place': round(total / place_count, 2) if place_count > 0 else 0,
             'future_week_activities_breakdown': row['future_week_activities_breakdown'],
             'future_week_age_range_breakdown': row['future_week_age_range_breakdown'],
+            'future_event_types': row['future_event_types'],
         })
     
     with open(details_csv_path, 'w', newline='', encoding='utf-8') as f:
