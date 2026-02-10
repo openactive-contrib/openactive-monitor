@@ -743,7 +743,11 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                     details['longitude'], details['latitude'],
                     region_name, region_stats
                 )
-                if stats_key is None:
+                if stats_key == '_NO_LOCATION':
+                    # TODO: Offers don't have location - they have `facilityUse` and it has location
+                    # if verbose:
+                    #     print(f'Unknown location in file: {filename}')
+                    #     print(f'NO LOCATION: {json.dumps(item_data, indent=2, default=str)}')
                     continue  # Region was filtered out
                 
                 # Update stats
