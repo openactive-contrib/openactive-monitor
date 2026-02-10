@@ -1,4 +1,4 @@
-# Data sources
+# Geojson Data sources
 
 ## GPs Geojson
 
@@ -19,3 +19,8 @@ TRUST CODES:
 
 Parishes and Non Civil Parished Areas (December 2025) Boundaries EW BGC: 
 https://geoportal.statistics.gov.uk/datasets/cd3b50b6364c46df825b8c764236ad76_0/explore?location=52.290914%2C-1.520250%2C12.94
+
+# Population Data Sources
+
+District populations:
+https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/datasets/estimatesofthepopulationforenglandandwales?utm_source=chatgpt.com

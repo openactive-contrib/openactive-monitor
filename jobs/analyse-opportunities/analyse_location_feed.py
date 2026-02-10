@@ -18,7 +18,8 @@ from settings import *
 
 # --------------------------------------------------------------------------------------------------
 
-def analyse_location_feed(geojson_path, name_property, output_folder, filter_names=None, verbose=False):
+def analyse_location_feed(geojson_path, name_property, output_folder, filter_names=None, verbose=False,
+                          population_csv=None, population_label_column=None, population_value_column=None):
     """
     Analyse opportunities data by geographic regions defined in a GeoJSON file.
     
@@ -28,6 +29,9 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
         output_folder: Path to output folder for CSV files
         filter_names: Optional list of region names to filter (None = all regions)
         verbose: Whether to print verbose output
+        population_csv: Optional path to population CSV file
+        population_label_column: Column name in population CSV containing region names
+        population_value_column: Column name in population CSV containing population values
     
     Returns:
         Dictionary with analysis results per region
@@ -38,6 +42,35 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
     print(f'Output folder: {output_folder}')
     if filter_names:
         print(f'Filtering to regions: {filter_names}')
+    
+    # --------------------------------------------------------------------------------------------------
+    
+    # Load population data if provided
+    population_lookup = {}
+    if population_csv:
+        if not population_label_column or not population_value_column:
+            raise ValueError('Both --population-label-column and --population-value-column must be specified when using --population-csv')
+        
+        print(f'Loading population data from: {population_csv}')
+        pop_df = pd.read_csv(population_csv)
+        
+        if population_label_column not in pop_df.columns:
+            raise ValueError(f"Label column '{population_label_column}' not found in population CSV. Available columns: {list(pop_df.columns)}")
+        if population_value_column not in pop_df.columns:
+            raise ValueError(f"Population column '{population_value_column}' not found in population CSV. Available columns: {list(pop_df.columns)}")
+        
+        # Create case-insensitive lookup dictionary
+        for _, row in pop_df.iterrows():
+            label = str(row[population_label_column]).strip().lower()
+            try:
+                # Remove commas from numbers like "9,089,736"
+                value_str = str(row[population_value_column]).replace(',', '')
+                population_lookup[label] = float(value_str)
+            except (ValueError, TypeError):
+                if verbose:
+                    print(f"  Warning: Could not parse population value for '{row[population_label_column]}'")
+        
+        print(f'  Loaded population data for {len(population_lookup)} regions')
     
     # --------------------------------------------------------------------------------------------------
     
@@ -284,22 +317,8 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                 # Try to get ageRange from item_data
                 age_range_data = get_values(item_data, 'ageRange')
                 for ar in age_range_data:
-                    # if isinstance(ar, dict):
-                    #     min_age = ar.get('minValue') or ar.get('minvalue')
-                    #     max_age = ar.get('maxValue') or ar.get('maxvalue')
-                    #     if min_age is not None or max_age is not None:
-                    #         age_range_str = f"{min_age or '?'}-{max_age or '?'}"
-                    #         age_ranges.append(age_range_str)
                     if isinstance(ar, str):
                         age_ranges.append(strip(ar))
-                
-                # Also check for specific age fields
-                # if not age_ranges:
-                #     min_age = item_data.get('minAge') or item_data.get('minimumAge')
-                #     max_age = item_data.get('maxAge') or item_data.get('maximumAge')
-                #     if min_age is not None or max_age is not None:
-                #         age_range_str = f"{min_age or '?'}-{max_age or '?'}"
-                #         age_ranges.append(age_range_str)
                 
                 age_ranges = list(set(age_ranges)) if age_ranges else ['Unknown']
                 
@@ -392,9 +411,9 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                         stats['facilities'].add(facility)
 
         # Test with limited files
-        # count += 1
-        # if count == 10:
-        #     break
+        count += 1
+        if count == 2:
+            break
     
     # --------------------------------------------------------------------------------------------------
     
@@ -428,11 +447,24 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
             reverse=True
         ))
         
+        # Look up population (case insensitive)
+        region_name_lower = stats['region_name'].lower()
+        population = population_lookup.get(region_name_lower)
+        future_items = stats['future_items']
+        
+        # Calculate activities per 1k population
+        if population and population > 0:
+            activities_per_1k = round((future_items / population) * 1000, 4)
+        else:
+            activities_per_1k = None
+        
         output_data.append({
             'region_name': stats['region_name'],
             'total_items': stats['total_items'],
-            'future_items': stats['future_items'],
+            'future_items': future_items,
             'future_week_items': stats['future_week_items'],
+            'population': population,
+            'activities_per_1k': activities_per_1k,
             'organisation_count': len(stats['organisations']),
             'unique_organisations': json.dumps(list(stats['organisations'])),
             'activity_count': len(stats['activities']),
@@ -458,10 +490,15 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
         'total_items',
         'future_items',
         'future_week_items',
+        'population',
+        'activities_per_1k',
         'organisation_count',
+        'unique_organisations',
+        'activity_count',
+        'unique_activities',
         'place_count',
         'facility_count',
-        'activity_count',
+        'unique_facilities',
         'future_week_activities_breakdown',
         'future_week_age_range_breakdown',
         'future_event_types',
@@ -486,12 +523,16 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
         'future_week_items',
         'past_items',
         'future_percentage',
+        'population',
+        'activities_per_1k',
         'organisation_count',
+        'unique_organisations',
+        'activity_count',
+        'unique_activities',
         'place_count',
         'facility_count',
-        'activity_count',
+        'unique_facilities',
         'items_per_organisation',
-        'items_per_place',
         'future_week_activities_breakdown',
         'future_week_age_range_breakdown',
         'future_event_types',
@@ -503,7 +544,6 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
         future = row['future_items']
         org_count = row['organisation_count']
         place_count = row['place_count']
-        
         detailed_data.append({
             'region_name': row['region_name'],
             'total_items': total,
@@ -511,12 +551,17 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
             'future_week_items': row['future_week_items'],
             'past_items': total - future,
             'future_percentage': round(future / total * 100, 2) if total > 0 else 0,
+            'population': row['population'],
+            'activities_per_1k': row['activities_per_1k'],
             'organisation_count': org_count,
+            'unique_organisations': row['unique_organisations'],
+            'activity_count': row['activity_count'],
+            'unique_activities': row['unique_activities'],
             'place_count': place_count,
             'facility_count': row['facility_count'],
-            'activity_count': row['activity_count'],
+            'unique_facilities': row['unique_facilities'],
             'items_per_organisation': round(total / org_count, 2) if org_count > 0 else 0,
-            'items_per_place': round(total / place_count, 2) if place_count > 0 else 0,
+            # 'items_per_place': round(total / place_count, 2) if place_count > 0 else 0,
             'future_week_activities_breakdown': row['future_week_activities_breakdown'],
             'future_week_age_range_breakdown': row['future_week_age_range_breakdown'],
             'future_event_types': row['future_event_types'],
@@ -829,7 +874,23 @@ def get_parent_data_for_item(item_id, subevent_id_v_superevent_id, superevent_op
     is_flag=True,
     help='Enable verbose output'
 )
-def main(geojson_path, name_property, filter_names, output_folder, verbose):
+@click.option(
+    '--population-csv', '-p',
+    type=click.Path(exists=True),
+    help='Optional path to population CSV file'
+)
+@click.option(
+    '--population-label-column', '-pl',
+    type=str,
+    help='Column name in population CSV containing region names (required if --population-csv is provided)'
+)
+@click.option(
+    '--population-value-column', '-pv',
+    type=str,
+    help='Column name in population CSV containing population values (required if --population-csv is provided)'
+)
+def main(geojson_path, name_property, filter_names, output_folder, verbose,
+         population_csv, population_label_column, population_value_column):
     """
     Analyse feed data by geographic regions.
 
@@ -863,6 +924,16 @@ def main(geojson_path, name_property, filter_names, output_folder, verbose):
     \b
         # Analyse districts
         python analyse_location_feed.py -g ../volume-1/data-analysis/000-location-districts.geojson -n LAD24NM -o ./output4 -v
+
+    \b
+        # Analyse with population data
+        python analyse_location_feed.py \\
+            -g ../volume-1/data-analysis/000-location-districts.geojson \\
+            -n LAD24NM \\
+            -o ./output \\
+            -p ../volume-1/data-analysis/000-population/000-population-district.csv \\
+            -pl Name \\
+            -pv All_ages -v
     """
     
     filter_list = list(filter_names) if filter_names else None
@@ -873,6 +944,9 @@ def main(geojson_path, name_property, filter_names, output_folder, verbose):
         output_folder=output_folder,
         filter_names=filter_list,
         verbose=verbose,
+        population_csv=population_csv,
+        population_label_column=population_label_column,
+        population_value_column=population_value_column,
     )
 
 # --------------------------------------------------------------------------------------------------
