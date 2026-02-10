@@ -389,8 +389,12 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                         for activity in activities:
                             if activity:
                                 stats['future_week_activities_breakdown'][activity] += 1
+                    elif 'offers' in item_data:
+                        stats['future_week_activities_breakdown']['Offer'] += 1
                     else:
                         stats['future_week_activities_breakdown']['Unknown'] += 1
+                        print(f'Unknown activity in file: {filename_pair[idx]}')
+                        print(f'Opportunity: {json.dumps(item_data, indent=2, default=str)}')
                     
                     # Track age range breakdown for future week items
                     for age_range in age_ranges:
@@ -412,7 +416,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
 
         # Test with limited files
         count += 1
-        if count == 2:
+        if count == 3:
             break
     
     # --------------------------------------------------------------------------------------------------
