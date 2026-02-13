@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from dateutil import parser
 
 from uklookup import lookup_postcode_lat_long
+from postal.parser import parse_address
 
 sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
@@ -273,6 +274,7 @@ def extract_item_details(item_data):
     latitude = None
     longitude = None
     postal_code = None
+    address = None
     
     if locations:
         try:
@@ -291,6 +293,12 @@ def extract_item_details(item_data):
             postal_code = strip(locations[0].get('address', {}).get('postalCode'))
         except:
             pass
+        try: 
+            # if address is string  
+            if isinstance(locations[0].get('address'), str):
+                address = strip(locations[0].get('address'))         
+        except:
+            pass
     return {
         'organizer_name': organizer_name,
         'activities': activities,
@@ -300,16 +308,19 @@ def extract_item_details(item_data):
         'latitude': latitude,
         'longitude': longitude,
         'postal_code': postal_code,
+        'address': address,
     }
 
 
-def find_region_for_point(longitude, latitude, gdf_regions, name_property, verbose=False, postal_code=None):
+def find_region_for_location(longitude, latitude, postal_code, address, gdf_regions, name_property, verbose=False):
     """
     Find which region a geographic point belongs to.
     
     Args:
         longitude: Point longitude
         latitude: Point latitude
+        postal_code: Postal code for fallback matching
+        address: Address for fallback matching
         gdf_regions: GeoDataFrame with region polygons
         name_property: Property name containing region names
         verbose: Whether to print errors
@@ -317,26 +328,62 @@ def find_region_for_point(longitude, latitude, gdf_regions, name_property, verbo
     Returns:
         Region name or None if not found
     """
-    if longitude is None or latitude is None:
-        return None
-    
-    try:
-        point = gpd.points_from_xy([longitude], [latitude])[0]
-        contains_mask = gdf_regions.contains(point)
-        if contains_mask.any():
-            return gdf_regions[name_property][contains_mask].iloc[0]
-    except Exception as e:
-        if verbose:
-            print(f'Error matching point: {e}')
+    region = None
+    region = find_region_for_point(longitude, latitude, gdf_regions, name_property, verbose)
 
-    # if lat-ling not matched, try to match by postal code if available
-    if postal_code:
+    # if lat-long not matched, try to match by postal code if available
+    if not region and postal_code:
+        lat, long = get_postcode_point(postal_code)
+        if lat is not None and long is not None:
+            region = find_region_for_point(long, lat, gdf_regions, name_property, verbose)
+        
+    # if still not matched, try to parse address and match by postcode if available
+    if not region and address and type(address) == str:
+        try:
+            parsed = parse_address(address)
+            parsed_address = {label: value.strip().upper() for value, label in parsed}
+            if parsed_address.get('postcode'):
+                lat, long = get_postcode_point(parsed_address.get('postcode'))
+                if lat is not None and long is not None:
+                    region = find_region_for_point(long, lat, gdf_regions, name_property, verbose)
+        except Exception as e:
+            pass
+
+    return region
+
+def get_postcode_point(postal_code):
+    try:
         lat_long = lookup_postcode_lat_long(postal_code)
         if lat_long:
             lat, long = lat_long
-            return find_region_for_point(long, lat, gdf_regions, name_property, verbose=False, postal_code=None)
-    return None
+            return lat, long
+    except Exception as e:
+        pass
+    return None, None
 
+def find_region_for_point(longitude, latitude, gdf_regions, name_property, verbose=False):
+    """
+    Find which region a geographic point belongs to by checking which polygon contains the point.
+    
+    Args:
+        longitude: Point longitude
+        latitude: Point latitude
+        gdf_regions: GeoDataFrame with region polygons
+        name_property: Property name containing region names
+        verbose: Whether to print errors
+    Returns:
+        Region name or None if not found
+    """
+    if longitude is not None and latitude is not None:
+        try:
+            point = gpd.points_from_xy([longitude], [latitude])[0]
+            contains_mask = gdf_regions.contains(point)
+            if contains_mask.any():
+                return gdf_regions[name_property][contains_mask].iloc[0]
+        except Exception as e:
+            if verbose:
+                print(f'Error matching point: {e}')
+    return None
 
 def determine_stats_key(longitude, latitude, region_name, region_stats):
     """
@@ -391,8 +438,8 @@ def update_stats_for_item(stats, item_data, details, is_future, is_future_week, 
         elif 'offers' in item_data:
             if 'facilityType' in item_data and len(item_data['facilityType']) > 0 and 'prefLabel' in item_data['facilityType'][0]:
                 stats['future_week_activities_breakdown'][item_data['facilityType'][0]['prefLabel'] + " - Offer"] += 1
-        elif 'name' in item_data['offers']:
-                stats['future_week_activities_breakdown'][item_data['offers']['name'] + " - Offer"] += 1
+            elif 'name' in item_data['offers']:
+                    stats['future_week_activities_breakdown'][item_data['offers']['name'] + " - Offer"] += 1
         else:
             stats['future_week_activities_breakdown']['Unknown'] += 1
             if filename:
@@ -702,8 +749,10 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
     t1_overall = datetime.now()
     
     # TODO: for debugging - only process a limited number of files
-    offset = 2
-    limit = 1
+    # offset = 4
+    # limit = 10
+    offset = None
+    limit = None
     count = 0
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
         # TODO: for debugging
@@ -757,9 +806,9 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                 details = extract_item_details(item_data)
                 
                 # Find region
-                region_name = find_region_for_point(
-                    details['longitude'], details['latitude'],
-                    gdf_regions, name_property, verbose, details['postal_code']
+                region_name = find_region_for_location(
+                    details['longitude'], details['latitude'], details['postal_code'], details['address'],
+                    gdf_regions, name_property, verbose
                 )
                 
                 # Determine stats bucket
@@ -773,8 +822,8 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                     #     print(f'Unknown location in file: {filename}')
                     #     print(f'NO LOCATION: {json.dumps(item_data, indent=2, default=str)}')
                     continue  # Region was filtered out
-                if stats_key == '_UNMATCHED' and verbose:
-                    print(f'UNMATCHED LOCATION: {json.dumps(item_data, indent=2, default=str)}')
+                # if stats_key == '_UNMATCHED' and verbose:
+                #     print(f'UNMATCHED LOCATION: {json.dumps(item_data, indent=2, default=str)}')
 
                 # Update stats
                 update_stats_for_item(
