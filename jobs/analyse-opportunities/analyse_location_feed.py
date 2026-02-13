@@ -11,6 +11,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from dateutil import parser
 
+from uklookup import lookup_postcode_lat_long
+
 sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
 from openactive_custom import get_superevent_id_v_subevent_ids, get_event_type, get_item_kinds, get_item_types
@@ -270,6 +272,7 @@ def extract_item_details(item_data):
     place_name = None
     latitude = None
     longitude = None
+    postal_code = None
     
     if locations:
         try:
@@ -284,7 +287,10 @@ def extract_item_details(item_data):
             longitude = round(float(locations[0]['geo']['longitude']), 6)
         except:
             pass
-    
+        try:
+            postal_code = strip(locations[0].get('address', {}).get('postalCode'))
+        except:
+            pass
     return {
         'organizer_name': organizer_name,
         'activities': activities,
@@ -293,10 +299,11 @@ def extract_item_details(item_data):
         'place_name': place_name,
         'latitude': latitude,
         'longitude': longitude,
+        'postal_code': postal_code,
     }
 
 
-def find_region_for_point(longitude, latitude, gdf_regions, name_property, verbose=False):
+def find_region_for_point(longitude, latitude, gdf_regions, name_property, verbose=False, postal_code=None):
     """
     Find which region a geographic point belongs to.
     
@@ -321,7 +328,13 @@ def find_region_for_point(longitude, latitude, gdf_regions, name_property, verbo
     except Exception as e:
         if verbose:
             print(f'Error matching point: {e}')
-    
+
+    # if lat-ling not matched, try to match by postal code if available
+    if postal_code:
+        lat_long = lookup_postcode_lat_long(postal_code)
+        if lat_long:
+            lat, long = lat_long
+            return find_region_for_point(long, lat, gdf_regions, name_property, verbose=False, postal_code=None)
     return None
 
 
@@ -376,7 +389,10 @@ def update_stats_for_item(stats, item_data, details, is_future, is_future_week, 
                 if activity:
                     stats['future_week_activities_breakdown'][activity] += 1
         elif 'offers' in item_data:
-            stats['future_week_activities_breakdown']['Offer'] += 1
+            if 'facilityType' in item_data and len(item_data['facilityType']) > 0 and 'prefLabel' in item_data['facilityType'][0]:
+                stats['future_week_activities_breakdown'][item_data['facilityType'][0]['prefLabel'] + " - Offer"] += 1
+        elif 'name' in item_data['offers']:
+                stats['future_week_activities_breakdown'][item_data['offers']['name'] + " - Offer"] += 1
         else:
             stats['future_week_activities_breakdown']['Unknown'] += 1
             if filename:
@@ -685,10 +701,18 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
     
     t1_overall = datetime.now()
     
+    # TODO: for debugging - only process a limited number of files
+    offset = 2
+    limit = 1
     count = 0
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
+        # TODO: for debugging
+        if offset and filename_pair_idx < offset:
+            continue
+
         if verbose:
-            print(f'File pair: {filename_pair_idx + 1}/{num_filename_pairs}')
+            print(f'File pair: {filename_pair_idx + 1}/{num_filename_pairs}.')
+            print(f'  Filenames: {filename_pair}')
         
         # Load file pair
         opportunities_pair = [None, None]
@@ -735,7 +759,7 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                 # Find region
                 region_name = find_region_for_point(
                     details['longitude'], details['latitude'],
-                    gdf_regions, name_property, verbose
+                    gdf_regions, name_property, verbose, details['postal_code']
                 )
                 
                 # Determine stats bucket
@@ -744,21 +768,23 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                     region_name, region_stats
                 )
                 if stats_key == '_NO_LOCATION':
-                    # TODO: Offers don't have location - they have `facilityUse` and it has location
+                    # TODO: Offers may not have location - they have `facilityUse` and it has location
                     # if verbose:
                     #     print(f'Unknown location in file: {filename}')
                     #     print(f'NO LOCATION: {json.dumps(item_data, indent=2, default=str)}')
                     continue  # Region was filtered out
-                
+                if stats_key == '_UNMATCHED' and verbose:
+                    print(f'UNMATCHED LOCATION: {json.dumps(item_data, indent=2, default=str)}')
+
                 # Update stats
                 update_stats_for_item(
                     region_stats[stats_key], item_data, details,
                     is_future, is_future_week, filename_pair[idx]
                 )
         
-        # Test with limited files
+        # TODO: For debugging - Test with limited files
         count += 1
-        if count == 3:
+        if count == limit:
             break
     
     t2_overall = datetime.now()
