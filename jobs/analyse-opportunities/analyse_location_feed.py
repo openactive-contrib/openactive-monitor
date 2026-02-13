@@ -11,6 +11,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from dateutil import parser
 
+from functools import lru_cache
 from uklookup import lookup_postcode_lat_long
 from postal.parser import parse_address
 
@@ -311,10 +312,12 @@ def extract_item_details(item_data):
         'address': address,
     }
 
+# Dict cache for region lookups
+_region_cache = {}
 
 def find_region_for_location(longitude, latitude, postal_code, address, gdf_regions, name_property, verbose=False):
     """
-    Find which region a geographic point belongs to.
+    Find which region a geographic point belongs to (with caching).
     
     Args:
         longitude: Point longitude
@@ -328,6 +331,10 @@ def find_region_for_location(longitude, latitude, postal_code, address, gdf_regi
     Returns:
         Region name or None if not found
     """
+    cache_key = (longitude, latitude, postal_code, address)
+    if cache_key in _region_cache:
+        return _region_cache[cache_key]
+
     region = None
     region = find_region_for_point(longitude, latitude, gdf_regions, name_property, verbose)
 
@@ -349,8 +356,10 @@ def find_region_for_location(longitude, latitude, postal_code, address, gdf_regi
         except Exception as e:
             pass
 
+    _region_cache[cache_key] = region
     return region
 
+@lru_cache(maxsize=50_000)
 def get_postcode_point(postal_code):
     try:
         lat_long = lookup_postcode_lat_long(postal_code)
