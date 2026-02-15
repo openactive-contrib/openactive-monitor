@@ -92,6 +92,38 @@ def load_geojson_regions(geojson_path, name_property, filter_names=None):
     return gdf_regions, region_names
 
 
+def extract_facility_uses(opportunities):
+    """
+    Extract FacilityUse and IndividualFacilityUse objects from opportunities
+    into a lookup dictionary keyed by their IDs/URLs.
+    
+    Args:
+        opportunities: The opportunities dictionary
+    
+    Returns:
+        Dictionary mapping FacilityUse IDs/URLs to their item data
+    """
+    facility_uses = {}
+    
+    if opportunities is None or 'items' not in opportunities:
+        return facility_uses
+    
+    for item_id, item in opportunities['items'].items():
+        item_data = item.get('data', {})
+        item_type = item_data.get('type') or item_data.get('@type', '')
+        
+        if item_type in ('FacilityUse', 'IndividualFacilityUse'):
+            # Index by item_id (key in opportunities dict)
+            facility_uses[item_id] = item_data
+            
+            # Also index by @id and id from the data for flexible lookup
+            for id_key in ['@id', 'id']:
+                if id_key in item_data and isinstance(item_data[id_key], str):
+                    facility_uses[item_data[id_key]] = item_data
+    
+    return facility_uses
+
+
 def load_opportunity_file(filename, filepath_prefix):
     """
     Load a single opportunity file and extract metadata.
@@ -101,8 +133,8 @@ def load_opportunity_file(filename, filepath_prefix):
         filepath_prefix: Directory prefix for the file
     
     Returns:
-        Tuple of (opportunities_dict, feed_type, item_kinds, item_types, event_type)
-        or (None, None, None, None, None) if loading fails
+        Tuple of (opportunities_dict, feed_type, item_kinds, item_types, event_type, facility_uses)
+        or (None, None, None, None, None, {}) if loading fails
     """
     try:
         with gzip.open(f'{filepath_prefix}/{filename}', 'rb') as file_in:
@@ -126,11 +158,12 @@ def load_opportunity_file(filename, filepath_prefix):
                 pass
             
             event_type = determine_event_type(item_types, item_kinds, feed_type)
+            facility_uses = extract_facility_uses(opportunities)
             
-            return opportunities, feed_type, item_kinds, item_types, event_type
+            return opportunities, feed_type, item_kinds, item_types, event_type, facility_uses
     except Exception as error:
         print(f'ERROR loading {filename}: {error}')
-        return None, None, None, None, None
+        return None, None, None, None, None, {}
 
 
 def determine_event_type(item_types, item_kinds, feed_type):
@@ -174,7 +207,7 @@ def create_empty_region_stats(region_name):
         'total_items': 0,
         'future_items': 0,
         'future_week_items': 0,
-        'organisations': set(),
+        'organisations': defaultdict(int),
         'places': set(),
         'facilities': set(),
         'activities': set(),
@@ -394,20 +427,22 @@ def find_region_for_point(longitude, latitude, gdf_regions, name_property, verbo
                 print(f'Error matching point: {e}')
     return None
 
-def determine_stats_key(longitude, latitude, region_name, region_stats):
+def determine_stats_key(longitude, latitude, postal_code, address, region_name, region_stats):
     """
     Determine which stats bucket an item belongs to.
     
     Args:
         longitude: Item longitude
         latitude: Item latitude
+        postal_code: Item postal code
+        address: Item address
         region_name: Matched region name (may be None)
         region_stats: Dictionary of all region stats
     
     Returns:
         Stats key string, or None if item should be skipped
     """
-    if longitude is None or latitude is None:
+    if (longitude is None or latitude is None) and postal_code is None and address is None:
         return '_NO_LOCATION'
     elif region_name is None:
         return '_UNMATCHED'
@@ -417,7 +452,7 @@ def determine_stats_key(longitude, latitude, region_name, region_stats):
         return None  # Region was filtered out
 
 
-def update_stats_for_item(stats, item_data, details, is_future, is_future_week, filename=None):
+def update_stats_for_item(stats, item_data, details, is_future, is_future_week, filename=None, facility_uses_lookup=None):
     """
     Update region stats with data from a single item.
     
@@ -428,6 +463,7 @@ def update_stats_for_item(stats, item_data, details, is_future, is_future_week, 
         is_future: Whether the item is in the future
         is_future_week: Whether the item is in the next week
         filename: Source filename (for debugging unknown activities)
+        facility_uses_lookup: Dictionary mapping FacilityUse IDs/URLs to their item data
     """
     stats['total_items'] += 1
     
@@ -440,16 +476,64 @@ def update_stats_for_item(stats, item_data, details, is_future, is_future_week, 
         stats['future_week_items'] += 1
         
         # Track activity breakdown
+        activity_found = False
         if details['activities']:
             for activity in details['activities']:
                 if activity:
                     stats['future_week_activities_breakdown'][activity] += 1
-        elif 'offers' in item_data:
+                    activity_found = True
+        
+        # If no activity found yet, check facilityType and offers as fallback options
+        if not activity_found and 'offers' in item_data:
             if 'facilityType' in item_data and len(item_data['facilityType']) > 0 and 'prefLabel' in item_data['facilityType'][0]:
                 stats['future_week_activities_breakdown'][item_data['facilityType'][0]['prefLabel'] + " - Offer"] += 1
+                activity_found = True
             elif 'name' in item_data['offers']:
-                    stats['future_week_activities_breakdown'][item_data['offers']['name'] + " - Offer"] += 1
-        else:
+                stats['future_week_activities_breakdown'][item_data['offers']['name'] + " - Offer"] += 1
+                activity_found = True
+            elif type(item_data['offers']) == list and len(item_data['offers']) > 0 and 'name' in item_data['offers'][0]:
+                stats['future_week_activities_breakdown'][item_data['offers'][0]['name'] + " - Offer"] += 1
+                activity_found = True
+
+        # if still no activity found, check superEvent (EventSeries) as a last resort 
+        if not activity_found and 'superSuperEvent' in item_data:
+            super_event = item_data['superSuperEvent']
+            if 'activity' in super_event and len(super_event['activity']) > 0 and 'prefLabel' in super_event['activity'][0]:
+                stats['future_week_activities_breakdown'][super_event['activity'][0]['prefLabel']] += 1
+                activity_found = True
+            elif 'name' in super_event:
+                stats['future_week_activities_breakdown'][super_event['name']] += 1
+                activity_found = True
+        
+        # if still no activity found, check facilityUse reference
+        if not activity_found and facility_uses_lookup:
+            facility_use_ref = item_data.get('facilityUse')
+            # Handle facilityUse as a dict with @id/id
+            if isinstance(facility_use_ref, dict):
+                facility_use_ref = facility_use_ref.get('@id') or facility_use_ref.get('id')
+            if facility_use_ref and isinstance(facility_use_ref, str) and facility_use_ref in facility_uses_lookup:
+                fu_data = facility_uses_lookup[facility_use_ref]
+                # Try activity -> prefLabel pattern (list of dicts)
+                fu_activities = get_values(fu_data, 'activity', 'prefLabel')
+                if fu_activities:
+                    for act in fu_activities:
+                        if act:
+                            stats['future_week_activities_breakdown'][strip(act)] += 1
+                            activity_found = True
+                # Try activity as a direct string
+                if not activity_found:
+                    fu_activity = fu_data.get('activity')
+                    if isinstance(fu_activity, str) and fu_activity.strip():
+                        stats['future_week_activities_breakdown'][fu_activity.strip()] += 1
+                        activity_found = True
+                # Try activity as a direct string named 'name'
+                if not activity_found:
+                    fu_activity = fu_data.get('name')
+                    if isinstance(fu_activity, str) and fu_activity.strip():
+                        stats['future_week_activities_breakdown'][fu_activity.strip()] += 1
+                        activity_found = True
+        
+        if not activity_found:
             stats['future_week_activities_breakdown']['Unknown'] += 1
             if filename:
                 print(f'Unknown activity in file: {filename}')
@@ -460,7 +544,7 @@ def update_stats_for_item(stats, item_data, details, is_future, is_future_week, 
             stats['future_week_age_range_breakdown'][age_range] += 1
     
     if details['organizer_name']:
-        stats['organisations'].add(details['organizer_name'])
+        stats['organisations'][details['organizer_name']] += 1
     
     if details['place_name']:
         stats['places'].add(details['place_name'])
@@ -520,7 +604,7 @@ def prepare_region_output(stats, population_lookup):
         'population': population,
         'activities_per_1k': activities_per_1k,
         'organisation_count': len(stats['organisations']),
-        'unique_organisations': json.dumps(list(stats['organisations'])),
+        'unique_organisations': json.dumps(dict(sorted(stats['organisations'].items(), key=lambda x: x[1], reverse=True))),
         'activity_count': len(stats['activities']),
         'unique_activities': json.dumps(list(stats['activities'])),
         'place_count': len(stats['places']),
@@ -652,7 +736,7 @@ def inherit_properties_from_parent(child_data, parent_data, properties_to_inheri
         properties_to_inherit = [
             'location', 'organizer', 'activity', 'facilityType', 'ageRange',
             'genderRestriction', 'accessibilityInformation',
-            'attendeeInstructions', 'eventAttendanceMode',
+            'attendeeInstructions', 'eventAttendanceMode', 'offers'
         ]
     
     enhanced_data = dict(child_data)
@@ -661,6 +745,13 @@ def inherit_properties_from_parent(child_data, parent_data, properties_to_inheri
         if prop not in enhanced_data or enhanced_data[prop] is None:
             if prop in parent_data and parent_data[prop] is not None:
                 enhanced_data[prop] = parent_data[prop]
+    
+    properties_to_inherit_with_rename = {
+        'superEvent': 'superSuperEvent'
+    }
+    for prop, new_prop in properties_to_inherit_with_rename.items():
+        if prop in parent_data and parent_data[prop] is not None:
+            enhanced_data[new_prop] = parent_data[prop]
     
     return enhanced_data
 
@@ -758,34 +849,40 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
     t1_overall = datetime.now()
     
     # TODO: for debugging - only process a limited number of files
-    # offset = 4
-    # limit = 10
-    offset = None
-    limit = None
+    offset = 180
+    limit = 1
+    # offset = None
+    # limit = None
     count = 0
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
-        # TODO: for debugging
-        if offset and filename_pair_idx < offset:
-            continue
-
         if verbose:
             print(f'File pair: {filename_pair_idx + 1}/{num_filename_pairs}.')
             print(f'  Filenames: {filename_pair}')
+
+        # TODO: for debugging
+        if offset and filename_pair_idx < offset:
+            continue
+        if limit and count >= limit:
+            break
         
         # Load file pair
         opportunities_pair = [None, None]
         event_type_pair = [None, None]
         item_types_counts_pair = [None, None]
         
+        # Collect FacilityUse objects from both files in the pair
+        facility_uses_lookup = {}
+        
         for idx, filename in enumerate(filename_pair):
             if filename is None:
                 continue
-            opportunities, feed_type, item_kinds, item_types, event_type = load_opportunity_file(
+            opportunities, feed_type, item_kinds, item_types, event_type, facility_uses = load_opportunity_file(
                 filename, OPPORTUNITIES_RELATIVE_FILEPATH
             )
             opportunities_pair[idx] = opportunities
             event_type_pair[idx] = event_type
             item_types_counts_pair[idx] = item_types
+            facility_uses_lookup.update(facility_uses)
         
         # Build relationships
         superevent_id_v_subevent_ids, subevent_id_v_superevent_id, superevent_opportunities = \
@@ -794,6 +891,8 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
         if verbose:
             print(f'  Event types: {event_type_pair}')
             print(f'  Item types: {item_types_counts_pair}')
+            if facility_uses_lookup:
+                print(f'  Found {len(facility_uses_lookup)} FacilityUse objects')
             if subevent_id_v_superevent_id:
                 print(f'  Found {len(subevent_id_v_superevent_id)} child events with parent relationships')
         
@@ -822,28 +921,27 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                 
                 # Determine stats bucket
                 stats_key = determine_stats_key(
-                    details['longitude'], details['latitude'],
+                    details['longitude'], details['latitude'], details['postal_code'], details['address'],
                     region_name, region_stats
                 )
-                if stats_key == '_NO_LOCATION':
+                # if stats_key == '_NO_LOCATION':
                     # TODO: Offers may not have location - they have `facilityUse` and it has location
                     # if verbose:
                     #     print(f'Unknown location in file: {filename}')
                     #     print(f'NO LOCATION: {json.dumps(item_data, indent=2, default=str)}')
-                    continue  # Region was filtered out
+                    # continue  # Region was filtered out
+
                 # if stats_key == '_UNMATCHED' and verbose:
                 #     print(f'UNMATCHED LOCATION: {json.dumps(item_data, indent=2, default=str)}')
 
                 # Update stats
                 update_stats_for_item(
                     region_stats[stats_key], item_data, details,
-                    is_future, is_future_week, filename_pair[idx]
+                    is_future, is_future_week, filename_pair[idx],
+                    facility_uses_lookup=facility_uses_lookup
                 )
         
-        # TODO: For debugging - Test with limited files
         count += 1
-        if count == limit:
-            break
     
     t2_overall = datetime.now()
     print(f'Processing completed in: {t2_overall - t1_overall}')
