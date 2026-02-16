@@ -277,12 +277,13 @@ def extract_opportunity_dates(item_data, todays_date, next_weeks_date):
     return is_future, is_future_week
 
 
-def extract_item_details(item_data):
+def extract_item_details(item_data, facility_uses_lookup=None):
     """
     Extract various details from an item.
     
     Args:
         item_data: The item's data dictionary
+        facility_uses_lookup: Optional dictionary mapping FacilityUse IDs/URLs to their item data
     
     Returns:
         Dictionary with organizer_name, activities, facilities, age_ranges, location info
@@ -290,6 +291,17 @@ def extract_item_details(item_data):
     # Organizer
     organizer_names = get_values(item_data, 'organizer', 'name')
     organizer_name = strip(organizer_names[0]) if organizer_names else None
+    
+    # If organizer not found, try FacilityUse provider name
+    if not organizer_name and facility_uses_lookup:
+        facility_use_ref = item_data.get('facilityUse')
+        if isinstance(facility_use_ref, dict):
+            facility_use_ref = facility_use_ref.get('@id') or facility_use_ref.get('id')
+        if facility_use_ref and isinstance(facility_use_ref, str) and facility_use_ref in facility_uses_lookup:
+            fu_data = facility_uses_lookup[facility_use_ref]
+            provider_names = get_values(fu_data, 'provider', 'name')
+            if provider_names:
+                organizer_name = strip(provider_names[0])
     
     # Activities and facilities
     activities = list(set([strip(v) for v in get_values(item_data, 'activity', 'prefLabel')]))
@@ -426,6 +438,60 @@ def find_region_for_point(longitude, latitude, gdf_regions, name_property, verbo
             if verbose:
                 print(f'Error matching point: {e}')
     return None
+
+def resolve_region_via_facility_use(item_data, details, facility_uses_lookup, gdf_regions, name_property, verbose=False):
+    """
+    Try to find a region by looking up the item's referenced FacilityUse location.
+    Also backfills missing location fields in details if FacilityUse has them.
+    
+    Args:
+        item_data: The raw item data
+        details: Extracted item details dict (modified in place)
+        facility_uses_lookup: Dictionary mapping FacilityUse IDs/URLs to their item data
+        gdf_regions: GeoDataFrame with region polygons
+        name_property: Property name containing region names
+        verbose: Whether to print errors
+    
+    Returns:
+        Region name or None if not resolved
+    """
+    if not facility_uses_lookup:
+        return None
+    
+    facility_use_ref = item_data.get('facilityUse')
+    if isinstance(facility_use_ref, dict):
+        facility_use_ref = facility_use_ref.get('@id') or facility_use_ref.get('id')
+    if not (facility_use_ref and isinstance(facility_use_ref, str) and facility_use_ref in facility_uses_lookup):
+        return None
+    
+    fu_data = facility_uses_lookup[facility_use_ref]
+    fu_details = extract_item_details(fu_data)
+    fu_lon = fu_details['longitude']
+    fu_lat = fu_details['latitude']
+    fu_postal = fu_details['postal_code']
+    fu_address = fu_details['address']
+    
+    if fu_lon is None and fu_lat is None and fu_postal is None and fu_address is None:
+        return None
+    
+    region_name = find_region_for_location(
+        fu_lon, fu_lat, fu_postal, fu_address,
+        gdf_regions, name_property, verbose
+    )
+    
+    # Backfill missing location fields from FacilityUse
+    if details['longitude'] is None and details['latitude'] is None:
+        details['longitude'] = fu_lon
+        details['latitude'] = fu_lat
+    if details['postal_code'] is None:
+        details['postal_code'] = fu_postal
+    if details['address'] is None:
+        details['address'] = fu_address
+    if details['place_name'] is None:
+        details['place_name'] = fu_details['place_name']
+    
+    return region_name
+
 
 def determine_stats_key(longitude, latitude, postal_code, address, region_name, region_stats):
     """
@@ -849,10 +915,10 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
     t1_overall = datetime.now()
     
     # TODO: for debugging - only process a limited number of files
-    offset = 180
-    limit = 1
-    # offset = None
-    # limit = None
+    # offset = 180
+    # limit = 1
+    offset = None
+    limit = None
     count = 0
     for filename_pair_idx, filename_pair in enumerate(filename_pairs):
         if verbose:
@@ -911,13 +977,20 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
                 
                 # Extract data
                 is_future, is_future_week = extract_opportunity_dates(item_data, todays_date, next_weeks_date)
-                details = extract_item_details(item_data)
+                details = extract_item_details(item_data, facility_uses_lookup=facility_uses_lookup)
                 
                 # Find region
                 region_name = find_region_for_location(
                     details['longitude'], details['latitude'], details['postal_code'], details['address'],
                     gdf_regions, name_property, verbose
                 )
+                
+                # If no location or unmatched, try FacilityUse location as fallback
+                if region_name is None:
+                    region_name = resolve_region_via_facility_use(
+                        item_data, details, facility_uses_lookup,
+                        gdf_regions, name_property, verbose
+                    )
                 
                 # Determine stats bucket
                 stats_key = determine_stats_key(
