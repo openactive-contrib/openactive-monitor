@@ -1,3 +1,4 @@
+import leafmap.foliumap as leafmap
 import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.graph_objects as go
@@ -5,6 +6,7 @@ import streamlit as st
 import time
 from datetime import date, timedelta
 from millify import millify
+from streamlit_folium import st_folium
 
 # --------------------------------------------------------------------------------------------------
 
@@ -309,6 +311,111 @@ with cols[1]:
             st.plotly_chart(fig, use_container_width=True)
 
             st.write(' ')
+
+        st.markdown(f"***{percentage_1000_or_more:.1f}% of UK Local Authority areas have more than 1000 opportunities across the OpenActive data feeds***")
+        with st.expander('This is a simple measure of UK coverage in the OpenActive ecosystem.\n\nClick here for more details.'):
+            
+            st.write(f"{len(gdf_filtered)} of the {len(gdf)} Local Authorities in the UK have more than 1000 opportunities in OpenActive data ({percentage_1000_or_more:.1f}%)")
+            
+            # Get the geodataframe
+            gdf_districts = st.session_state.aggregate_analysis['gdf_total_districts_counts'].copy()
+            
+            # Text input for filtering by district name (on top)
+            search_term = st.text_input(
+                'Search districts by name',
+                placeholder='Type to filter districts (e.g., "Manchester", "London")...', 
+                key='district_search'
+            )
+            
+            # Filter the dataframe based on search term
+            if search_term:
+                filtered_gdf = gdf_districts[gdf_districts['LAD24NM'].str.contains(search_term, case=False, na=False)]
+            else:
+                filtered_gdf = gdf_districts
+            
+            st.write(f"Showing {len(filtered_gdf)} of {len(gdf_districts)} districts")
+            
+            # Create two columns for table and map side by side (1:2 ratio)
+            col_table, col_map = st.columns([1, 2])
+            
+            with col_table:
+                # Display filterable table
+                st.dataframe(
+                    filtered_gdf[['LAD24NM', 'count', 'percentage']].sort_values('LAD24NM'),
+                    use_container_width=True,
+                    hide_index=True,
+                    height=500,
+                    column_config={
+                        'LAD24NM': 'District Name',
+                        'count': st.column_config.NumberColumn(
+                            'Num. Opportunities',
+                            format='%d',
+                        ),
+                        'percentage': st.column_config.NumberColumn(
+                            '% of Total',
+                            format='%.2f%%',
+                        ),
+                    },
+                )
+            
+            with col_map:
+                # Create leafmap with the data
+                # Ensure we have valid geometry and reproject to WGS84 for leafmap
+                map_gdf = filtered_gdf.copy()
+                if map_gdf.crs is not None and map_gdf.crs != 'EPSG:4326':
+                    map_gdf = map_gdf.to_crs('EPSG:4326')
+                
+                # Prepare data for popup - only keep desired columns and rename
+                popup_columns = ['LAD24NM', 'count', 'percentage']
+                if 'category' in map_gdf.columns:
+                    popup_columns.append('category')
+                
+                # Create a copy with only the columns we need for the popup
+                map_gdf_display = map_gdf[popup_columns + ['geometry']].copy()
+                map_gdf_display = map_gdf_display.rename(columns={
+                    'LAD24NM': 'Name',
+                    'count': 'Opportunities',
+                    'percentage': 'Percentage',
+                })
+                
+                # UK bounding box: SW corner [49.5, -8.5], NE corner [61, 2]
+                uk_bounds = [[49.5, -8.5], [61, 2]]
+                
+                # Create the map centered on UK with max_bounds to restrict panning
+                m = leafmap.Map(
+                    center=[54.5, -2], 
+                    zoom=6,
+                    max_bounds=True,  # Restrict panning to the bounds
+                )
+                
+                # Set max bounds to UK area to prevent showing world map
+                m.options['maxBounds'] = uk_bounds
+                m.options['minZoom'] = 5
+                
+                # Fit to UK bounds
+                m.fit_bounds(uk_bounds)
+                
+                # Add the choropleth layer with custom popup fields
+                if len(map_gdf_display) > 0:
+                    m.add_data(
+                        map_gdf_display,
+                        column='Percentage',
+                        cmap='YlOrRd',
+                        legend_title='% of Opportunities',
+                        layer_name='Districts',
+                        style={'fillOpacity': 0.7, 'weight': 0.5},
+                    )
+                
+                # Display the map using st_folium with explicit center and zoom
+                # Use returned_objects=[] to prevent map interactions from triggering reruns
+                st_folium(
+                    m, 
+                    use_container_width=True,
+                    height=500, 
+                    returned_objects=[],
+                    center=[54.5, -2],
+                    zoom=6,
+                )
 
 #print(st.session_state.aggregate_analysis.keys())
 #print(st.session_state.aggregate_analysis['total_num_districts'])
