@@ -44,7 +44,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-cols = st.columns([1, 3])
+cols = st.columns([1, 5])
 
 with cols[0]:
     for button_name, button_text in st.session_state.buttons.items():
