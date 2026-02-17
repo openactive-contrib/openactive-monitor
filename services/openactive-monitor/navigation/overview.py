@@ -431,15 +431,14 @@ with cols[1]:
                             'count': 'Opportunities',
                             'percentage': 'Percentage',
                         })
-                        m.add_data(
+                        m.add_gdf(
                             selected_display,
-                            column='Percentage',
                             layer_name='Selected District',
                             style={
-                                'fillColor': '#0000FF',
-                                'fillOpacity': 0.5,
-                                'color': '#0000FF',
-                                'weight': 3,
+                                'fillColor': '#00FF00',
+                                'fillOpacity': 0.7,
+                                'color': '#000000',
+                                'weight': 1,
                             },
                         )
                         # Zoom to the selected district
