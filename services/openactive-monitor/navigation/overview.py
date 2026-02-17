@@ -7,6 +7,7 @@ import time
 from datetime import date, timedelta
 from millify import millify
 from streamlit_folium import st_folium
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # --------------------------------------------------------------------------------------------------
 
@@ -339,24 +340,38 @@ with cols[1]:
             col_table, col_map = st.columns([1, 2])
             
             with col_table:
-                # Display filterable table
-                st.dataframe(
-                    filtered_gdf[['LAD24NM', 'count', 'percentage']].sort_values('LAD24NM'),
-                    use_container_width=True,
-                    hide_index=True,
-                    height=500,
-                    column_config={
-                        'LAD24NM': 'District Name',
-                        'count': st.column_config.NumberColumn(
-                            'Num. Opportunities',
-                            format='%d',
-                        ),
-                        'percentage': st.column_config.NumberColumn(
-                            '% of Total',
-                            format='%.2f%%',
-                        ),
-                    },
+                # Prepare dataframe for display
+                display_df = filtered_gdf[['LAD24NM', 'count', 'percentage']].sort_values('LAD24NM').reset_index(drop=True)
+                display_df = display_df.rename(columns={
+                    'LAD24NM': 'District Name',
+                    'count': 'Num. Opportunities',
+                    'percentage': '% of Total',
+                })
+                
+                # Configure AgGrid for cell click selection
+                gb = GridOptionsBuilder.from_dataframe(display_df)
+                gb.configure_column('District Name', cellStyle={'cursor': 'pointer'})
+                gb.configure_column('Num. Opportunities', type=['numericColumn'], valueFormatter="Math.round(x).toLocaleString()", maxWidth=120)
+                gb.configure_column('% of Total', type=['numericColumn'], valueFormatter="x.toFixed(2) + '%'", maxWidth=120)
+                gb.configure_selection(selection_mode='single', use_checkbox=False)
+                grid_options = gb.build()
+                
+                # Display AgGrid table with cell click
+                st.caption('Click a District Name to highlight on map')
+                grid_response = AgGrid(
+                    display_df,
+                    gridOptions=grid_options,
+                    update_mode=GridUpdateMode.SELECTION_CHANGED,
+                    height=450,
+                    fit_columns_on_grid_load=True,
+                    allow_unsafe_jscode=True,
                 )
+                
+                # Get selected district from cell click
+                selected_district = None
+                selected_rows = grid_response.get('selected_rows', None)
+                if selected_rows is not None and len(selected_rows) > 0:
+                    selected_district = selected_rows.iloc[0]['District Name']
             
             with col_map:
                 # Create leafmap with the data
@@ -406,15 +421,38 @@ with cols[1]:
                         style={'fillOpacity': 0.7, 'weight': 0.5},
                     )
                 
-                # Display the map using st_folium with explicit center and zoom
+                # Highlight selected district
+                if selected_district is not None:
+                    selected_gdf = map_gdf[map_gdf['LAD24NM'] == selected_district].copy()
+                    if len(selected_gdf) > 0:
+                        selected_display = selected_gdf[popup_columns + ['geometry']].copy()
+                        selected_display = selected_display.rename(columns={
+                            'LAD24NM': 'Name',
+                            'count': 'Opportunities',
+                            'percentage': 'Percentage',
+                        })
+                        m.add_data(
+                            selected_display,
+                            column='Percentage',
+                            layer_name='Selected District',
+                            style={
+                                'fillColor': '#0000FF',
+                                'fillOpacity': 0.5,
+                                'color': '#0000FF',
+                                'weight': 3,
+                            },
+                        )
+                        # Zoom to the selected district
+                        bounds = selected_gdf.total_bounds  # [minx, miny, maxx, maxy]
+                        m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+                
+                # Display the map using st_folium
                 # Use returned_objects=[] to prevent map interactions from triggering reruns
                 st_folium(
                     m, 
                     use_container_width=True,
                     height=500, 
                     returned_objects=[],
-                    center=[54.5, -2],
-                    zoom=6,
                 )
 
 #print(st.session_state.aggregate_analysis.keys())
