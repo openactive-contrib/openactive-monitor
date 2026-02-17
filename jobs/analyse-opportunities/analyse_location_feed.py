@@ -310,7 +310,16 @@ def extract_item_details(item_data, facility_uses_lookup=None):
     # Age ranges
     age_ranges = []
     for ar in get_values(item_data, 'ageRange'):
-        if isinstance(ar, str):
+        if isinstance(ar, dict):
+            min_val = ar.get('minValue')
+            max_val = ar.get('maxValue')
+            if min_val is not None and max_val is not None:
+                age_ranges.append(f"{min_val}-{max_val}")
+            elif min_val is not None:
+                age_ranges.append(f"{min_val}+")
+            elif max_val is not None:
+                age_ranges.append(f"0-{max_val}")
+        elif isinstance(ar, str) and ar.strip():
             age_ranges.append(strip(ar))
     age_ranges = list(set(age_ranges)) if age_ranges else ['Unknown']
     

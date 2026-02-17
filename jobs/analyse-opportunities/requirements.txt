@@ -4,3 +4,4 @@ geopy
 openactive
 uklookup
 postal
+shapely

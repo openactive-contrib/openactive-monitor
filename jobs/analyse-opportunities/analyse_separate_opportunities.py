@@ -6,13 +6,122 @@ import random
 import sys
 from datetime import datetime, timedelta
 from dateutil import parser
+from functools import lru_cache
+
+from shapely import STRtree
+from shapely.geometry import Point
 
 sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
 from openactive_custom import get_item_kinds, get_item_types, get_event_type, get_superevent_id_v_subevent_ids
 from settings import *
 
-# --------------------------------------------------------------------------------------------------
+
+def build_spatial_index(gdf, name_column):
+    """
+    Build a spatial index for fast point-in-polygon lookups.
+    Args:
+        gdf (GeoDataFrame): GeoDataFrame containing the geometries and names.
+        name_column (str): Name of the column in gdf that contains the names to return on lookup.
+    Returns:
+        tree (STRtree): Spatial index for the geometries.
+        geometries (list): List of geometries corresponding to the index.
+        names (list): List of names corresponding to the geometries.
+    """
+    tree = STRtree(gdf.geometry.values)
+    geometries = gdf.geometry.values
+    names = gdf[name_column].values
+    return tree, geometries, names
+
+def lookup_location(point, tree, geometries, names):
+    """
+    Fast point-in-polygon lookup using spatial index.
+    Args:
+        point (Point): The point to look up.
+        tree (STRtree): Spatial index for the geometries.
+        geometries (list): List of geometries corresponding to the index.
+        names (list): List of names corresponding to the geometries.
+    Returns:
+        str: The name corresponding to the geometry that contains the point, or None if not found.
+    """
+    if point is None:
+        return None
+    candidates = tree.query(point)
+    for idx in candidates:
+        if geometries[idx].contains(point):
+            return names[idx]
+    return None
+
+# Global spatial indexes (set by analyse_separate_opportunities)
+_regions_index = None
+_districts_index = None
+_parishes_index = None
+_gps_index = None
+
+@lru_cache(maxsize=100000)
+def cached_geo_lookup(longitude, latitude):
+    """
+    Cached geo lookup for repeated coordinates.
+    Returns tuple of (region, district, parish, gp).
+    """
+    global _regions_index, _districts_index, _parishes_index, _gps_index
+    try:
+        point = Point(longitude, latitude)
+    except:
+        return None, None, None, None
+    
+    region = lookup_location(point, *_regions_index)
+    district = lookup_location(point, *_districts_index)
+    parish = lookup_location(point, *_parishes_index)
+    gp = lookup_location(point, *_gps_index)
+    
+    return region, district, parish, gp
+
+def parse_date(date_string):
+    """
+    Fast date parsing with fallback to dateutil.
+    Tries ISO format first (most common), then falls back to dateutil.parser.
+    """
+    if date_string is None:
+        return None
+    try:
+        return parser.parse(date_string).date()
+    except:
+        return None
+
+def extract_location_data(item_data):
+    """
+    Extract location data (postcode, latitude, longitude) from item data.
+    Returns dict with postcode, latitude, longitude keys.
+    """
+    locations = get_values(item_data, 'location')
+    try:
+        postcode = strip(locations[0]['address']['postalCode'])
+    except:
+        postcode = None
+    try:
+        latitude = round(float(locations[0]['geo']['latitude']), 6)
+    except:
+        latitude = None
+    try:
+        longitude = round(float(locations[0]['geo']['longitude']), 6)
+    except:
+        longitude = None
+    
+    return {
+        'postcode': postcode,
+        'latitude': latitude,
+        'longitude': longitude
+    }
+
+def get_geo_names(longitude, latitude):
+    """
+    Get region, district, parish, gp names for a coordinate using cached lookup.
+    Returns tuple of (region, district, parish, gp).
+    """
+    if longitude is None or latitude is None:
+        return None, None, None, None
+    return cached_geo_lookup(longitude, latitude)
 
 def analyse_separate_opportunities(**kwargs):
     verbose = kwargs.get('verbose', False)
@@ -31,8 +140,19 @@ def analyse_separate_opportunities(**kwargs):
     gdf_gps = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_GPS_FILENAME)
     gdf_gps = gdf_gps.to_crs(4326)
 
+    # Build spatial indexes for fast point-in-polygon lookups
+    print('Building spatial indexes...')
+    global _regions_index, _districts_index, _parishes_index, _gps_index
+    _regions_index = build_spatial_index(gdf_regions, 'eer18nm')
+    _districts_index = build_spatial_index(gdf_districts, 'LAD24NM')
+    _parishes_index = build_spatial_index(gdf_parishes, 'PARNCP25NM')
+    _gps_index = build_spatial_index(gdf_gps, 'Name')
+    
+    # Clear the geo lookup cache for fresh run
+    cached_geo_lookup.cache_clear()
+
     todays_date = datetime.now().date()
-    # todays_date = datetime(2026,1,6).date() # Use this to set to a fixed date if needed for testing e.g. running on the same input data but working over multiple days
+    # todays_date = datetime(2026,2,16).date() # Use this to set to a fixed date if needed for testing e.g. running on the same input data but working over multiple days
     next_weeks_date = todays_date + timedelta(days=7)
 
     # --------------------------------------------------------------------------------------------------
@@ -335,17 +455,15 @@ def analyse_separate_opportunities(**kwargs):
 
                 start_dates = []
                 for start_datetime in get_values(item_data, ['startDate', 'dateStart'], continue_to_next_layer=False):
-                    try:
-                        start_dates.append(parser.parse(start_datetime).date())
-                    except:
-                        pass
+                    parsed = parse_date(start_datetime)
+                    if parsed:
+                        start_dates.append(parsed)
 
                 subevent_start_dates = []
                 for subevent_start_datetime in get_values(item_data, 'subEvent', ['startDate', 'dateStart'], continue_to_next_layer=False):
-                    try:
-                        subevent_start_dates.append(parser.parse(subevent_start_datetime).date())
-                    except:
-                        pass
+                    parsed = parse_date(subevent_start_datetime)
+                    if parsed:
+                        subevent_start_dates.append(parsed)
 
                 if (len(start_dates) > 0):
                     start_date = start_dates[0] # There should only be one i.e. zeroth index
@@ -457,51 +575,14 @@ def analyse_separate_opportunities(**kwargs):
                 # entries are matched. If there is a future need to use the bulk sjoin approach, it may be possible
                 # to improve performance by twiddling gpd settings. Search for gpd.sjoin inaccuracies for info.
 
-                locations = get_values(item_data, 'location')
-                try:
-                    postcode = strip(locations[0]['address']['postalCode'])
-                except:
-                    postcode = None
-                try:
-                    latitude = round(float(locations[0]['geo']['latitude']), 6)
-                except:
-                    latitude = None
-                try:
-                    longitude = round(float(locations[0]['geo']['longitude']), 6)
-                except:
-                    longitude = None
+                # Extract location data using helper function
+                loc_data = extract_location_data(item_data)
+                postcode = loc_data['postcode']
+                latitude = loc_data['latitude']
+                longitude = loc_data['longitude']
 
-                region = None
-                district = None
-                parish = None
-                gp = None
-                if (    (longitude is not None)
-                    and (latitude is not None)
-                ):
-                    try:
-                        point = gpd.points_from_xy(
-                            [longitude],
-                            [latitude]
-                        )[0]
-                    except:
-                        point = None
-                    if (point is not None):
-                        try:
-                            region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
-                        except:
-                            pass
-                        try:
-                            district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
-                        except:
-                            pass
-                        try:
-                            parish = gdf_parishes['PARNCP25NM'][list(gdf_parishes.contains(point)).index(True)]
-                        except:
-                            pass
-                        try:
-                            gp = gdf_gps['Name'][list(gdf_gps.contains(point)).index(True)]
-                        except:
-                            pass
+                # Use cached spatial index lookup for geo names
+                region, district, parish, gp = get_geo_names(longitude, latitude)
 
                 if (    (partner_item is not None)
                     and (   (postcode is None)
@@ -513,51 +594,16 @@ def analyse_separate_opportunities(**kwargs):
                         or  (gp is None)
                         )
                 ):
-                    partner_locations = get_values(partner_item_data, 'location')
-                    try:
-                        partner_postcode = strip(partner_locations[0]['address']['postalCode'])
-                    except:
-                        partner_postcode = None
-                    try:
-                        partner_latitude = round(float(partner_locations[0]['geo']['latitude']), 6)
-                    except:
-                        partner_latitude = None
-                    try:
-                        partner_longitude = round(float(partner_locations[0]['geo']['longitude']), 6)
-                    except:
-                        partner_longitude = None
+                    # Extract partner location data using helper function
+                    partner_loc_data = extract_location_data(partner_item_data)
+                    partner_postcode = partner_loc_data['postcode']
+                    partner_latitude = partner_loc_data['latitude']
+                    partner_longitude = partner_loc_data['longitude']
 
-                    partner_region = None
-                    partner_district = None
-                    partner_parish = None
-                    partner_gp = None
-                    if (    (partner_longitude is not None)
-                        and (partner_latitude is not None)
-                    ):
-                        try:
-                            point = gpd.points_from_xy(
-                                [partner_longitude],
-                                [partner_latitude]
-                            )[0]
-                        except:
-                            point = None
-                        if (point is not None):
-                            try:
-                                partner_region = gdf_regions['eer18nm'][list(gdf_regions.contains(point)).index(True)]
-                            except:
-                                pass
-                            try:
-                                partner_district = gdf_districts['LAD24NM'][list(gdf_districts.contains(point)).index(True)]
-                            except:
-                                pass
-                            try:
-                                partner_parish = gdf_parishes['PARNCP25NM'][list(gdf_parishes.contains(point)).index(True)]
-                            except:
-                                pass
-                            try:
-                                partner_gp = gdf_gps['Name'][list(gdf_gps.contains(point)).index(True)]
-                            except:
-                                pass
+                    # Use cached spatial index lookup for partner geo names
+                    partner_region, partner_district, partner_parish, partner_gp = get_geo_names(
+                        partner_longitude, partner_latitude
+                    )
 
                     if (    (postcode is None)
                         and (partner_postcode is not None)
