@@ -454,6 +454,54 @@ with cols[1]:
                     returned_objects=[],
                 )
 
+            st.markdown(" ")
+            st.divider()
+            st.write(f"Using November 2024 data, we explored the coverage of local areas in OpenActive data feeds.")
+            st.write("There are over 32,000 [Lower Layer Super Output Areas (LSOAs)](https://www.ons.gov.uk/methodology/geography/ukgeographies/statisticalgeographies) in England, with populations between 1000 and 3000 people. These are ranked by the Office of National Statistics by indicators of deprivation.")
+            st.write("Less than 30% of most deprived areas appear in OpenActive data, compared to almost 50% of the least deprived areas.")
+            # LSOAs by deprivation deciles
+            data = """Most Deprived,	945,	3285
+            2,	1037,	3284
+            3,	1189,	3284
+            4,	1289,	3285
+            5,	1360,	3284
+            6,	1451,	3284
+            7,	1478,	3285
+            8,	1557,	3284
+            9,	1504,	3284
+            Least Deprived,	1560,	3285"""
+
+            # Convert the string data to DataFrame
+            from io import StringIO  # For string data
+            df = pd.read_csv(StringIO(data), header=None, names=['decile', 'LSOA count', 'LSOA total count'])
+
+            # Calculate percentage
+            df['percentage'] = (df['LSOA count'] / df['LSOA total count']) * 100
+
+            decile_labels = ['Most Deprived', '2', '3', '4', '5', '6', '7', '8', '9', 'Least Deprived']
+
+            fig = go.Figure(go.Bar(
+                y=df['percentage'],
+                x=decile_labels,  # Use string labels directly
+                orientation='v',
+                marker_color='#e11482',
+            ))
+
+            fig.update_layout(
+                title="OA coverage across LSOAs, ranked by deprivation index",
+                xaxis_title="LSOAs grouped by deprivation index",
+                yaxis_title="% of LSOAs in each group with OpenActive opportunities",
+                height=600,
+                yaxis_range=[0, 100],
+                xaxis = dict(
+                    type = 'category' #This tells Plotly to treat the x-axis as categorical
+                )
+            )
+            # Display chart in Streamlit
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.write(' ')
+
 #print(st.session_state.aggregate_analysis.keys())
 #print(st.session_state.aggregate_analysis['total_num_districts'])
 #print(st.session_state.aggregate_analysis['gdf_total_districts_counts'])
