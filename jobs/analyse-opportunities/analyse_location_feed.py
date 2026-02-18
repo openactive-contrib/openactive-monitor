@@ -1,3 +1,19 @@
+"""
+python analyse_location_feed.py \            
+            -g ../volume-1/data-analysis/000-location-districts.geojson \
+            -n LAD24NM \
+            -o ./output7 \
+            -p ../volume-1/data-analysis/000-population/000-population-district.csv \
+            -pl Name \
+            -pv All_ages -v
+
+python analyse_location_feed.py -g ../volume-1/data-analysis/000-location-nhstrusts.geojson -n TrustName -d 16-02-2026 -o ./output8 -v
+
+python analyse_location_feed.py -g ../volume-1/data-analysis/000-location-gps.geojson -n Name -d 16-02-2026 -o ./output9 -v
+
+
+"""
+
 import click
 import csv
 import geopandas as gpd
@@ -19,6 +35,35 @@ sys.path.append('../volume-1/common')
 from fileutils import get_filename_pairs
 from openactive_custom import get_superevent_id_v_subevent_ids, get_event_type, get_item_kinds, get_item_types
 from settings import *
+
+# ==================================================================================================
+# DATE CONFIGURATION
+# ==================================================================================================
+# Set CUSTOM_DATE to override today's date for testing (format: "DD-MM-YYYY" or date object)
+# Example: CUSTOM_DATE = "16-02-2026" or CUSTOM_DATE = datetime(2026, 2, 16).date()
+CUSTOM_DATE = None
+
+def get_todays_date(custom_date=None):
+    """
+    Get today's date, optionally overridden by a custom date.
+    
+    Args:
+        custom_date: Optional date override. Can be:
+            - A date object
+            - A string in "DD-MM-YYYY" format
+            - None to use module-level CUSTOM_DATE or current date
+    
+    Returns:
+        date object
+    """
+    date_to_use = custom_date or CUSTOM_DATE
+    
+    if date_to_use is None:
+        return datetime.now().date()
+    elif isinstance(date_to_use, str):
+        return datetime.strptime(date_to_use, "%d-%m-%Y").date()
+    else:
+        return date_to_use
 
 # ==================================================================================================
 # HELPER FUNCTIONS - Data Loading
@@ -874,7 +919,8 @@ def get_parent_data_for_item(item_id, subevent_id_v_superevent_id, superevent_op
 # ==================================================================================================
 
 def analyse_location_feed(geojson_path, name_property, output_folder, filter_names=None, verbose=False,
-                          population_csv=None, population_label_column=None, population_value_column=None):
+                          population_csv=None, population_label_column=None, population_value_column=None,
+                          custom_date=None):
     """
     Analyse opportunities data by geographic regions defined in a GeoJSON file.
     
@@ -910,8 +956,9 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
     print(f'Analysing {len(region_names)} regions')
     
     # Time boundaries
-    todays_date = datetime.now().date()
+    todays_date = get_todays_date(custom_date)
     next_weeks_date = todays_date + timedelta(days=7)
+    print(f"Using date: {todays_date} (next week: {next_weeks_date})")
     
     # Initialize stats
     region_stats = initialize_all_region_stats(region_names)
@@ -1062,8 +1109,10 @@ def analyse_location_feed(geojson_path, name_property, output_folder, filter_nam
               help='Column name in population CSV containing region names')
 @click.option('--population-value-column', '-pv', type=str,
               help='Column name in population CSV containing population values')
+@click.option('--custom-date', '-d', type=str, default=None,
+              help='Custom date for testing (format: DD-MM-YYYY, e.g., 16-02-2026)')
 def main(geojson_path, name_property, filter_names, output_folder, verbose,
-         population_csv, population_label_column, population_value_column):
+         population_csv, population_label_column, population_value_column, custom_date):
     """Analyse feed data by geographic regions."""
     analyse_location_feed(
         geojson_path=geojson_path,
@@ -1074,6 +1123,7 @@ def main(geojson_path, name_property, filter_names, output_folder, verbose,
         population_csv=population_csv,
         population_label_column=population_label_column,
         population_value_column=population_value_column,
+        custom_date=custom_date,
     )
 
 
