@@ -2,6 +2,6 @@ click
 geopandas
 geopy
 openactive
-uklookup
-postal
 shapely
+# uklookup
+# postal
