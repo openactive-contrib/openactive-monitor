@@ -133,6 +133,9 @@ if ('initialised' not in st.session_state):
         except:
             st.session_state.error = True
             st.error('Error retrieving aggregate analysis')
+            # print error to console for debugging
+            import traceback
+            traceback.print_exc()
         try:
             with open(ANALYSIS_RELATIVE_FILEPATH + '/' + SAMPLE_ITEMS_FILENAME, 'rb') as file_in:
                 st.session_state.filenames_sampleitems = pickle.load(file_in)
