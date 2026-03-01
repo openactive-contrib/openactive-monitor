@@ -1,0 +1,10 @@
+virt/
+.DS_Store
+.gcloudignore
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+Dockerfile
+.dockerignore
