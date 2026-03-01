@@ -11,6 +11,7 @@ from settings import *
 # --------------------------------------------------------------------------------------------------
 
 def analyse_aggregate_opportunities(**kwargs):
+    print('\nAnalysing aggregate opportunities...')
     verbose = kwargs.get('verbose', False)
 
     # --------------------------------------------------------------------------------------------------
@@ -196,6 +197,48 @@ def analyse_aggregate_opportunities(**kwargs):
 
     # --------------------------------------------------------------------------------------------------
 
+    # df_total_parishes_counts, \
+    # total_num_parishes, \
+    # total_num_items_with_parishes = get_df_total_values_counts(separate_analysis, 'parishes_counts', feeds_to_include='all')
+
+    # # Columns: ['PARNCP25NM', 'count', 'percentage']
+    # df_total_parishes_counts.rename(columns={'value': 'PARNCP25NM'}, inplace=True)
+
+    # gdf_parishes = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_PARISHES_FILENAME)
+
+    # # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
+    # gdf_total_parishes_counts = pd.merge(gdf_parishes, df_total_parishes_counts[['PARNCP25NM', 'count', 'percentage']], on='PARNCP25NM', how='left')
+
+    # # --------------------------------------------------------------------------------------------------
+
+    # df_total_gps_counts, \
+    # total_num_gps, \
+    # total_num_items_with_gps = get_df_total_values_counts(separate_analysis, 'gps_counts', feeds_to_include='all')
+
+    # # Columns: ['Name', 'count', 'percentage']
+    # df_total_gps_counts.rename(columns={'value': 'Name'}, inplace=True)
+
+    # gdf_gps = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_GPS_FILENAME)
+
+    # # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
+    # gdf_total_gps_counts = pd.merge(gdf_gps, df_total_gps_counts[['Name', 'count', 'percentage']], on='Name', how='left')
+
+    # --------------------------------------------------------------------------------------------------
+
+    df_total_trust_counts, \
+    total_num_trust, \
+    total_num_items_with_trust = get_df_total_values_counts(separate_analysis, 'trusts_counts', feeds_to_include='all')
+
+    # Columns: ['Name', 'count', 'percentage']
+    df_total_trust_counts.rename(columns={'value': 'TrustName'}, inplace=True)
+
+    gdf_trust = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_TRUSTS_FILENAME)
+
+    # Columns: ['FID', 'LAD24CD', 'LAD24NM', 'LAD24NMW', 'BNG_E', 'BNG_N', 'LONG', 'LAT', 'GlobalID', 'geometry', 'count', 'percentage']
+    gdf_total_trust_counts = pd.merge(gdf_trust, df_total_trust_counts[['TrustName', 'count', 'percentage']], on='TrustName', how='left')
+
+    # --------------------------------------------------------------------------------------------------
+
     # Columns: ['sport', 'discipline', 'sport_and_discipline']
     df_se_sport_and_discipline = pd.read_csv(ANALYSIS_RELATIVE_FILEPATH + '/' + SE_SPORT_AND_DISCIPLINE_FILENAME)
 
@@ -366,6 +409,18 @@ def analyse_aggregate_opportunities(**kwargs):
         'total_num_districts': total_num_districts,
         'total_num_items_with_districts': total_num_items_with_districts,
 
+        # 'gdf_total_parishes_counts': gdf_total_parishes_counts,
+        # 'total_num_parishes': total_num_parishes,
+        # 'total_num_items_with_parishes': total_num_items_with_parishes,
+
+        # 'gdf_total_gps_counts': gdf_total_gps_counts,
+        # 'total_num_gps': total_num_gps,
+        # 'total_num_items_with_gps': total_num_items_with_gps,
+
+        'gdf_total_trust_counts': gdf_total_trust_counts,
+        'total_num_trust': total_num_trust,
+        'total_num_items_with_trust': total_num_items_with_trust,
+
         'df_total_sad_counts': df_total_sad_counts,
         'df_total_sad_counts_matched': df_total_sad_counts_matched,
         'df_total_sad_counts_unmatched': df_total_sad_counts_unmatched,
@@ -431,6 +486,8 @@ if (__name__ == '__main__'):
         analyse_aggregate_opportunities()
     except Exception as error:
         print('ERROR:', error)
+        import traceback
+        traceback.print_exc()
 
     # --------------------------------------------------------------------------------------------------
 

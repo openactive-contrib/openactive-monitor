@@ -6,10 +6,12 @@ volume-1/data-feeds/*
 volume-1/data-opportunities/*
 !volume-1/data-opportunities/dummy.txt
 
+jobs/analyse-opportunities/output*
+
 # Dependencies
 __pycache__/
 node_modules/
-virt/
+virt*/
 .venv
 
 # Jupyter
