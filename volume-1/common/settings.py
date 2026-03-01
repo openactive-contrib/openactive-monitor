@@ -69,6 +69,7 @@ GEO_REGIONS_FILENAME = '000-location-regions.geojson'
 GEO_DISTRICTS_FILENAME = '000-location-districts.geojson'
 GEO_PARISHES_FILENAME = '000-location-parishes.geojson'
 GEO_GPS_FILENAME = '000-location-gps.geojson'
+GEO_TRUSTS_FILENAME = '000-location-nhstrusts.geojson'
 SE_SPORT_AND_DISCIPLINE_FILENAME = '000-SE-sport-and-discipline.csv'
 OA_SE_MAPPING_FILENAME = '000-OA-SE-mapping.csv'
 

@@ -59,27 +59,29 @@ def lookup_location(point, tree, geometries, names):
 # Global spatial indexes (set by analyse_separate_opportunities)
 _regions_index = None
 _districts_index = None
-_parishes_index = None
-_gps_index = None
+# _parishes_index = None
+# _gps_index = None
+_trusts_index = None
 
 @lru_cache(maxsize=100000)
 def cached_geo_lookup(longitude, latitude):
     """
     Cached geo lookup for repeated coordinates.
-    Returns tuple of (region, district, parish, gp).
+    Returns tuple of (region, district, trust).
     """
-    global _regions_index, _districts_index, _parishes_index, _gps_index
+    global _regions_index, _districts_index, _trusts_index
     try:
         point = Point(longitude, latitude)
     except:
-        return None, None, None, None
+        return None, None, None
     
     region = lookup_location(point, *_regions_index)
     district = lookup_location(point, *_districts_index)
-    parish = lookup_location(point, *_parishes_index)
-    gp = lookup_location(point, *_gps_index)
+    # parish = lookup_location(point, *_parishes_index)
+    # gp = lookup_location(point, *_gps_index)
+    trust = lookup_location(point, *_trusts_index)
     
-    return region, district, parish, gp
+    return region, district, trust
 
 def parse_date(date_string):
     """
@@ -120,11 +122,11 @@ def extract_location_data(item_data):
 
 def get_geo_names(longitude, latitude):
     """
-    Get region, district, parish, gp names for a coordinate using cached lookup.
-    Returns tuple of (region, district, parish, gp).
+    Get region, district, trust names for a coordinate using cached lookup.
+    Returns tuple of (region, district, trust).
     """
     if longitude is None or latitude is None:
-        return None, None, None, None
+        return None, None, None
     return cached_geo_lookup(longitude, latitude)
 
 def analyse_separate_opportunities(**kwargs):
@@ -138,19 +140,23 @@ def analyse_separate_opportunities(**kwargs):
     gdf_districts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_DISTRICTS_FILENAME)
     gdf_districts = gdf_districts.to_crs(4326)
 
-    gdf_parishes = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_PARISHES_FILENAME)
-    gdf_parishes = gdf_parishes.to_crs(4326)
+    # gdf_parishes = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_PARISHES_FILENAME)
+    # gdf_parishes = gdf_parishes.to_crs(4326)
 
-    gdf_gps = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_GPS_FILENAME)
-    gdf_gps = gdf_gps.to_crs(4326)
+    # gdf_gps = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_GPS_FILENAME)
+    # gdf_gps = gdf_gps.to_crs(4326)
+
+    gdf_trusts = gpd.read_file(ANALYSIS_RELATIVE_FILEPATH + '/' + GEO_TRUSTS_FILENAME)
+    gdf_trusts = gdf_trusts.to_crs(4326)
 
     # Build spatial indexes for fast point-in-polygon lookups
     print('Building spatial indexes...')
-    global _regions_index, _districts_index, _parishes_index, _gps_index
+    global _regions_index, _districts_index, _trusts_index
     _regions_index = build_spatial_index(gdf_regions, 'eer18nm')
     _districts_index = build_spatial_index(gdf_districts, 'LAD24NM')
-    _parishes_index = build_spatial_index(gdf_parishes, 'PARNCP25NM')
-    _gps_index = build_spatial_index(gdf_gps, 'Name')
+    # _parishes_index = build_spatial_index(gdf_parishes, 'PARNCP25NM')
+    # _gps_index = build_spatial_index(gdf_gps, 'Name')
+    _trusts_index = build_spatial_index(gdf_trusts, 'TrustName')
     
     # Clear the geo lookup cache for fresh run
     cached_geo_lookup.cache_clear()
@@ -225,8 +231,9 @@ def analyse_separate_opportunities(**kwargs):
         'accessibilities_counts', # {STR: INT}
         'regions_counts', # {STR: INT}
         'districts_counts', # {STR: INT}
-        'parishes_counts', # {STR: INT}
-        'gps_counts', # {STR: INT}
+        # 'parishes_counts', # {STR: INT}
+        # 'gps_counts', # {STR: INT}
+        'trusts_counts', # {STR: INT}
 
         'num_items', # INT
         'num_analysis_items', # INT
@@ -435,8 +442,9 @@ def analyse_separate_opportunities(**kwargs):
             accessibilities_counts = {}
             regions_counts = {}
             districts_counts = {}
-            parishes_counts = {}
-            gps_counts = {}
+            # parishes_counts = {}
+            # gps_counts = {}
+            trusts_counts = {}
 
             for item_idx, item in enumerate(opportunities['items'].values()):
                 # TODO: Disable this count if running live on GCloud, as the logs there don't do carriage return, so
@@ -586,7 +594,7 @@ def analyse_separate_opportunities(**kwargs):
                 longitude = loc_data['longitude']
 
                 # Use cached spatial index lookup for geo names
-                region, district, parish, gp = get_geo_names(longitude, latitude)
+                region, district, trust = get_geo_names(longitude, latitude)
 
                 if (    (partner_item is not None)
                     and (   (postcode is None)
@@ -594,8 +602,9 @@ def analyse_separate_opportunities(**kwargs):
                         or  (longitude is None)
                         or  (region is None)
                         or  (district is None) 
-                        or  (parish is None)
-                        or  (gp is None)
+                        # or  (parish is None)
+                        # or  (gp is None)
+                        or  (trust is None)
                         )
                 ):
                     # Extract partner location data using helper function
@@ -605,7 +614,7 @@ def analyse_separate_opportunities(**kwargs):
                     partner_longitude = partner_loc_data['longitude']
 
                     # Use cached spatial index lookup for partner geo names
-                    partner_region, partner_district, partner_parish, partner_gp = get_geo_names(
+                    partner_region, partner_district, partner_trust = get_geo_names(
                         partner_longitude, partner_latitude
                     )
 
@@ -629,14 +638,18 @@ def analyse_separate_opportunities(**kwargs):
                         and (partner_district is not None)
                     ):
                         district = partner_district
-                    if (    (parish is None)
-                        and (partner_parish is not None)
+                    # if (    (parish is None)
+                    #     and (partner_parish is not None)
+                    # ):
+                    #     parish = partner_parish
+                    # if (    (gp is None)
+                    #     and (partner_gp is not None)
+                    # ):
+                    #     gp = partner_gp
+                    if (    (trust is None)
+                        and (partner_trust is not None)
                     ):
-                        parish = partner_parish
-                    if (    (gp is None)
-                        and (partner_gp is not None)
-                    ):
-                        gp = partner_gp
+                        trust = partner_trust
 
                 # --------------------------------------------------------------------------------------------------
 
@@ -714,8 +727,9 @@ def analyse_separate_opportunities(**kwargs):
 
                 update_values_counts(regions_counts, region)
                 update_values_counts(districts_counts, district)
-                update_values_counts(parishes_counts, parish)
-                update_values_counts(gps_counts, gp)
+                # update_values_counts(parishes_counts, parish)
+                # update_values_counts(gps_counts, gp)
+                update_values_counts(trusts_counts, trust)
 
             # --------------------------------------------------------------------------------------------------
 
@@ -758,8 +772,9 @@ def analyse_separate_opportunities(**kwargs):
                 'accessibilities_counts': accessibilities_counts,
                 'regions_counts': regions_counts,
                 'districts_counts': districts_counts,
-                'parishes_counts': parishes_counts,
-                'gps_counts': gps_counts,
+                # 'parishes_counts': parishes_counts,
+                # 'gps_counts': gps_counts,
+                'trusts_counts': trusts_counts,
 
                 'num_items': feed_num_items,
                 'num_analysis_items': feed_num_analysis_items,
