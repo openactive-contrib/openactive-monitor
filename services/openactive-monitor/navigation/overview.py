@@ -11,6 +11,165 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # --------------------------------------------------------------------------------------------------
 
+def render_geographic_analysis(
+    gdf_data,
+    name_column,
+    title,
+    search_placeholder,
+    search_key,
+    threshold=1000,
+    threshold_description="opportunities"
+):
+    """
+    Renders a geographic analysis visualization with a searchable table and choropleth map.
+    
+    Args:
+        gdf_data: GeoDataFrame with geometry, name column, 'count', and 'percentage' columns
+        name_column: Name of the column containing area names (e.g., 'LAD24NM', 'TrustName')
+        title: Title for the visualization
+        search_placeholder: Placeholder text for the search input
+        search_key: Unique key for the search input widget
+        threshold: Minimum count threshold for filtering (default 1000)
+        threshold_description: Description of what the threshold represents
+    """
+    # Get the geodataframe
+    gdf = gdf_data.copy()
+    
+    # Text input for filtering by name (on top)
+    search_term = st.text_input(
+        f'Search {title.lower()} by name',
+        placeholder=search_placeholder,
+        key=search_key
+    )
+    
+    # Filter the dataframe based on search term
+    if search_term:
+        filtered_gdf = gdf[gdf[name_column].str.contains(search_term, case=False, na=False)]
+    else:
+        filtered_gdf = gdf
+    
+    st.write(f"Showing {len(filtered_gdf)} of {len(gdf)} {title.lower()}")
+    
+    # Create two columns for table and map side by side (1:2 ratio)
+    col_table, col_map = st.columns([1, 2])
+    
+    with col_table:
+        # Prepare dataframe for display
+        display_df = filtered_gdf[[name_column, 'count', 'percentage']].sort_values(name_column).reset_index(drop=True)
+        display_df = display_df.rename(columns={
+            name_column: 'Name',
+            'count': 'Num. Opportunities',
+            'percentage': '% of Total',
+        })
+        
+        # Configure AgGrid for cell click selection
+        gb = GridOptionsBuilder.from_dataframe(display_df)
+        gb.configure_column('Name', cellStyle={'cursor': 'pointer'})
+        gb.configure_column('Num. Opportunities', type=['numericColumn'], valueFormatter="Math.round(x).toLocaleString()", maxWidth=120)
+        gb.configure_column('% of Total', type=['numericColumn'], valueFormatter="x.toFixed(2) + '%'", maxWidth=120)
+        gb.configure_selection(selection_mode='single', use_checkbox=False)
+        grid_options = gb.build()
+        
+        # Display AgGrid table with cell click
+        st.caption(f'Click a Name to highlight on map')
+        grid_response = AgGrid(
+            display_df,
+            gridOptions=grid_options,
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            height=450,
+            fit_columns_on_grid_load=True,
+            allow_unsafe_jscode=True,
+        )
+        
+        # Get selected item from cell click
+        selected_name = None
+        selected_rows = grid_response.get('selected_rows', None)
+        if selected_rows is not None and len(selected_rows) > 0:
+            selected_name = selected_rows.iloc[0]['Name']
+    
+    with col_map:
+        # Create leafmap with the data
+        # Ensure we have valid geometry and reproject to WGS84 for leafmap
+        map_gdf = filtered_gdf.copy()
+        if map_gdf.crs is not None and map_gdf.crs != 'EPSG:4326':
+            map_gdf = map_gdf.to_crs('EPSG:4326')
+        
+        # Prepare data for popup - only keep desired columns and rename
+        popup_columns = [name_column, 'count', 'percentage']
+        if 'category' in map_gdf.columns:
+            popup_columns.append('category')
+        
+        # Create a copy with only the columns we need for the popup
+        map_gdf_display = map_gdf[popup_columns + ['geometry']].copy()
+        map_gdf_display = map_gdf_display.rename(columns={
+            name_column: 'Name',
+            'count': 'Opportunities',
+            'percentage': 'Percentage',
+        })
+        
+        # UK bounding box: SW corner [49.5, -8.5], NE corner [61, 2]
+        uk_bounds = [[49.5, -8.5], [61, 2]]
+        
+        # Create the map centered on UK with max_bounds to restrict panning
+        m = leafmap.Map(
+            center=[54.5, -2],
+            zoom=6,
+            max_bounds=True,  # Restrict panning to the bounds
+        )
+        
+        # Set max bounds to UK area to prevent showing world map
+        m.options['maxBounds'] = uk_bounds
+        m.options['minZoom'] = 5
+        
+        # Fit to UK bounds
+        m.fit_bounds(uk_bounds)
+        
+        # Add the choropleth layer with custom popup fields
+        if len(map_gdf_display) > 0:
+            m.add_data(
+                map_gdf_display,
+                column='Percentage',
+                cmap='YlOrRd',
+                legend_title='% of Opportunities',
+                layer_name=title,
+                style={'fillOpacity': 0.7, 'weight': 0.5},
+            )
+        
+        # Highlight selected item
+        if selected_name is not None:
+            selected_gdf = map_gdf[map_gdf[name_column] == selected_name].copy()
+            if len(selected_gdf) > 0:
+                selected_display = selected_gdf[popup_columns + ['geometry']].copy()
+                selected_display = selected_display.rename(columns={
+                    name_column: 'Name',
+                    'count': 'Opportunities',
+                    'percentage': 'Percentage',
+                })
+                m.add_gdf(
+                    selected_display,
+                    layer_name=f'Selected {title[:-1] if title.endswith("s") else title}',
+                    style={
+                        'fillColor': '#00FF00',
+                        'fillOpacity': 0.7,
+                        'color': '#000000',
+                        'weight': 1,
+                    },
+                )
+                # Zoom to the selected item
+                bounds = selected_gdf.total_bounds  # [minx, miny, maxx, maxy]
+                m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+        
+        # Display the map using st_folium
+        # Use returned_objects=[] to prevent map interactions from triggering reruns
+        st_folium(
+            m,
+            use_container_width=True,
+            height=500,
+            returned_objects=[],
+        )
+
+# --------------------------------------------------------------------------------------------------
+
 # Combine SE data for display
 
 # Select desired columns and rename for consistency
@@ -231,141 +390,15 @@ with cols[1]:
             
             st.write(f"{len(gdf_filtered)} of the {len(gdf)} Local Authorities in the UK have more than 1000 opportunities in OpenActive data ({percentage_1000_or_more:.1f}%)")
             
-            # Get the geodataframe
-            gdf_districts = st.session_state.aggregate_analysis['gdf_total_districts_counts'].copy()
-            
-            # Text input for filtering by district name (on top)
-            search_term = st.text_input(
-                'Search districts by name',
-                placeholder='Type to filter districts (e.g., "Manchester", "London")...', 
-                key='district_search'
+            render_geographic_analysis(
+                gdf_data=st.session_state.aggregate_analysis['gdf_total_districts_counts'],
+                name_column='LAD24NM',
+                title='Districts',
+                search_placeholder='Type to filter districts (e.g., "Manchester", "London")...',
+                search_key='district_search',
+                threshold=1000,
+                threshold_description='opportunities'
             )
-            
-            # Filter the dataframe based on search term
-            if search_term:
-                filtered_gdf = gdf_districts[gdf_districts['LAD24NM'].str.contains(search_term, case=False, na=False)]
-            else:
-                filtered_gdf = gdf_districts
-            
-            st.write(f"Showing {len(filtered_gdf)} of {len(gdf_districts)} districts")
-            
-            # Create two columns for table and map side by side (1:2 ratio)
-            col_table, col_map = st.columns([1, 2])
-            
-            with col_table:
-                # Prepare dataframe for display
-                display_df = filtered_gdf[['LAD24NM', 'count', 'percentage']].sort_values('LAD24NM').reset_index(drop=True)
-                display_df = display_df.rename(columns={
-                    'LAD24NM': 'District Name',
-                    'count': 'Num. Opportunities',
-                    'percentage': '% of Total',
-                })
-                
-                # Configure AgGrid for cell click selection
-                gb = GridOptionsBuilder.from_dataframe(display_df)
-                gb.configure_column('District Name', cellStyle={'cursor': 'pointer'})
-                gb.configure_column('Num. Opportunities', type=['numericColumn'], valueFormatter="Math.round(x).toLocaleString()", maxWidth=120)
-                gb.configure_column('% of Total', type=['numericColumn'], valueFormatter="x.toFixed(2) + '%'", maxWidth=120)
-                gb.configure_selection(selection_mode='single', use_checkbox=False)
-                grid_options = gb.build()
-                
-                # Display AgGrid table with cell click
-                st.caption('Click a District Name to highlight on map')
-                grid_response = AgGrid(
-                    display_df,
-                    gridOptions=grid_options,
-                    update_mode=GridUpdateMode.SELECTION_CHANGED,
-                    height=450,
-                    fit_columns_on_grid_load=True,
-                    allow_unsafe_jscode=True,
-                )
-                
-                # Get selected district from cell click
-                selected_district = None
-                selected_rows = grid_response.get('selected_rows', None)
-                if selected_rows is not None and len(selected_rows) > 0:
-                    selected_district = selected_rows.iloc[0]['District Name']
-            
-            with col_map:
-                # Create leafmap with the data
-                # Ensure we have valid geometry and reproject to WGS84 for leafmap
-                map_gdf = filtered_gdf.copy()
-                if map_gdf.crs is not None and map_gdf.crs != 'EPSG:4326':
-                    map_gdf = map_gdf.to_crs('EPSG:4326')
-                
-                # Prepare data for popup - only keep desired columns and rename
-                popup_columns = ['LAD24NM', 'count', 'percentage']
-                if 'category' in map_gdf.columns:
-                    popup_columns.append('category')
-                
-                # Create a copy with only the columns we need for the popup
-                map_gdf_display = map_gdf[popup_columns + ['geometry']].copy()
-                map_gdf_display = map_gdf_display.rename(columns={
-                    'LAD24NM': 'Name',
-                    'count': 'Opportunities',
-                    'percentage': 'Percentage',
-                })
-                
-                # UK bounding box: SW corner [49.5, -8.5], NE corner [61, 2]
-                uk_bounds = [[49.5, -8.5], [61, 2]]
-                
-                # Create the map centered on UK with max_bounds to restrict panning
-                m = leafmap.Map(
-                    center=[54.5, -2], 
-                    zoom=6,
-                    max_bounds=True,  # Restrict panning to the bounds
-                )
-                
-                # Set max bounds to UK area to prevent showing world map
-                m.options['maxBounds'] = uk_bounds
-                m.options['minZoom'] = 5
-                
-                # Fit to UK bounds
-                m.fit_bounds(uk_bounds)
-                
-                # Add the choropleth layer with custom popup fields
-                if len(map_gdf_display) > 0:
-                    m.add_data(
-                        map_gdf_display,
-                        column='Percentage',
-                        cmap='YlOrRd',
-                        legend_title='% of Opportunities',
-                        layer_name='Districts',
-                        style={'fillOpacity': 0.7, 'weight': 0.5},
-                    )
-                
-                # Highlight selected district
-                if selected_district is not None:
-                    selected_gdf = map_gdf[map_gdf['LAD24NM'] == selected_district].copy()
-                    if len(selected_gdf) > 0:
-                        selected_display = selected_gdf[popup_columns + ['geometry']].copy()
-                        selected_display = selected_display.rename(columns={
-                            'LAD24NM': 'Name',
-                            'count': 'Opportunities',
-                            'percentage': 'Percentage',
-                        })
-                        m.add_gdf(
-                            selected_display,
-                            layer_name='Selected District',
-                            style={
-                                'fillColor': '#00FF00',
-                                'fillOpacity': 0.7,
-                                'color': '#000000',
-                                'weight': 1,
-                            },
-                        )
-                        # Zoom to the selected district
-                        bounds = selected_gdf.total_bounds  # [minx, miny, maxx, maxy]
-                        m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
-                
-                # Display the map using st_folium
-                # Use returned_objects=[] to prevent map interactions from triggering reruns
-                st_folium(
-                    m, 
-                    use_container_width=True,
-                    height=500, 
-                    returned_objects=[],
-                )
 
             st.markdown(" ")
             st.divider()
@@ -414,6 +447,30 @@ with cols[1]:
             st.plotly_chart(fig, use_container_width=True)
 
             st.write(' ')
+
+        # NHS Trust coverage analysis
+        gdf_trust = st.session_state.aggregate_analysis['gdf_total_trust_counts']
+
+        # Filter for counts 1000 or greater (important to include NaNs as 'not greater than or equal to threshold')
+        gdf_trust_filtered = gdf_trust[(gdf_trust['count'] >= 1000) | (gdf_trust['count'].isna())]
+
+        # Calculate the percentage
+        percentage_trust_1000_or_more = (len(gdf_trust_filtered) / len(gdf_trust)) * 100 if len(gdf_trust) > 0 else 0
+
+        st.markdown(f"***{percentage_trust_1000_or_more:.1f}% of NHS Trusts have more than 1000 opportunities across the OpenActive data feeds***")
+        with st.expander('This is a measure of NHS Trust coverage in the OpenActive ecosystem.\n\nClick here for more details.'):
+            
+            st.write(f"{len(gdf_trust_filtered)} of the {len(gdf_trust)} NHS Trusts have more than 1000 opportunities in OpenActive data ({percentage_trust_1000_or_more:.1f}%)")
+            
+            render_geographic_analysis(
+                gdf_data=st.session_state.aggregate_analysis['gdf_total_trust_counts'],
+                name_column='TrustName',
+                title='NHS Trusts',
+                search_placeholder='Type to filter NHS Trusts (e.g., "Manchester", "London")...',
+                search_key='trust_search',
+                threshold=1000,
+                threshold_description='opportunities'
+            )
 
 #print(st.session_state.aggregate_analysis.keys())
 #print(st.session_state.aggregate_analysis['total_num_districts'])
