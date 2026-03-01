@@ -11,7 +11,7 @@ jobs/analyse-opportunities/output*
 # Dependencies
 __pycache__/
 node_modules/
-virt/
+virt*/
 .venv
 
 # Jupyter

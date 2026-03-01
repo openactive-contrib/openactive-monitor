@@ -1,4 +1,4 @@
-virt/
+virt*/
 .DS_Store
 .gcloudignore
 __pycache__/
