@@ -124,27 +124,43 @@ def render_geographic_analysis(
         # Fit to UK bounds
         m.fit_bounds(uk_bounds)
         
+        # Calculate category bins for the choropleth (5 quantile bins to match leafmap default)
+        import numpy as np
+        percentages = map_gdf_display['Percentage'].dropna()
+        if len(percentages) > 0:
+            # Create 5 quantile bins to match leafmap's default behavior
+            bins = np.quantile(percentages, [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+            # Assign category based on which bin the value falls into
+            def get_category(val):
+                if pd.isna(val):
+                    return None
+                for i in range(len(bins) - 1):
+                    if val <= bins[i + 1]:
+                        return i + 1
+                return len(bins) - 1
+            map_gdf_display['category'] = map_gdf_display['Percentage'].apply(get_category)
+        
         # Add the choropleth layer with custom popup fields
         if len(map_gdf_display) > 0:
+            # Define popup fields (exclude 'color' which is auto-generated)
+            popup_fields = ['Name', 'Opportunities', 'Percentage', 'category']
+            
             m.add_data(
                 map_gdf_display,
                 column='Percentage',
                 cmap='YlOrRd',
                 legend_title='% of Opportunities',
                 layer_name=title,
-                style={'fillOpacity': 0.7, 'weight': 0.5},
+                style={'fillOpacity': 0.5, 'weight': 0.5, 'opacity': 0.8},
+                highlight_function=lambda x: {'fillOpacity': 0.4, 'weight': 1},
+                fields=popup_fields,
             )
         
         # Highlight selected item
         if selected_name is not None:
-            selected_gdf = map_gdf[map_gdf[name_column] == selected_name].copy()
-            if len(selected_gdf) > 0:
-                selected_display = selected_gdf[popup_columns + ['geometry']].copy()
-                selected_display = selected_display.rename(columns={
-                    name_column: 'Name',
-                    'count': 'Opportunities',
-                    'percentage': 'Percentage',
-                })
+            # Get the selected row from map_gdf_display which now has the category
+            selected_display = map_gdf_display[map_gdf_display['Name'] == selected_name].copy()
+            if len(selected_display) > 0:
                 m.add_gdf(
                     selected_display,
                     layer_name=f'Selected {title[:-1] if title.endswith("s") else title}',
@@ -154,9 +170,10 @@ def render_geographic_analysis(
                         'color': '#000000',
                         'weight': 1,
                     },
+                    fields=['Name', 'Opportunities', 'Percentage', 'category'],
                 )
                 # Zoom to the selected item
-                bounds = selected_gdf.total_bounds  # [minx, miny, maxx, maxy]
+                bounds = selected_display.total_bounds  # [minx, miny, maxx, maxy]
                 m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
         
         # Display the map using st_folium
