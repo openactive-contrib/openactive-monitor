@@ -48,8 +48,12 @@ def lookup_location(point, tree, geometries, names):
         return None
     candidates = tree.query(point)
     for idx in candidates:
-        if geometries[idx].contains(point):
-            return names[idx]
+        try:
+            if geometries[idx].contains(point):
+                return names[idx]
+        except Exception:
+            # Skip geometries that cause TopologyException or other errors
+            continue
     return None
 
 # Global spatial indexes (set by analyse_separate_opportunities)
