@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.11-slim
 
 # Install system dependencies for geospatial libraries (geopandas, pyproj, shapely)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,4 +25,6 @@ CMD streamlit run main.py \
     --server.address=0.0.0.0 \
     --server.port=${PORT:-8080} \
     --server.enableCORS=false \
+    --server.enableXsrfProtection=false \
+    --server.enableWebsocketCompression=false \
     --browser.gatherUsageStats=false
