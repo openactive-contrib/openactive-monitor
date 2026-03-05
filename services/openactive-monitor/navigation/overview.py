@@ -154,16 +154,30 @@ def render_geographic_analysis(
                 return len(bins) - 1
             map_gdf_display['category'] = map_gdf_display['Percentage'].apply(get_category)
         
+        # Create a display column for popup with descriptive labels (keep 'category' numeric for map coloring)
+        category_mapping = {
+            1: 'Low Activity',
+            2: 'Emerging',
+            3: 'Active',
+            4: 'Vibrant',
+            5: 'Sporting Hub',
+        }
+        if 'category' in map_gdf_display.columns:
+            map_gdf_display['Activity Level'] = map_gdf_display['category'].map(category_mapping)
+        
+        # Format "Percentage" as a percentage string (e.g., 0.12%) AFTER calculating categories
+        map_gdf_display['Percentage'] = map_gdf_display['Percentage'].round(2).astype(str) + '%'
+        
         # Add the choropleth layer with custom popup fields
         if len(map_gdf_display) > 0:
-            # Define popup fields (exclude 'color' which is auto-generated)
-            popup_fields = ['Name', 'Opportunities', 'Percentage', 'category']
+            # Define popup fields (use 'Activity Level' for display, exclude 'category')
+            popup_fields = ['Name', 'Opportunities', 'Percentage', 'Activity Level']
             
             m.add_data(
                 map_gdf_display,
-                column='Percentage',
+                column='category',
                 cmap='YlOrRd',
-                legend_title='% of Opportunities',
+                legend_title='Activity Level',
                 layer_name=title,
                 style={'fillOpacity': 0.5, 'weight': 0.5, 'opacity': 0.8},
                 highlight_function=lambda x: {'fillOpacity': 0.4, 'weight': 1},
@@ -184,7 +198,7 @@ def render_geographic_analysis(
                         'color': '#000000',
                         'weight': 1,
                     },
-                    fields=['Name', 'Opportunities', 'Percentage', 'category'],
+                    fields=['Name', 'Opportunities', 'Percentage', 'Activity Level'],
                 )
                 # Zoom to the selected item
                 bounds = selected_display.total_bounds  # [minx, miny, maxx, maxy]
