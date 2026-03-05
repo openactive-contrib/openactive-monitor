@@ -11,6 +11,21 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # --------------------------------------------------------------------------------------------------
 
+@st.cache_resource
+def prepare_map_gdf(_gdf_data, cache_key, tolerance=0.05):
+    """Cache simplified geodataframe for map display.
+    
+    Args:
+        _gdf_data: GeoDataFrame (underscore prefix prevents hashing)
+        cache_key: Unique string key for caching different maps
+        tolerance: Geometry simplification tolerance
+    """
+    map_gdf = _gdf_data.copy()
+    if map_gdf.crs is not None and map_gdf.crs != 'EPSG:4326':
+        map_gdf = map_gdf.to_crs('EPSG:4326')
+    map_gdf['geometry'] = map_gdf['geometry'].simplify(tolerance=tolerance, preserve_topology=True)
+    return map_gdf
+
 def render_geographic_analysis(
     gdf_data,
     name_column,
@@ -90,9 +105,7 @@ def render_geographic_analysis(
     with col_map:
         # Create leafmap with the data
         # Ensure we have valid geometry and reproject to WGS84 for leafmap
-        map_gdf = filtered_gdf.copy()
-        if map_gdf.crs is not None and map_gdf.crs != 'EPSG:4326':
-            map_gdf = map_gdf.to_crs('EPSG:4326')
+        map_gdf = prepare_map_gdf(gdf_data, cache_key=f"{name_column}_{title}", tolerance=0.02)
         
         # Prepare data for popup - only keep desired columns and rename
         popup_columns = [name_column, 'count', 'percentage']
@@ -115,6 +128,7 @@ def render_geographic_analysis(
             center=[54.5, -2],
             zoom=6,
             max_bounds=True,  # Restrict panning to the bounds
+            tiles="CartoDB positron",  # Lighter tile set
         )
         
         # Set max bounds to UK area to prevent showing world map
@@ -183,6 +197,7 @@ def render_geographic_analysis(
             use_container_width=True,
             height=500,
             returned_objects=[],
+            feature_group_to_add=None,  # Don't track features
         )
 
 # --------------------------------------------------------------------------------------------------
