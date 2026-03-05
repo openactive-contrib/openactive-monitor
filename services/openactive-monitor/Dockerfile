@@ -25,6 +25,4 @@ CMD streamlit run main.py \
     --server.address=0.0.0.0 \
     --server.port=${PORT:-8080} \
     --server.enableCORS=false \
-    --server.enableXsrfProtection=false \
-    --server.enableWebsocketCompression=false \
     --browser.gatherUsageStats=false
