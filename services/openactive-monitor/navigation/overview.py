@@ -79,9 +79,9 @@ def render_geographic_analysis(
         
         # Configure AgGrid for cell click selection
         gb = GridOptionsBuilder.from_dataframe(display_df)
-        gb.configure_column('Name', cellStyle={'cursor': 'pointer'})
-        gb.configure_column('Num. Opportunities', type=['numericColumn'], valueFormatter="Math.round(x).toLocaleString()", maxWidth=120)
-        gb.configure_column('% of Total', type=['numericColumn'], valueFormatter="x.toFixed(2) + '%'", maxWidth=120)
+        gb.configure_column('Name', cellStyle={'cursor': 'pointer'}, flex=1, minWidth=100)
+        gb.configure_column('Num. Opportunities', type=['numericColumn'], valueFormatter="Math.round(x).toLocaleString()", width=120, suppressSizeToFit=True)
+        gb.configure_column('% of Total', type=['numericColumn'], valueFormatter="x.toFixed(2) + '%'", width=90, suppressSizeToFit=True)
         gb.configure_selection(selection_mode='single', use_checkbox=False)
         grid_options = gb.build()
         
