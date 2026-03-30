@@ -11,6 +11,21 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # --------------------------------------------------------------------------------------------------
 
+@st.cache_resource
+def prepare_map_gdf(_gdf_data, cache_key, tolerance=0.05):
+    """Cache simplified geodataframe for map display.
+    
+    Args:
+        _gdf_data: GeoDataFrame (underscore prefix prevents hashing)
+        cache_key: Unique string key for caching different maps
+        tolerance: Geometry simplification tolerance
+    """
+    map_gdf = _gdf_data.copy()
+    if map_gdf.crs is not None and map_gdf.crs != 'EPSG:4326':
+        map_gdf = map_gdf.to_crs('EPSG:4326')
+    map_gdf['geometry'] = map_gdf['geometry'].simplify(tolerance=tolerance, preserve_topology=True)
+    return map_gdf
+
 def render_geographic_analysis(
     gdf_data,
     name_column,
@@ -64,9 +79,9 @@ def render_geographic_analysis(
         
         # Configure AgGrid for cell click selection
         gb = GridOptionsBuilder.from_dataframe(display_df)
-        gb.configure_column('Name', cellStyle={'cursor': 'pointer'})
-        gb.configure_column('Num. Opportunities', type=['numericColumn'], valueFormatter="Math.round(x).toLocaleString()", maxWidth=120)
-        gb.configure_column('% of Total', type=['numericColumn'], valueFormatter="x.toFixed(2) + '%'", maxWidth=120)
+        gb.configure_column('Name', cellStyle={'cursor': 'pointer'}, flex=1, minWidth=100)
+        gb.configure_column('Num. Opportunities', type=['numericColumn'], valueFormatter="Math.round(x).toLocaleString()", width=120, suppressSizeToFit=True)
+        gb.configure_column('% of Total', type=['numericColumn'], valueFormatter="x.toFixed(2) + '%'", width=90, suppressSizeToFit=True)
         gb.configure_selection(selection_mode='single', use_checkbox=False)
         grid_options = gb.build()
         
@@ -90,9 +105,7 @@ def render_geographic_analysis(
     with col_map:
         # Create leafmap with the data
         # Ensure we have valid geometry and reproject to WGS84 for leafmap
-        map_gdf = filtered_gdf.copy()
-        if map_gdf.crs is not None and map_gdf.crs != 'EPSG:4326':
-            map_gdf = map_gdf.to_crs('EPSG:4326')
+        map_gdf = prepare_map_gdf(gdf_data, cache_key=f"{name_column}_{title}", tolerance=0.02)
         
         # Prepare data for popup - only keep desired columns and rename
         popup_columns = [name_column, 'count', 'percentage']
@@ -115,6 +128,7 @@ def render_geographic_analysis(
             center=[54.5, -2],
             zoom=6,
             max_bounds=True,  # Restrict panning to the bounds
+            tiles="CartoDB positron",  # Lighter tile set
         )
         
         # Set max bounds to UK area to prevent showing world map
@@ -140,21 +154,65 @@ def render_geographic_analysis(
                 return len(bins) - 1
             map_gdf_display['category'] = map_gdf_display['Percentage'].apply(get_category)
         
+        # Create a display column for popup with descriptive labels
+        category_mapping = {
+            1: 'Quiet',
+            2: 'Steady',
+            3: 'Bustling',
+            4: 'Athletic',
+            5: 'Kinetic',
+        }
+        if 'category' in map_gdf_display.columns:
+            map_gdf_display['Activity Level'] = map_gdf_display['category'].map(category_mapping).fillna('No Data')
+        
+        # Format "Percentage" as a percentage string (e.g., 0.12%) AFTER calculating categories
+        map_gdf_display['Percentage'] = map_gdf_display['Percentage'].round(2).astype(str) + '%'
+        
         # Add the choropleth layer with custom popup fields
         if len(map_gdf_display) > 0:
-            # Define popup fields (exclude 'color' which is auto-generated)
-            popup_fields = ['Name', 'Opportunities', 'Percentage', 'category']
+            # Define popup fields (use 'Activity Level' for display, exclude 'category')
+            popup_fields = ['Name', 'Opportunities', 'Percentage', 'Activity Level']
             
-            m.add_data(
+            # Define color mapping for categorical coloring
+            activity_colors = {
+                'Quiet': '#ffffd1',
+                'Steady': '#f8da84', 
+                'Bustling': '#ee934f',
+                'Athletic': '#d1352b',
+                'Kinetic': '#751528',
+                'No Data': '#CCCCCC',
+            }
+            
+            # Create style function for coloring based on Activity Level
+            def style_function(feature):
+                activity_level = feature['properties'].get('Activity Level', 'No Data')
+                fill_color = activity_colors.get(activity_level, '#CCCCCC')
+                return {
+                    'fillColor': fill_color,
+                    'fillOpacity': 0.8,
+                    'weight': 0.5,
+                    'opacity': 0.8,
+                    'color': '#000000',
+                }
+            
+            # Add GeoDataFrame with custom style function
+            m.add_gdf(
                 map_gdf_display,
-                column='Percentage',
-                cmap='YlOrRd',
-                legend_title='% of Opportunities',
                 layer_name=title,
-                style={'fillOpacity': 0.5, 'weight': 0.5, 'opacity': 0.8},
+                style_function=style_function,
                 highlight_function=lambda x: {'fillOpacity': 0.4, 'weight': 1},
                 fields=popup_fields,
             )
+            
+            # Add custom legend with descriptive labels
+            legend_dict = {
+                'Quiet': '#ffffd1',
+                'Steady': '#f8da84', 
+                'Bustling': '#ee934f',
+                'Athletic': '#d1352b',
+                'Kinetic': '#751528',
+            }
+            m.add_legend(title='Activity Level', legend_dict=legend_dict)
         
         # Highlight selected item
         if selected_name is not None:
@@ -170,7 +228,7 @@ def render_geographic_analysis(
                         'color': '#000000',
                         'weight': 1,
                     },
-                    fields=['Name', 'Opportunities', 'Percentage', 'category'],
+                    fields=['Name', 'Opportunities', 'Percentage', 'Activity Level'],
                 )
                 # Zoom to the selected item
                 bounds = selected_display.total_bounds  # [minx, miny, maxx, maxy]
@@ -183,6 +241,7 @@ def render_geographic_analysis(
             use_container_width=True,
             height=500,
             returned_objects=[],
+            feature_group_to_add=None,  # Don't track features
         )
 
 # --------------------------------------------------------------------------------------------------
@@ -468,16 +527,16 @@ with cols[1]:
         # NHS Trust coverage analysis
         gdf_trust = st.session_state.aggregate_analysis['gdf_total_trust_counts']
 
-        # Filter for counts 1000 or greater (important to include NaNs as 'not greater than or equal to threshold')
-        gdf_trust_filtered = gdf_trust[(gdf_trust['count'] >= 1000) | (gdf_trust['count'].isna())]
+        # Filter for counts 10000 or greater (important to include NaNs as 'not greater than or equal to threshold')
+        gdf_trust_filtered = gdf_trust[(gdf_trust['count'] >= 10000) | (gdf_trust['count'].isna())]
 
         # Calculate the percentage
-        percentage_trust_1000_or_more = (len(gdf_trust_filtered) / len(gdf_trust)) * 100 if len(gdf_trust) > 0 else 0
+        percentage_trust_10000_or_more = (len(gdf_trust_filtered) / len(gdf_trust)) * 100 if len(gdf_trust) > 0 else 0
 
-        st.markdown(f"***{percentage_trust_1000_or_more:.1f}% of NHS Trusts have more than 1000 opportunities across the OpenActive data feeds***")
+        st.markdown(f"***{percentage_trust_10000_or_more:.1f}% of NHS Trusts have more than 10000 opportunities across the OpenActive data feeds***")
         with st.expander('This is a measure of NHS Trust coverage in the OpenActive ecosystem.\n\nClick here for more details.'):
             
-            st.write(f"{len(gdf_trust_filtered)} of the {len(gdf_trust)} NHS Trusts have more than 1000 opportunities in OpenActive data ({percentage_trust_1000_or_more:.1f}%)")
+            st.write(f"{len(gdf_trust_filtered)} of the {len(gdf_trust)} NHS Trusts have more than 10000 opportunities in OpenActive data ({percentage_trust_10000_or_more:.1f}%)")
             
             render_geographic_analysis(
                 gdf_data=st.session_state.aggregate_analysis['gdf_total_trust_counts'],
@@ -485,7 +544,7 @@ with cols[1]:
                 title='NHS Trusts',
                 search_placeholder='Type to filter NHS Trusts (e.g., "Manchester", "London")...',
                 search_key='trust_search',
-                threshold=1000,
+                threshold=10000,
                 threshold_description='opportunities'
             )
 
