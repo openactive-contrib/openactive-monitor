@@ -527,16 +527,16 @@ with cols[1]:
         # NHS Trust coverage analysis
         gdf_trust = st.session_state.aggregate_analysis['gdf_total_trust_counts']
 
-        # Filter for counts 1000 or greater (important to include NaNs as 'not greater than or equal to threshold')
-        gdf_trust_filtered = gdf_trust[(gdf_trust['count'] >= 1000) | (gdf_trust['count'].isna())]
+        # Filter for counts 10000 or greater (important to include NaNs as 'not greater than or equal to threshold')
+        gdf_trust_filtered = gdf_trust[(gdf_trust['count'] >= 10000) | (gdf_trust['count'].isna())]
 
         # Calculate the percentage
-        percentage_trust_1000_or_more = (len(gdf_trust_filtered) / len(gdf_trust)) * 100 if len(gdf_trust) > 0 else 0
+        percentage_trust_10000_or_more = (len(gdf_trust_filtered) / len(gdf_trust)) * 100 if len(gdf_trust) > 0 else 0
 
-        st.markdown(f"***{percentage_trust_1000_or_more:.1f}% of NHS Trusts have more than 1000 opportunities across the OpenActive data feeds***")
+        st.markdown(f"***{percentage_trust_10000_or_more:.1f}% of NHS Trusts have more than 10000 opportunities across the OpenActive data feeds***")
         with st.expander('This is a measure of NHS Trust coverage in the OpenActive ecosystem.\n\nClick here for more details.'):
             
-            st.write(f"{len(gdf_trust_filtered)} of the {len(gdf_trust)} NHS Trusts have more than 1000 opportunities in OpenActive data ({percentage_trust_1000_or_more:.1f}%)")
+            st.write(f"{len(gdf_trust_filtered)} of the {len(gdf_trust)} NHS Trusts have more than 10000 opportunities in OpenActive data ({percentage_trust_10000_or_more:.1f}%)")
             
             render_geographic_analysis(
                 gdf_data=st.session_state.aggregate_analysis['gdf_total_trust_counts'],
@@ -544,7 +544,7 @@ with cols[1]:
                 title='NHS Trusts',
                 search_placeholder='Type to filter NHS Trusts (e.g., "Manchester", "London")...',
                 search_key='trust_search',
-                threshold=1000,
+                threshold=10000,
                 threshold_description='opportunities'
             )
 
