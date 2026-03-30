@@ -154,16 +154,16 @@ def render_geographic_analysis(
                 return len(bins) - 1
             map_gdf_display['category'] = map_gdf_display['Percentage'].apply(get_category)
         
-        # Create a display column for popup with descriptive labels (keep 'category' numeric for map coloring)
+        # Create a display column for popup with descriptive labels
         category_mapping = {
-            1: 'Low Activity',
-            2: 'Emerging',
-            3: 'Active',
-            4: 'Vibrant',
-            5: 'Sporting Hub',
+            1: 'Quiet',
+            2: 'Steady',
+            3: 'Bustling',
+            4: 'Athletic',
+            5: 'Kinetic',
         }
         if 'category' in map_gdf_display.columns:
-            map_gdf_display['Activity Level'] = map_gdf_display['category'].map(category_mapping)
+            map_gdf_display['Activity Level'] = map_gdf_display['category'].map(category_mapping).fillna('No Data')
         
         # Format "Percentage" as a percentage string (e.g., 0.12%) AFTER calculating categories
         map_gdf_display['Percentage'] = map_gdf_display['Percentage'].round(2).astype(str) + '%'
@@ -173,16 +173,46 @@ def render_geographic_analysis(
             # Define popup fields (use 'Activity Level' for display, exclude 'category')
             popup_fields = ['Name', 'Opportunities', 'Percentage', 'Activity Level']
             
-            m.add_data(
+            # Define color mapping for categorical coloring
+            activity_colors = {
+                'Quiet': '#ffffd1',
+                'Steady': '#f8da84', 
+                'Bustling': '#ee934f',
+                'Athletic': '#d1352b',
+                'Kinetic': '#751528',
+                'No Data': '#CCCCCC',
+            }
+            
+            # Create style function for coloring based on Activity Level
+            def style_function(feature):
+                activity_level = feature['properties'].get('Activity Level', 'No Data')
+                fill_color = activity_colors.get(activity_level, '#CCCCCC')
+                return {
+                    'fillColor': fill_color,
+                    'fillOpacity': 0.8,
+                    'weight': 0.5,
+                    'opacity': 0.8,
+                    'color': '#000000',
+                }
+            
+            # Add GeoDataFrame with custom style function
+            m.add_gdf(
                 map_gdf_display,
-                column='category',
-                cmap='YlOrRd',
-                legend_title='Activity Level',
                 layer_name=title,
-                style={'fillOpacity': 0.5, 'weight': 0.5, 'opacity': 0.8},
+                style_function=style_function,
                 highlight_function=lambda x: {'fillOpacity': 0.4, 'weight': 1},
                 fields=popup_fields,
             )
+            
+            # Add custom legend with descriptive labels
+            legend_dict = {
+                'Quiet': '#ffffd1',
+                'Steady': '#f8da84', 
+                'Bustling': '#ee934f',
+                'Athletic': '#d1352b',
+                'Kinetic': '#751528',
+            }
+            m.add_legend(title='Activity Level', legend_dict=legend_dict)
         
         # Highlight selected item
         if selected_name is not None:
