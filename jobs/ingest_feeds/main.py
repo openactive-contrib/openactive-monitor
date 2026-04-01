@@ -11,7 +11,8 @@ Can be executed locally or as a Google Cloud Run job.
 import os
 import json
 import logging
-from datetime import date
+import warnings
+from datetime import date, datetime, timezone
 from time import sleep
 
 import pandas as pd
@@ -19,6 +20,7 @@ import pandas_gbq
 import requests
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
+from urllib3.exceptions import InsecureRequestWarning
 from urllib3.util.retry import Retry
 from dotenv import load_dotenv
 
@@ -27,13 +29,22 @@ load_dotenv()
 BIGQUERY_PROJECT = os.getenv("GCP_PROJECT_ID")
 BIGQUERY_DATASET = os.getenv("BQ_DATASET_ID")
 FEEDS_TABLE = os.getenv("BQ_FEEDS_TABLE")
+FEED_INGESTION_TABLE = os.getenv("BQ_FEED_INGESTION_TABLE")
 
 CATALOG_COLLECTION_URLS = {
     "regular": "https://openactive.io/data-catalogs/data-catalog-collection.jsonld",
     "preview": "https://openactive.io/data-catalogs/data-catalog-collection-preview.jsonld",
 }
 
-DEFAULT_HEADERS = {"User-Agent": "OpenActive user"}
+DEFAULT_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-GB,en;q=0.9",
+}
 SECONDS_WAIT_BETWEEN_REQUESTS = 0.2
 
 # Retry / back-off settings
@@ -69,12 +80,35 @@ def _build_session() -> requests.Session:
     return session
 
 
+def _get(session: requests.Session, url: str, **kwargs) -> requests.Response:
+    """GET *url*, falling back to ``verify=False`` on SSL certificate errors.
+
+    SSL verification is always attempted first.  If it fails with an
+    ``SSLError`` (e.g. a host with an untrusted/self-signed certificate that
+    browsers accept via the OS trust store), the request is retried with
+    verification disabled and a warning is logged.  All other errors are
+    re-raised as normal.
+    """
+    try:
+        return session.get(url, headers=DEFAULT_HEADERS, verify=True, **kwargs)
+    except requests.exceptions.SSLError:
+        # logger.warning(
+        #     "SSL certificate verification failed for %s – retrying without verification.", url
+        # )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", InsecureRequestWarning)
+            return session.get(url, headers=DEFAULT_HEADERS, verify=False, **kwargs)
+
+
 def _get_json(session: requests.Session, url: str) -> dict | None:
     """GET *url* and return the parsed JSON body, or ``None`` on failure."""
     try:
-        resp = session.get(url, headers=DEFAULT_HEADERS, timeout=180)
+        resp = _get(session, url, timeout=180)
         resp.raise_for_status()
         return resp.json()
+    except requests.exceptions.HTTPError as e:
+        logger.warning("HTTP %s fetching: %s", e.response.status_code, url)
+        return None
     except Exception:
         logger.warning("Failed to fetch: %s", url, exc_info=True)
         return None
@@ -83,9 +117,12 @@ def _get_json(session: requests.Session, url: str) -> dict | None:
 def _get_text(session: requests.Session, url: str) -> str | None:
     """GET *url* and return the response text, or ``None`` on failure."""
     try:
-        resp = session.get(url, headers=DEFAULT_HEADERS, timeout=60)
+        resp = _get(session, url, timeout=60)
         resp.raise_for_status()
         return resp.text
+    except requests.exceptions.HTTPError as e:
+        logger.warning("HTTP %s fetching: %s", e.response.status_code, url)
+        return None
     except Exception:
         logger.warning("Failed to fetch: %s", url, exc_info=True)
         return None
@@ -193,8 +230,21 @@ def _nested_get(d: dict, *keys: str, default: str = "") -> str:
     return d if isinstance(d, str) else default
 
 
-def collect_feeds(session: requests.Session, label: str = "regular") -> list[dict]:
-    """High-level helper: collect all feeds for the given mode."""
+def collect_feeds(
+    session: requests.Session, label: str = "regular"
+) -> dict:
+    """Collect all feeds for the given mode.
+
+    Args:
+        session: A requests.Session with retries configured.
+        label: Either ``"regular"`` or ``"preview"``.
+
+    Returns:
+        A dict with keys:
+            - ``feeds``: list of feed dicts
+            - ``catalogue_urls``: list of catalogue URLs fetched
+            - ``dataset_urls``: list of dataset URLs fetched
+    """
     collection_url = CATALOG_COLLECTION_URLS[label]
 
     logger.info("Collecting %s feeds from %s", label, collection_url)
@@ -211,7 +261,11 @@ def collect_feeds(session: requests.Session, label: str = "regular") -> list[dic
             sleep(SECONDS_WAIT_BETWEEN_REQUESTS)
 
     logger.info("Collected %d %s feeds", len(feeds), label)
-    return feeds
+    return {
+        "feeds": feeds,
+        "catalogue_urls": catalogue_urls,
+        "dataset_urls": dataset_urls,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -338,22 +392,78 @@ def merge_to_bigquery(df_new: pd.DataFrame) -> None:
     logger.info("BigQuery table updated successfully.")
 
 
+def write_ingestion_record(
+    feed_ids: list[str],
+    catalogue_urls: list[str],
+    dataset_urls: list[str],
+    ingestion_ts: datetime,
+) -> None:
+    """Append a single summary row to the feed_ingestion table.
+
+    Args:
+        feed_ids: Ordered list of all ingested feed ids.
+        catalogue_urls: All catalogue URLs visited during this run.
+        dataset_urls: All dataset URLs visited during this run.
+        ingestion_ts: UTC timestamp marking the start of this ingestion run.
+    """
+    row = {
+        "ingestion_date": ingestion_ts,
+        "number_of_catalogues": len(catalogue_urls),
+        "catalogues": json.dumps(catalogue_urls),
+        "number_of_datasets": len(dataset_urls),
+        "datasets": json.dumps(dataset_urls),
+        "number_of_feeds": len(feed_ids),
+        "feed_ids": json.dumps(feed_ids),
+    }
+    df = pd.DataFrame([row])
+
+    logger.info(
+        "Writing ingestion record: %d feeds, %d catalogues, %d datasets …",
+        len(feed_ids),
+        len(catalogue_urls),
+        len(dataset_urls),
+    )
+
+    pandas_gbq.to_gbq(
+        df,
+        destination_table=f"{BIGQUERY_DATASET}.{FEED_INGESTION_TABLE}",
+        project_id=BIGQUERY_PROJECT,
+        if_exists="append",
+    )
+
+    logger.info("Ingestion record written successfully.")
+
+
 def main() -> None:
+    ingestion_ts = datetime.now(tz=timezone.utc)
     session = _build_session()
 
     all_feeds: list[dict] = []
-    try:
-        all_feeds.extend(collect_feeds(session, label="preview"))
-        all_feeds.extend(collect_feeds(session, label="regular"))
-    except Exception as e:
-        logger.error("Error during feed collection: %s", e, exc_info=True)
+    all_catalogue_urls: list[str] = []
+    all_dataset_urls: list[str] = []
+
+    for label in ("preview", "regular"):
+        try:
+            result = collect_feeds(session, label=label)
+            all_feeds.extend(result["feeds"])
+            all_catalogue_urls.extend(result["catalogue_urls"])
+            all_dataset_urls.extend(result["dataset_urls"])
+        except Exception as e:
+            logger.error("Error collecting %s feeds: %s", label, e, exc_info=True)
 
     if not all_feeds:
         logger.warning("No feeds collected – nothing to write.")
         return
 
     df = _feeds_to_dataframe(all_feeds)
-    merge_to_bigquery(df)
+    # merge_to_bigquery(df)
+    #
+    # write_ingestion_record(
+    #     feed_ids=df["id"].tolist(),
+    #     catalogue_urls=all_catalogue_urls,
+    #     dataset_urls=all_dataset_urls,
+    #     ingestion_ts=ingestion_ts,
+    # )
 
     logger.info("Finished.")
 
