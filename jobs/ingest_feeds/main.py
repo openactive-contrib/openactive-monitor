@@ -19,6 +19,7 @@ import pandas as pd
 import pandas_gbq
 import requests
 from bs4 import BeautifulSoup
+from google.cloud import bigquery
 from requests.adapters import HTTPAdapter
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3.util.retry import Retry
@@ -50,7 +51,7 @@ SECONDS_WAIT_BETWEEN_REQUESTS = 0.2
 # Retry / back-off settings
 MAX_RETRIES = 5
 BACKOFF_FACTOR = 1  # 0s, 1s, 2s, 4s, 8s …
-RETRY_STATUS_FORCELIST = (429, 500, 502, 503, 504)
+RETRY_STATUS_FORCELIST = (403, 429, 500, 502, 503, 504)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -400,14 +401,20 @@ def write_ingestion_record(
 ) -> None:
     """Append a single summary row to the feed_ingestion table.
 
+    Uses the google-cloud-bigquery client directly because pandas-gbq does not
+    support JSON column types.
+
     Args:
         feed_ids: Ordered list of all ingested feed ids.
         catalogue_urls: All catalogue URLs visited during this run.
         dataset_urls: All dataset URLs visited during this run.
         ingestion_ts: UTC timestamp marking the start of this ingestion run.
     """
+    client = bigquery.Client(project=BIGQUERY_PROJECT)
+    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{FEED_INGESTION_TABLE}"
+
     row = {
-        "ingestion_date": ingestion_ts,
+        "ingestion_date": ingestion_ts.isoformat(),
         "number_of_catalogues": len(catalogue_urls),
         "catalogues": json.dumps(catalogue_urls),
         "number_of_datasets": len(dataset_urls),
@@ -415,7 +422,6 @@ def write_ingestion_record(
         "number_of_feeds": len(feed_ids),
         "feed_ids": json.dumps(feed_ids),
     }
-    df = pd.DataFrame([row])
 
     logger.info(
         "Writing ingestion record: %d feeds, %d catalogues, %d datasets …",
@@ -424,12 +430,10 @@ def write_ingestion_record(
         len(dataset_urls),
     )
 
-    pandas_gbq.to_gbq(
-        df,
-        destination_table=f"{BIGQUERY_DATASET}.{FEED_INGESTION_TABLE}",
-        project_id=BIGQUERY_PROJECT,
-        if_exists="append",
-    )
+    errors = client.insert_rows_json(table_id, [row])
+    if errors:
+        logger.error("BigQuery insert errors: %s", errors)
+        raise RuntimeError(f"Failed to insert ingestion record: {errors}")
 
     logger.info("Ingestion record written successfully.")
 
@@ -456,14 +460,14 @@ def main() -> None:
         return
 
     df = _feeds_to_dataframe(all_feeds)
-    # merge_to_bigquery(df)
-    #
-    # write_ingestion_record(
-    #     feed_ids=df["id"].tolist(),
-    #     catalogue_urls=all_catalogue_urls,
-    #     dataset_urls=all_dataset_urls,
-    #     ingestion_ts=ingestion_ts,
-    # )
+    merge_to_bigquery(df)
+
+    write_ingestion_record(
+        feed_ids=df["id"].tolist(),
+        catalogue_urls=all_catalogue_urls,
+        dataset_urls=all_dataset_urls,
+        ingestion_ts=ingestion_ts,
+    )
 
     logger.info("Finished.")
 

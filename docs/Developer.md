@@ -18,9 +18,7 @@ streamlit run main.py
 
 ## Jobs
 
-### Ingest Opportunities
-
-#### Authenticate locally
+### Authenticate locally
 
 To be able to connect BigQuery from your local machine, you need to authenticate with Google Cloud.
 
@@ -29,3 +27,7 @@ Run this command in your terminal. It will open a browser to log you in and save
 ```
 gcloud auth application-default login
 ```
+
+### Ingest Feeds
+
+### Ingest Opportunities

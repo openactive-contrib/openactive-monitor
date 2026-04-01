@@ -5,3 +5,4 @@ pandas-gbq
 python-dotenv
 requests
 urllib3
+tqdm
