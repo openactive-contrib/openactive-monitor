@@ -1,0 +1,363 @@
+"""Ingest OpenActive data feeds into BigQuery.
+
+Collects feed metadata from the OpenActive catalog collection (regular and
+preview), then merges the results into the BigQuery table
+``openactive-monitor.openactive_analytics.feeds`` using the ``id`` column as
+the merge key.  The ``last_access`` date is updated on every run.
+
+Can be executed locally or as a Google Cloud Run job.
+"""
+
+import os
+import json
+import logging
+from datetime import date
+from time import sleep
+
+import pandas as pd
+import pandas_gbq
+import requests
+from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BIGQUERY_PROJECT = os.getenv("GCP_PROJECT_ID")
+BIGQUERY_DATASET = os.getenv("BQ_DATASET_ID")
+FEEDS_TABLE = os.getenv("BQ_FEEDS_TABLE")
+
+CATALOG_COLLECTION_URLS = {
+    "regular": "https://openactive.io/data-catalogs/data-catalog-collection.jsonld",
+    "preview": "https://openactive.io/data-catalogs/data-catalog-collection-preview.jsonld",
+}
+
+DEFAULT_HEADERS = {"User-Agent": "OpenActive user"}
+SECONDS_WAIT_BETWEEN_REQUESTS = 0.2
+
+# Retry / back-off settings
+MAX_RETRIES = 5
+BACKOFF_FACTOR = 1  # 0s, 1s, 2s, 4s, 8s …
+RETRY_STATUS_FORCELIST = (429, 500, 502, 503, 504)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# HTTP helpers
+# ---------------------------------------------------------------------------
+
+
+def _build_session() -> requests.Session:
+    """Return a :class:`requests.Session` with automatic retries and
+    exponential back-off configured via an :class:`HTTPAdapter`."""
+    session = requests.Session()
+    retry = Retry(
+        total=MAX_RETRIES,
+        backoff_factor=BACKOFF_FACTOR,
+        status_forcelist=RETRY_STATUS_FORCELIST,
+        allowed_methods=["GET"],
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+def _get_json(session: requests.Session, url: str) -> dict | None:
+    """GET *url* and return the parsed JSON body, or ``None`` on failure."""
+    try:
+        resp = session.get(url, headers=DEFAULT_HEADERS, timeout=180)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        logger.warning("Failed to fetch: %s", url, exc_info=True)
+        return None
+
+
+def _get_text(session: requests.Session, url: str) -> str | None:
+    """GET *url* and return the response text, or ``None`` on failure."""
+    try:
+        resp = session.get(url, headers=DEFAULT_HEADERS, timeout=60)
+        resp.raise_for_status()
+        return resp.text
+    except Exception:
+        logger.warning("Failed to fetch: %s", url, exc_info=True)
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Feed collection logic
+# ---------------------------------------------------------------------------
+
+
+def get_catalogue_urls(
+    session: requests.Session,
+    collection_url: str,
+) -> list[str]:
+    """
+    Fetch catalog URLs from the given *collection_url*.
+    Args:
+        session: A requests.Session with retries configured.
+        collection_url: URL of the catalog collection (regular or preview).
+    Returns:
+        A list of catalog URLs, or an empty list on failure.
+    """
+    data = _get_json(session, collection_url)
+    if data is None:
+        logger.error("Cannot get collection: %s", collection_url)
+        return []
+
+    if not "hasPart" in data:
+        logger.error("Missing hasPart in collection: %s", collection_url)
+        return []
+
+    parts = data.get("hasPart", [])
+    if not all(isinstance(p, str) for p in parts):
+        logger.error("Invalid hasPart entries in: %s", collection_url)
+        return []
+
+    return parts
+
+
+def get_dataset_urls(
+    session: requests.Session,
+    catalogue_urls: list[str],
+) -> list[str]:
+    """Fetch dataset URLs from each catalogue URL."""
+    dataset_urls: list[str] = []
+
+    for idx, catalogue_url in enumerate(catalogue_urls):
+        data = _get_json(session, catalogue_url)
+        if data is None:
+            logger.error("Cannot get catalogue: %s", catalogue_url)
+        else:
+            datasets = data.get("dataset", [])
+            if all(isinstance(d, str) for d in datasets):
+                dataset_urls.extend(datasets)
+            else:
+                logger.error("Invalid dataset entries in: %s", catalogue_url)
+
+        if idx < len(catalogue_urls) - 1:
+            sleep(SECONDS_WAIT_BETWEEN_REQUESTS)
+
+    return dataset_urls
+
+
+def _parse_feeds_from_dataset(
+    session: requests.Session,
+    dataset_url: str,
+) -> list[dict]:
+    """Scrape the JSON-LD metadata from *dataset_url* and return a list of
+    feed dicts."""
+    html = _get_text(session, dataset_url)
+    if html is None:
+        logger.error("Cannot get dataset: %s", dataset_url)
+        return []
+
+    feeds: list[dict] = []
+
+    soup = BeautifulSoup(html, "html.parser")
+    for script in soup.find_all("script", attrs={"type": "application/ld+json"}):
+        try:
+            jsonld = json.loads(script.string)
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+        for feed_in in jsonld.get("distribution", []):
+            feed_out = {
+                "type": feed_in.get("name", ""),
+                "url": feed_in.get("contentUrl", ""),
+                "dataset_name": jsonld.get("name", ""),
+                "dataset_url": dataset_url,
+                "license_url": jsonld.get("license", ""),
+                "logo_url": _nested_get(jsonld, "publisher", "logo", "url"),
+                "publisher_name": _nested_get(jsonld, "publisher", "name"),
+            }
+            feeds.append(feed_out)
+
+    return feeds
+
+
+def _nested_get(d: dict, *keys: str, default: str = "") -> str:
+    """Safely traverse nested dicts and return *default* on any miss."""
+    for key in keys:
+        if not isinstance(d, dict):
+            return default
+        d = d.get(key, default)
+    return d if isinstance(d, str) else default
+
+
+def collect_feeds(session: requests.Session, label: str = "regular") -> list[dict]:
+    """High-level helper: collect all feeds for the given mode."""
+    collection_url = CATALOG_COLLECTION_URLS[label]
+
+    logger.info("Collecting %s feeds from %s", label, collection_url)
+
+    catalogue_urls = get_catalogue_urls(session, collection_url)
+    dataset_urls = get_dataset_urls(session, catalogue_urls)
+
+    logger.info("Found %d datasets for %s feeds", len(dataset_urls), label)
+
+    feeds: list[dict] = []
+    for idx, dataset_url in enumerate(dataset_urls):
+        feeds.extend(_parse_feeds_from_dataset(session, dataset_url))
+        if idx < len(dataset_urls) - 1:
+            sleep(SECONDS_WAIT_BETWEEN_REQUESTS)
+
+    logger.info("Collected %d %s feeds", len(feeds), label)
+    return feeds
+
+
+# ---------------------------------------------------------------------------
+# ID generation
+# ---------------------------------------------------------------------------
+
+
+def _make_feed_id(url: str) -> str:
+    """Derive a stable, human-readable id from a feed URL.
+
+    Mirrors the logic in the original ``get-feeds`` job.
+    """
+    return (
+        url.replace("https://", "")
+        .replace("http://", "")
+        .replace("www.", "")
+        .replace(".", "-")
+        .replace("/", "-")
+        .strip("-")
+    )
+
+
+# ---------------------------------------------------------------------------
+# BigQuery helpers
+# ---------------------------------------------------------------------------
+
+
+def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
+    """
+    Convert collected feeds to a DataFrame matching the BQ schema.
+    Args:
+        feeds: List of feed dicts with keys: url, type, dataset_name, dataset_url,
+               license_url, logo_url, publisher_name.
+    Returns:
+        A pandas DataFrame with BQ table columns.
+    """
+    columns = [
+        "id",
+        "url",
+        "type",
+        "dataset_name",
+        "dataset_url",
+        "license_url",
+        "logo_url",
+        "publisher_name",
+        "last_access",
+    ]
+    today = date.today()
+
+    rows = []
+    for feed in feeds:
+        rows.append(
+            {
+                "id": _make_feed_id(feed["url"]),
+                "url": feed["url"],
+                "type": feed["type"],
+                "dataset_name": feed["dataset_name"],
+                "dataset_url": feed["dataset_url"],
+                "license_url": feed["license_url"],
+                "logo_url": feed["logo_url"],
+                "publisher_name": feed["publisher_name"],
+                "last_access": today,
+            }
+        )
+
+    df = pd.DataFrame(rows, columns=columns)
+    # De-duplicate: keep last occurrence (same id may appear in regular + preview)
+    df = df.drop_duplicates(subset="id", keep="last").reset_index(drop=True)
+    return df
+
+
+def merge_to_bigquery(df_new: pd.DataFrame) -> None:
+    """Merge *df_new* into the BigQuery feeds table.
+
+    * Rows whose ``id`` already exists are **updated** (all columns
+      overwritten, ``last_access`` refreshed).
+    * Rows with a new ``id`` are **inserted**.
+
+    Args:
+        df_new: DataFrame of new feed data to merge in. Must contain an ``id``
+            column and match the BQ schema.
+    """
+    logger.info("Loading existing feeds from BigQuery …")
+
+    try:
+        df_existing = pandas_gbq.read_gbq(
+            f"SELECT * FROM `{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{FEEDS_TABLE}`",
+            project_id=BIGQUERY_PROJECT,
+        )
+    except Exception:
+        logger.info("Could not read existing table – will create it from scratch.")
+        df_existing = pd.DataFrame()
+
+    df_merged: pd.DataFrame
+    if df_existing.empty:
+        df_merged = df_new
+    else:
+        # Ensure consistent date type
+        if "last_access" in df_existing.columns:
+            last_access = pd.to_datetime(df_existing["last_access"], errors="coerce")
+            df_existing = df_existing.assign(
+                last_access=last_access.apply(
+                    lambda ts: ts.date() if pd.notna(ts) else None
+                )
+            )
+
+        # New rows take precedence for matching ids
+        combined: pd.DataFrame = pd.DataFrame(
+            pd.concat([df_existing, df_new], ignore_index=True)
+        )
+        df_merged = combined.drop_duplicates(subset="id", keep="last").reset_index(
+            drop=True
+        )
+
+    logger.info("Writing %d rows to BigQuery …", len(df_merged))
+
+    pandas_gbq.to_gbq(
+        df_merged,
+        destination_table=f'{BIGQUERY_DATASET}.{FEEDS_TABLE}',
+        project_id=BIGQUERY_PROJECT,
+        if_exists="replace",
+    )
+
+    logger.info("BigQuery table updated successfully.")
+
+
+def main() -> None:
+    session = _build_session()
+
+    all_feeds: list[dict] = []
+    try:
+        all_feeds.extend(collect_feeds(session, label="preview"))
+        all_feeds.extend(collect_feeds(session, label="regular"))
+    except Exception as e:
+        logger.error("Error during feed collection: %s", e, exc_info=True)
+
+    if not all_feeds:
+        logger.warning("No feeds collected – nothing to write.")
+        return
+
+    df = _feeds_to_dataframe(all_feeds)
+    merge_to_bigquery(df)
+
+    logger.info("Finished.")
+
+
+if __name__ == "__main__":
+    main()
+
