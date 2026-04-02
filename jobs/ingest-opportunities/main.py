@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import date, datetime
 
+import click
 from dotenv import load_dotenv
 from google.cloud import bigquery
 
@@ -19,6 +20,12 @@ logging.basicConfig(
     format="%(asctime)s  %(levelname)-8s  %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+def _configure_logging(verbose: bool) -> None:
+    """Configure app logging and set RPDE logger to DEBUG in verbose mode."""
+    logging.getLogger().setLevel(logging.DEBUG if verbose else logging.INFO)
+    logging.getLogger("rpde").setLevel(logging.DEBUG if verbose else logging.INFO)
 
 
 def get_feeds(target_date: date | None = None, datasets: list[str] | None = None) -> list[dict]:
@@ -92,27 +99,68 @@ def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None]:
 
 
 
-def ingest_opportunities(target_date: date | None = None, datasets: list[str] | None = None) -> None:
+def ingest_opportunities(
+    target_date: date | None = None,
+    datasets: list[str] | None = None,
+    verbose: bool = False,
+) -> None:
+    _configure_logging(verbose)
     feeds = get_feeds(target_date, datasets)
     logger.info("Loaded %d feeds for date=%s", len(feeds), target_date or date.today())
 
     for idx, feed in enumerate(feeds, 1):
-        logger.info(f"[{idx}/{len(feeds)}] Processing feed: {feed['url']} (type: {feed['type']}, dataset: {feed['dataset_name']})")
+        logger.info(
+            "[%d/%d] Processing feed: %s (type: %s, dataset: %s)",
+            idx,
+            len(feeds),
+            feed["url"],
+            feed["type"],
+            feed["dataset_name"],
+        )
         afterTimestamp, afterId = get_last_ingestion_info(feed["id"])
         result = access_feed_url(feed, afterTimestamp, afterId)
 
         if result:
-            logger.info(f"Completed feed {feed['id']}: {result['items_count']} items in {result['pages_fetched']} pages [{result['status']}]")
+            logger.info(
+                "Completed feed %s: %d items ingested with [%s]",
+                feed["id"],
+                result["items_count"],
+                result["status"],
+            )
         else:
-            logger.error(f"Failed to process feed {feed['id']}")
+            logger.error("Failed to process feed %s", feed["id"])
+
+
+@click.command()
+@click.option(
+    "--target-date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=None,
+    help="Optional feed date in yyyy-mm-dd. Defaults to today.",
+)
+@click.option(
+    "--dataset",
+    "datasets",
+    multiple=True,
+    help="Optional dataset filter. Repeat for multiple datasets.",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Enable verbose logging (includes RPDE traversal logs).",
+)
+def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) -> None:
+    """Ingest opportunities from RPDE feeds."""
+    parsed_target_date = target_date.date() if target_date else None
+    parsed_datasets = list(datasets) if datasets else None
+
+    parsed_target_date = datetime.strptime("2026-04-01", "%Y-%m-%d").date()
+    parsed_datasets = ["Active Leeds Sessions and Facilities"]
+    # verbose = True
+
+    ingest_opportunities(parsed_target_date, parsed_datasets, verbose)
 
 
 if __name__ == "__main__":
-    logger.info("Starting Opportunities Ingestion Job")
-
-    # DEBUG: Use custom date and dataset for testing
-    custom_date = datetime.strptime("2026-04-01", "%Y-%m-%d").date()
-    ingest_opportunities(custom_date, ["Active Leeds Sessions and Facilities"])
-
-    # PROD:
-    # ingest_opportunities()
+    cli()

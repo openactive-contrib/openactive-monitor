@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 RPDE_REQUEST_TIMEOUT = 30  # seconds
 RPDE_WAIT_BETWEEN_PAGES = 0.1  # seconds
 
-DUMP_TO_FILE = False
+DUMP_TO_FILE = True
 OPPORTUNITIES_OUTPUT_DIR = os.getenv("OPPORTUNITIES_OUTPUT_DIR", "./opportunities")
 
 
@@ -34,7 +34,7 @@ def access_feed_url(feed: dict, afterTimestamp: str | None, afterId: str | None)
     feed_url = feed["url"]
     feed_type = feed.get("type", "unknown")
 
-    logger.info("Fetching RPDE feed: %s (%s)", feed_id, feed_type)
+    logger.debug("Fetching RPDE feed: %s (%s)", feed_id, feed_type)
 
     url = _build_initial_url(feed_url, afterTimestamp, afterId)
 
@@ -50,7 +50,7 @@ def access_feed_url(feed: dict, afterTimestamp: str | None, afterId: str | None)
     try:
         while url:
             current_url = url
-            logger.info("Fetching RPDE url: %s", current_url)
+            logger.debug("Fetching RPDE url: %s", current_url)
             try:
                 response = session.get(current_url, timeout=RPDE_REQUEST_TIMEOUT)
                 response.raise_for_status()
@@ -109,8 +109,7 @@ def access_feed_url(feed: dict, afterTimestamp: str | None, afterId: str | None)
 
         if DUMP_TO_FILE:
             dump_to_file(output_file, payload)
-
-        logger.info("Saved %d items from %d pages to %s", len(items), pages_fetched, output_file)
+            logger.debug("Saved %d items from %d pages to %s", len(items), pages_fetched, output_file)
 
         return {
             "feed_id": feed_id,
@@ -129,4 +128,3 @@ def access_feed_url(feed: dict, afterTimestamp: str | None, afterId: str | None)
 def dump_to_file(output_file: Path, payload: dict[str, int | list[dict] | str | Any]):
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(payload, f)
-
