@@ -190,9 +190,16 @@ def get_dataset_urls(
 def _parse_feeds_from_dataset(
     session: requests.Session,
     dataset_url: str,
+    catalogue_url: str = "",
 ) -> list[dict]:
     """Scrape the JSON-LD metadata from *dataset_url* and return a list of
-    feed dicts."""
+    feed dicts.
+
+    Args:
+        session: A requests.Session with retries configured.
+        dataset_url: The URL of the dataset page to scrape.
+        catalogue_url: The parent catalogue URL (used to derive provider).
+    """
     html = _get_text(session, dataset_url)
     if html is None:
         logger.error("Cannot get dataset: %s", dataset_url)
@@ -213,6 +220,7 @@ def _parse_feeds_from_dataset(
                 "url": feed_in.get("contentUrl", ""),
                 "dataset_name": jsonld.get("name", ""),
                 "dataset_url": dataset_url,
+                "catalogue_url": catalogue_url,
                 "license_url": jsonld.get("license", ""),
                 "logo_url": _nested_get(jsonld, "publisher", "logo", "url"),
                 "publisher_name": _nested_get(jsonld, "publisher", "name"),
@@ -251,13 +259,29 @@ def collect_feeds(
     logger.info("Collecting %s feeds from %s", label, collection_url)
 
     catalogue_urls = get_catalogue_urls(session, collection_url)
-    dataset_urls = get_dataset_urls(session, catalogue_urls)
 
+    # Build a map of dataset_url -> catalogue_url
+    dataset_to_catalogue: dict[str, str] = {}
+
+    for catalogue_url in catalogue_urls:
+        data = _get_json(session, catalogue_url)
+        if data is None:
+            logger.error("Cannot get catalogue: %s", catalogue_url)
+        else:
+            datasets = data.get("dataset", [])
+            if all(isinstance(d, str) for d in datasets):
+                for dataset_url in datasets:
+                    dataset_to_catalogue[dataset_url] = catalogue_url
+            else:
+                logger.error("Invalid dataset entries in: %s", catalogue_url)
+
+    dataset_urls = list(dataset_to_catalogue.keys())
     logger.info("Found %d datasets for %s feeds", len(dataset_urls), label)
 
     feeds: list[dict] = []
     for idx, dataset_url in enumerate(dataset_urls):
-        feeds.extend(_parse_feeds_from_dataset(session, dataset_url))
+        catalogue_url_for_dataset = dataset_to_catalogue.get(dataset_url, "")
+        feeds.extend(_parse_feeds_from_dataset(session, dataset_url, catalogue_url=catalogue_url_for_dataset))
         if idx < len(dataset_urls) - 1:
             sleep(SECONDS_WAIT_BETWEEN_REQUESTS)
 
@@ -270,7 +294,7 @@ def collect_feeds(
 
 
 # ---------------------------------------------------------------------------
-# ID generation
+# ID & Provider helpers
 # ---------------------------------------------------------------------------
 
 
@@ -289,6 +313,28 @@ def _make_feed_id(url: str) -> str:
     )
 
 
+def _extract_provider(url: str) -> str:
+    """Extract the domain (provider) from a URL.
+
+    Args:
+        url: A full URL (e.g., 'https://example.com/path/to/resource').
+
+    Returns:
+        The domain name (e.g., 'example.com'), or empty string on parse failure.
+    """
+    from urllib.parse import urlparse
+
+    try:
+        parsed = urlparse(url)
+        domain = parsed.netloc
+        # Remove 'www.' prefix if present
+        if domain.startswith("www."):
+            domain = domain[4:]
+        return domain
+    except Exception:
+        return ""
+
+
 # ---------------------------------------------------------------------------
 # BigQuery helpers
 # ---------------------------------------------------------------------------
@@ -299,7 +345,7 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
     Convert collected feeds to a DataFrame matching the BQ schema.
     Args:
         feeds: List of feed dicts with keys: url, type, dataset_name, dataset_url,
-               license_url, logo_url, publisher_name.
+               catalogue_url, license_url, logo_url, publisher_name.
     Returns:
         A pandas DataFrame with BQ table columns.
     """
@@ -309,6 +355,7 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
         "type",
         "dataset_name",
         "dataset_url",
+        "provider",
         "license_url",
         "logo_url",
         "publisher_name",
@@ -318,6 +365,10 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
 
     rows = []
     for feed in feeds:
+        # Extract provider from catalogue_url
+        catalogue_url = feed.get("catalogue_url", "")
+        provider = _extract_provider(catalogue_url) if catalogue_url else ""
+
         rows.append(
             {
                 "id": _make_feed_id(feed["url"]),
@@ -325,6 +376,7 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
                 "type": feed["type"],
                 "dataset_name": feed["dataset_name"],
                 "dataset_url": feed["dataset_url"],
+                "provider": provider,
                 "license_url": feed["license_url"],
                 "logo_url": feed["logo_url"],
                 "publisher_name": feed["publisher_name"],
