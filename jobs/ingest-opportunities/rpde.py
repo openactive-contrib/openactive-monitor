@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 RPDE_REQUEST_TIMEOUT = 30  # seconds
 RPDE_WAIT_BETWEEN_PAGES = 0.1  # seconds
 
+# for debugging and development
 DUMP_TO_FILE = True
 OPPORTUNITIES_OUTPUT_DIR = os.getenv("OPPORTUNITIES_OUTPUT_DIR", "./opportunities")
 
@@ -28,19 +29,22 @@ def _build_initial_url(feed_url: str, after_timestamp: str | None, after_id: str
     return f"{feed_url}{separator}{params}"
 
 
-def access_feed_url(feed: dict, afterTimestamp: str | None, afterId: str | None) -> dict | None:
-    """Traverse all RPDE pages for a feed and save collected data to a JSON file."""
+def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | None) -> dict | None:
+    """
+        Traverse all RPDE pages for a feed and returns the collected data information.
+        Args:
+            feed: Dictionary containing feed information, must include 'id' and 'url' keys.
+            after_timestamp: Optional RPDE cursor parameter for incremental fetching.
+            after_id: Optional RPDE cursor parameter for incremental fetching.
+        Returns:
+            Dictionary with feed_id, feed_url, items_count, items list, and status. Returns None if an unexpected error occurs.
+    """
     feed_id = feed["id"]
     feed_url = feed["url"]
-    feed_type = feed.get("type", "unknown")
 
-    logger.debug("Fetching RPDE feed: %s (%s)", feed_id, feed_type)
+    logger.debug("Fetching RPDE feed: %s (%s)", feed_id, feed.get("type", "unknown"))
 
-    url = _build_initial_url(feed_url, afterTimestamp, afterId)
-
-    Path(OPPORTUNITIES_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = Path(OPPORTUNITIES_OUTPUT_DIR) / f"{feed_id}_{timestamp}.json"
+    url = _build_initial_url(feed_url, after_timestamp, after_id)
 
     items: list[dict] = []
     pages_fetched = 0
@@ -85,8 +89,7 @@ def access_feed_url(feed: dict, afterTimestamp: str | None, afterId: str | None)
                 url = None
                 continue
 
-            # RPDE terminal page: empty items and next equals current page URL.
-            if len(page_items) == 0 and next_url == current_url:
+            if is_terminal_page(current_url, next_url, page_items):
                 url = None
                 continue
 
@@ -99,7 +102,7 @@ def access_feed_url(feed: dict, afterTimestamp: str | None, afterId: str | None)
             url = next_url
             sleep(RPDE_WAIT_BETWEEN_PAGES)
 
-        payload = {
+        result = {
             "feed_id": feed_id,
             "feed_url": feed_url,
             "items_count": len(items),
@@ -108,16 +111,11 @@ def access_feed_url(feed: dict, afterTimestamp: str | None, afterId: str | None)
         }
 
         if DUMP_TO_FILE:
-            dump_to_file(output_file, payload)
+            output_file = dump_to_file(feed_id, result)
             logger.debug("Saved %d items from %d pages to %s", len(items), pages_fetched, output_file)
 
-        return {
-            "feed_id": feed_id,
-            "feed_url": feed_url,
-            "items_count": len(items),
-            "items": items,
-            "status": status,
-        }
+        logger.info("Completed feed %s: %d items ingested with [%s]",feed["id"], result["items_count"], result["status"],)
+        return result
     except Exception as exc:
         logger.error("Unexpected error fetching feed %s: %s", feed_id, exc, exc_info=True)
         return None
@@ -125,6 +123,26 @@ def access_feed_url(feed: dict, afterTimestamp: str | None, afterId: str | None)
         session.close()
 
 
-def dump_to_file(output_file: Path, payload: dict[str, int | list[dict] | str | Any]):
+def is_terminal_page(current_url: str | Any, next_url: str, page_items: list) -> bool | Any:
+    """
+        Determine if the current RPDE page is a terminal page indicating the end of the feed.
+        A terminal page is defined as one where the 'next' URL is the same as the current URL and there are no items.
+    Args:
+        current_url: The URL of the current RPDE page being processed.
+        next_url: The URL provided in the 'next' field of the RPDE response for the current page.
+        page_items: 'items' list from the current RPDE page response.
+
+    Returns:
+        True if the current page is a terminal page (indicating end of feed), False otherwise.
+    """
+    return len(page_items) == 0 and next_url == current_url
+
+
+def dump_to_file(feed_id: str, payload: dict[str, int | list[dict] | str | Any]):
+    Path(OPPORTUNITIES_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file = Path(OPPORTUNITIES_OUTPUT_DIR) / f"{feed_id}_{timestamp}.json"
+
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(payload, f)
+    return output_file

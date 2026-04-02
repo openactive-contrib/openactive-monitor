@@ -117,18 +117,10 @@ def ingest_opportunities(
             feed["type"],
             feed["dataset_name"],
         )
-        afterTimestamp, afterId = get_last_ingestion_info(feed["id"])
-        result = access_feed_url(feed, afterTimestamp, afterId)
+        after_timestamp, after_id = get_last_ingestion_info(feed["id"])
+        result = access_feed_url(feed, after_timestamp, after_id)
 
-        if result:
-            logger.info(
-                "Completed feed %s: %d items ingested with [%s]",
-                feed["id"],
-                result["items_count"],
-                result["status"],
-            )
-        else:
-            logger.error("Failed to process feed %s", feed["id"])
+
 
 
 @click.command()
