@@ -30,3 +30,6 @@ steps:
 
 images:
   - 'gcr.io/openactive-monitor/github.com/openactive-contrib/openactive-monitor:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
