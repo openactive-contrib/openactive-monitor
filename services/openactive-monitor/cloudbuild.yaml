@@ -5,7 +5,9 @@ steps:
       'build',
       '-t',
       'gcr.io/openactive-monitor/github.com/openactive-contrib/openactive-monitor:$COMMIT_SHA',
-      '.'
+      '-f',
+      'services/openactive-monitor/Dockerfile',
+      'services/openactive-monitor'
     ]
 
   # Push image
