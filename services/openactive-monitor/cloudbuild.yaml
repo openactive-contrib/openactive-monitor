@@ -1,0 +1,32 @@
+steps:
+  # Build image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t',
+      'gcr.io/openactive-monitor/github.com/openactive-contrib/openactive-monitor:$COMMIT_SHA',
+      '.'
+    ]
+
+  # Push image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      'gcr.io/openactive-monitor/github.com/openactive-contrib/openactive-monitor:$COMMIT_SHA'
+    ]
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: [
+      'run', 'deploy', '$_SERVICE_NAME',
+      '--image',
+      'gcr.io/openactive-monitor/github.com/openactive-contrib/openactive-monitor:$COMMIT_SHA',
+      '--region', '$_REGION',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--quiet'
+    ]
+
+images:
+  - 'gcr.io/openactive-monitor/github.com/openactive-contrib/openactive-monitor:$COMMIT_SHA'
