@@ -373,34 +373,65 @@ with cols[1]:
 
     elif st.session_state.button_name_clicked == 'opportunities':
         content.empty()
-        cols = st.columns([2, 1])
-        with cols[0]:
-            st.markdown("**OpenActive** describes standards to make sharing information about *'opportunities for sport and physical activity'* easier and more effective.")
-            st.markdown(" ")
-            st.markdown("We use the word 'opportunity' to describe the individual items or records that are contained in data feeds.")
-            st.markdown(" ")
-            st.markdown("Because the feeds vary in level of detail they represent (e.g. a series of sessions or an individual session), the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
-            st.markdown(" ")
-            st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.aggregate_analysis['total_num_future_opportunity_items'], precision=1)} opportunities** to get active over the coming weeks.")
+        st.markdown("**OpenActive** describes standards to make sharing information about *'opportunities for sport and physical activity'* easier and more effective.")
+        st.markdown("We use the word 'opportunity' to describe the individual items or records that are contained in data feeds.")
+        st.markdown("Because the feeds vary in level of detail they represent (e.g. a series of sessions or an individual session), the total 'opportunity' count is quite a crude measure. But generally, an increase in total opportunities shows that more activity and facility data is being made open, and we think that is a good thing!")
+        st.markdown(f"Right now, OpenActive data contains **{millify(st.session_state.aggregate_analysis['total_num_future_opportunity_items'], precision=1)} opportunities** to get active over the coming weeks.")
 
-        with cols[1]:
-            fig, ax = plt.subplots(1, 1, figsize=(3, 6))
-            plt.style.use('ggplot')
-            st.session_state.aggregate_analysis['gdf_total_regions_counts'].plot(
-                column='percentage',
-                # cmap='YlOrRd',
-                cmap='inferno_r',
-                ax=ax,
+        gdf = st.session_state.aggregate_analysis['gdf_total_districts_counts']
+        gdf_filtered = gdf[(gdf['count'] >= 1000) | (gdf['count'].isna())]
+        percentage_1000_or_more = (len(gdf_filtered) / len(gdf)) * 100
+        
+        gdf_trust = st.session_state.aggregate_analysis['gdf_total_trust_counts']
+        gdf_trust_filtered = gdf_trust[(gdf_trust['count'] >= 10000) | (gdf_trust['count'].isna())]
+        percentage_trust_10000_or_more = (len(gdf_trust_filtered) / len(gdf_trust)) * 100 if len(gdf_trust) > 0 else 0
+
+        st.markdown("### Coverage Snapshot")
+        kpi_col_1, kpi_col_2 = st.columns(2)
+        with kpi_col_1:
+            st.metric(
+                label='UK Local Authority Areas with 1000+ opportunities',
+                value=f"{percentage_1000_or_more:.1f}%",
+                help=f"{len(gdf_filtered)} of {len(gdf)} Local Authorities have 1000 or more opportunities."
             )
-            ax.set(facecolor='white')
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_title('% of OpenActive Opportunities by Region')
-            scalarmappable = ax.collections[0] # Assuming there's only one collection in the plot
-            colorbar = plt.colorbar(scalarmappable,  orientation='horizontal', pad=-0.04)
-            colorbar.set_label('%')
-            st.pyplot(fig, use_container_width=True)
-            plt.close(fig)
+        with kpi_col_2:
+            st.metric(
+                label='NHS Trusts with 10000+ opportunities',
+                value=f"{percentage_trust_10000_or_more:.1f}%",
+                help=f"{len(gdf_trust_filtered)} of {len(gdf_trust)} NHS Trusts have 10000 or more opportunities."
+            )
+
+        district_tab, trust_tab = st.tabs(['Local Authority Coverage', 'NHS Trust Coverage'])
+
+        with district_tab:
+            st.markdown(
+                f"{len(gdf_filtered)} of the {len(gdf)} Local Authorities in the UK have more than 1000 opportunities in OpenActive data "
+                f"({percentage_1000_or_more:.1f}%)."
+            )
+            render_geographic_analysis(
+                gdf_data=st.session_state.aggregate_analysis['gdf_total_districts_counts'],
+                name_column='LAD24NM',
+                title='Districts',
+                search_placeholder='Type to filter districts (e.g., "Manchester", "London")...',
+                search_key='district_search_opportunities',
+                threshold=1000,
+                threshold_description='opportunities'
+            )
+
+        with trust_tab:
+            st.markdown(
+                f"{len(gdf_trust_filtered)} of the {len(gdf_trust)} NHS Trusts have more than 10000 opportunities in OpenActive data "
+                f"({percentage_trust_10000_or_more:.1f}%)."
+            )
+            render_geographic_analysis(
+                gdf_data=st.session_state.aggregate_analysis['gdf_total_trust_counts'],
+                name_column='TrustName',
+                title='NHS Trusts',
+                search_placeholder='Type to filter NHS Trusts (e.g., "Manchester", "London")...',
+                search_key='trust_search_opportunities',
+                threshold=10000,
+                threshold_description='opportunities'
+            )
 
     #Need more historic datapoints to make this a compelling visual
     # dated_counts = {
@@ -462,22 +493,7 @@ with cols[1]:
         percentage_1000_or_more = (len(gdf_filtered) / len(gdf)) * 100
 
         st.markdown(f"***{percentage_1000_or_more:.1f}% of UK Local Authority areas have more than 1000 opportunities across the OpenActive data feeds***")
-        with st.expander('This is a simple measure of UK coverage in the OpenActive ecosystem.\n\nClick here for more details.'):
-            
-            st.write(f"{len(gdf_filtered)} of the {len(gdf)} Local Authorities in the UK have more than 1000 opportunities in OpenActive data ({percentage_1000_or_more:.1f}%)")
-            
-            render_geographic_analysis(
-                gdf_data=st.session_state.aggregate_analysis['gdf_total_districts_counts'],
-                name_column='LAD24NM',
-                title='Districts',
-                search_placeholder='Type to filter districts (e.g., "Manchester", "London")...',
-                search_key='district_search',
-                threshold=1000,
-                threshold_description='opportunities'
-            )
-
-            st.markdown(" ")
-            st.divider()
+        with st.expander('How does OpenActive coverage vary by deprivation level? — Analysis of LSOAs across England'):
             st.write(f"Using November 2024 data, we explored the coverage of local areas in OpenActive data feeds.")
             st.write("There are over 32,000 [Lower Layer Super Output Areas (LSOAs)](https://www.ons.gov.uk/methodology/geography/ukgeographies/statisticalgeographies) in England, with populations between 1000 and 3000 people. These are ranked by the Office of National Statistics by indicators of deprivation.")
             st.write("Less than 30% of most deprived areas appear in OpenActive data, compared to almost 50% of the least deprived areas.")
@@ -523,30 +539,6 @@ with cols[1]:
             st.plotly_chart(fig, use_container_width=True)
 
             st.write(' ')
-
-        # NHS Trust coverage analysis
-        gdf_trust = st.session_state.aggregate_analysis['gdf_total_trust_counts']
-
-        # Filter for counts 10000 or greater (important to include NaNs as 'not greater than or equal to threshold')
-        gdf_trust_filtered = gdf_trust[(gdf_trust['count'] >= 10000) | (gdf_trust['count'].isna())]
-
-        # Calculate the percentage
-        percentage_trust_10000_or_more = (len(gdf_trust_filtered) / len(gdf_trust)) * 100 if len(gdf_trust) > 0 else 0
-
-        st.markdown(f"***{percentage_trust_10000_or_more:.1f}% of NHS Trusts have more than 10000 opportunities across the OpenActive data feeds***")
-        with st.expander('This is a measure of NHS Trust coverage in the OpenActive ecosystem.\n\nClick here for more details.'):
-            
-            st.write(f"{len(gdf_trust_filtered)} of the {len(gdf_trust)} NHS Trusts have more than 10000 opportunities in OpenActive data ({percentage_trust_10000_or_more:.1f}%)")
-            
-            render_geographic_analysis(
-                gdf_data=st.session_state.aggregate_analysis['gdf_total_trust_counts'],
-                name_column='TrustName',
-                title='NHS Trusts',
-                search_placeholder='Type to filter NHS Trusts (e.g., "Manchester", "London")...',
-                search_key='trust_search',
-                threshold=10000,
-                threshold_description='opportunities'
-            )
 
 #print(st.session_state.aggregate_analysis.keys())
 #print(st.session_state.aggregate_analysis['total_num_districts'])
