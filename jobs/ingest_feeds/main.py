@@ -14,6 +14,7 @@ import logging
 import warnings
 from datetime import date, datetime, timezone
 from time import sleep
+from typing import Any
 
 import pandas as pd
 import pandas_gbq
@@ -216,7 +217,7 @@ def _parse_feeds_from_dataset(
 
         for feed_in in jsonld.get("distribution", []):
             feed_out = {
-                "type": feed_in.get("name", ""),
+                "type": get_feed_type(feed_in),
                 "url": feed_in.get("contentUrl", ""),
                 "dataset_name": jsonld.get("name", ""),
                 "dataset_url": dataset_url,
@@ -228,6 +229,22 @@ def _parse_feeds_from_dataset(
             feeds.append(feed_out)
 
     return feeds
+
+expected_feed_names = ["HeadlineEvent", "Event", "OnDemandEvent", "FacilityUse", "IndividualFacilityUse", "Slot", "SessionSeries", "ScheduledSession", "CourseInstance", ""]
+
+def get_feed_type(feed_in) -> Any:
+    feed_type = feed_in.get("name", "")
+    if feed_type in expected_feed_names:
+        return feed_type
+    else:
+        # handle non-standard (error) feed names
+        if "slot" in str(feed_type).lower():
+            return "Slot"
+        elif "scheduled" in str(feed_type).lower():
+            return "ScheduledSession"
+        elif "session" in str(feed_type).lower():
+            return "SessionSeries"
+    return ""
 
 
 def _nested_get(d: dict, *keys: str, default: str = "") -> str:

@@ -28,21 +28,21 @@ def _configure_logging(verbose: bool) -> None:
     logging.getLogger("rpde").setLevel(logging.DEBUG if verbose else logging.INFO)
 
 
-def get_feeds(target_date: date | None = None, datasets: list[str] | None = None) -> list[dict]:
+def get_feeds(target_date: date | None = None, datasets: list[str] | None = None) -> dict[str, list[dict]]:
     """
     Fetch list of the feeds collected for the given date from BigQuery.
     Args:
         target_date: Optional date to filter feeds by last_access date. Defaults to None (today's date).
         datasets: Optional list of dataset names to filter feeds. Defaults to None (no dataset filter).
     Returns:
-        List of feed dictionaries with keys: id, url, type, dataset_name.
+        Dict of feeds grouped by dataset_url. Key is dataset_url, value is list of dataset feed dicts with id, url, type, and dataset_name.
     """
     if target_date is None:
         target_date = date.today()
     table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{FEEDS_TABLE}"
 
     query = f"""
-        SELECT id, url, type, dataset_name
+        SELECT id, url, type, dataset_name, dataset_url
         FROM `{table_id}`
         WHERE DATE(last_access) = @target_date
         ORDER BY id
@@ -57,10 +57,13 @@ def get_feeds(target_date: date | None = None, datasets: list[str] | None = None
 
     rows = client.query(query, job_config=job_config).result()
 
-    feeds = []
+    feeds = {}
     for row in rows:
-        if datasets is None or row["dataset_name"] in datasets:
-            feeds.append({"id": row["id"], "url": row["url"], "type": row["type"], "dataset_name": row["dataset_name"]})
+        if datasets is None or row["dataset_url"] in datasets:
+            if row["dataset_url"] not in feeds:
+                feeds[row["dataset_url"]] = []
+            dataset_feeds = feeds.get(row["dataset_url"])
+            dataset_feeds.append({"id": row["id"], "url": row["url"], "type": row["type"], "dataset_name": row["dataset_name"]})
     return feeds
 
 
@@ -108,17 +111,18 @@ def ingest_opportunities(
     feeds = get_feeds(target_date, datasets)
     logger.info("Loaded %d feeds for date=%s", len(feeds), target_date or date.today())
 
-    for idx, feed in enumerate(feeds, 1):
+    count = 0
+    for dataset_url in feeds:
+        dataset_feeds = feeds[dataset_url]
         logger.info(
-            "[%d/%d] Processing feed: %s (type: %s, dataset: %s)",
-            idx,
+            "[%d/%d] Processing feed: %s",
+            count,
             len(feeds),
-            feed["url"],
-            feed["type"],
-            feed["dataset_name"],
+            dataset_url
         )
-        after_timestamp, after_id = get_last_ingestion_info(feed["id"])
-        result = access_feed_url(feed, after_timestamp, after_id)
+        for dataset_feed in dataset_feeds:
+            after_timestamp, after_id = get_last_ingestion_info(dataset_feed["id"])
+            result = access_feed_url(dataset_feed, after_timestamp, after_id)
 
 
 
@@ -148,7 +152,7 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
     parsed_datasets = list(datasets) if datasets else None
 
     parsed_target_date = datetime.strptime("2026-04-01", "%Y-%m-%d").date()
-    parsed_datasets = ["Active Leeds Sessions and Facilities"]
+    parsed_datasets = ["https://activehartlepool.gs-signature.cloud/OpenActive/"]
     # verbose = True
 
     ingest_opportunities(parsed_target_date, parsed_datasets, verbose)
