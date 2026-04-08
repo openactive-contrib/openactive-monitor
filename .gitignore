@@ -25,3 +25,5 @@ test*/
 
 # VSCode
 *.code-workspace
+
+notebooks/*
