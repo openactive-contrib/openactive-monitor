@@ -15,6 +15,8 @@ BIGQUERY_DATASET = os.getenv("BQ_DATASET_ID")
 FEEDS_TABLE = os.getenv("BQ_FEEDS_TABLE", "feeds")
 OPPORTUNITY_INGESTION_TABLE = os.getenv("BQ_OPPORTUNITY_INGESTION_TABLE", "opportunity_ingestion")
 
+FEED_EXECUTION_ORDER = ["HeadlineEvent", "Event", "OnDemandEvent", "FacilityUse", "IndividualFacilityUse", "Slot", "SessionSeries", "ScheduledSession", "CourseInstance", ""]
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(message)s",
@@ -120,6 +122,7 @@ def ingest_opportunities(
             len(feeds),
             dataset_url
         )
+        dataset_feeds.sort(key=lambda feed: FEED_EXECUTION_ORDER.index(feed["type"]))
         for dataset_feed in dataset_feeds:
             after_timestamp, after_id = get_last_ingestion_info(dataset_feed["id"])
             result = access_feed_url(dataset_feed, after_timestamp, after_id)
