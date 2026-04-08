@@ -111,12 +111,36 @@ def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None]:
 
 DF_COLUMNS = [
     "dataset_url", "feed_id", "id", "data_id", "kind", "modified", "modified_time",
-    "json_data", "inherited_data", "activity", "location", "startDate", "endDate", "is_future_event", "ageRange", "has_superEvent", "has_subEvent"
+    "json_data", "inherited_data", "activity", "location", "startDate", "endDate", "ageRange", "has_superEvent", "has_subEvent"
 ]
+
+def _parse_date(date_value: object) -> date | None:
+    """
+    Parse a date value (string or datetime) and return a date object.
+    Supports common date formats: YYYY-MM-DD, ISO datetime strings, etc.
+    Returns None if parsing fails.
+    """
+    if date_value is None:
+        return None
+
+    if isinstance(date_value, datetime):
+        return date_value.date()
+    elif isinstance(date_value, date):
+        return date_value
+    elif isinstance(date_value, str):
+        # Try common date formats
+        for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%SZ"):
+            try:
+                dt = datetime.strptime(date_value.split("T")[0], "%Y-%m-%d")
+                return dt.date()
+            except (ValueError, AttributeError):
+                continue
+
+    return None
 
 def _parse_modified_time(modified: object) -> str | None:
     """
-    Convert epoc time to Y-m-d format. Return None for errors.
+    Convert epoch time to Y-m-d format. Return None for errors.
     """
     if modified is None or not isinstance(modified, (int, float, str)):
         return None
@@ -141,7 +165,10 @@ def _build_location(raw_location: object) -> dict[str, Any]:
 
         loc: dict[str, Any] = first
 
-        location["place_name"] = loc.get("name", "").strip()
+        name = loc.get("name")
+        if isinstance(name, str):
+            location["place_name"] = name.strip()
+
         geo = loc.get("geo") if isinstance(loc.get("geo"), dict) else {}
         for coord in ("latitude", "longitude"):
             try:
@@ -155,10 +182,44 @@ def _build_location(raw_location: object) -> dict[str, Any]:
         if isinstance(raw_address, str):
             location["address"] = raw_address.strip()
         elif isinstance(raw_address, dict):
-            location["postal_code"] = raw_address.get("postalCode")
+            postal_code = raw_address.get("postalCode")
+            if isinstance(postal_code, str):
+                location["postal_code"] = postal_code.strip()
 
     return location
 
+def unpack_data(data: dict) -> dict:
+    """
+    Unpack some nested 'data' dicts until we get to the core data.
+    This is needed to handle cases where the same data may exist in different locations. Such as Event.startDate vs Event.eventSchedule.startDate.
+    If eventSchedule exists, extract the earliest startDate and latest endDate from all items.
+    Dates are parsed to handle string dates correctly.
+    """
+    if "eventSchedule" in data and isinstance(data["eventSchedule"], list) and len(data["eventSchedule"]) > 0:
+        start_dates = []
+        end_dates = []
+
+        for event_schedule in data["eventSchedule"]:
+            if isinstance(event_schedule, dict):
+                start = event_schedule.get("startDate")
+                end = event_schedule.get("endDate")
+
+                # Parse dates safely
+                parsed_start = _parse_date(start)
+                parsed_end = _parse_date(end)
+
+                if parsed_start:
+                    start_dates.append(parsed_start)
+                if parsed_end:
+                    end_dates.append(parsed_end)
+
+        # Use the earliest start date and latest end date
+        if start_dates:
+            data["startDate"] = str(min(start_dates))
+        if end_dates:
+            data["endDate"] = str(max(end_dates))
+
+    return data
 
 def _extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[dict], list[dict]]:
     """
@@ -179,6 +240,7 @@ def _extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[di
             })
         else:
             data = item.get("data") if isinstance(item.get("data"), dict) else {}
+            data = unpack_data(data)
             updated.append({
                 "dataset_url":    dataset_url,
                 "feed_id":        feed_id,
@@ -193,7 +255,6 @@ def _extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[di
                 "location":       _build_location(data.get("location")),
                 "startDate":      data.get("startDate"),
                 "endDate":        data.get("endDate"),
-                "is_future_event": None,
                 "ageRange":       data.get("ageRange", {}),
                 "has_superEvent": data.get("superEvent"),
                 "has_subEvent":     data.get("subEvent"),
@@ -284,6 +345,7 @@ def handle_super_events(df: pd.DataFrame) -> None:
                 super_event_data = {**inherited_dict, **json_data_dict}
 
         if super_event_data:
+            super_event_data = unpack_data(super_event_data)
             current_json_data = df.at[idx, "json_data"]
             if not isinstance(current_json_data, dict):
                 current_json_data = {}
