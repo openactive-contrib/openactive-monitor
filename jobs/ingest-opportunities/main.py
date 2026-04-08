@@ -1,8 +1,12 @@
 import logging
 import os
+import time
 from datetime import date, datetime
+from pathlib import Path
+from typing import Any
 
 import click
+import pandas as pd
 from dotenv import load_dotenv
 from google.cloud import bigquery
 
@@ -14,6 +18,7 @@ BIGQUERY_PROJECT = os.getenv("GCP_PROJECT_ID")
 BIGQUERY_DATASET = os.getenv("BQ_DATASET_ID")
 FEEDS_TABLE = os.getenv("BQ_FEEDS_TABLE", "feeds")
 OPPORTUNITY_INGESTION_TABLE = os.getenv("BQ_OPPORTUNITY_INGESTION_TABLE", "opportunity_ingestion")
+CSV_OUTPUT_DIR = os.getenv("OPPORTUNITY_CSV_OUTPUT_DIR", "./opportunities/csv")
 
 FEED_EXECUTION_ORDER = ["HeadlineEvent", "Event", "OnDemandEvent", "FacilityUse", "IndividualFacilityUse", "Slot", "SessionSeries", "ScheduledSession", "CourseInstance", ""]
 
@@ -104,6 +109,215 @@ def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None]:
 
 
 
+DF_COLUMNS = [
+    "dataset_url", "feed_id", "id", "data_id", "kind", "modified", "modified_time",
+    "json_data", "inherited_data", "activity", "location", "startDate", "endDate", "is_future_event", "ageRange", "has_superEvent", "has_subEvent"
+]
+
+def _parse_modified_time(modified: object) -> str | None:
+    """
+    Convert epoc time to Y-m-d format. Return None for errors.
+    """
+    if modified is None or not isinstance(modified, (int, float, str)):
+        return None
+    try:
+        epoch_time = int(modified)
+        formatted_time = time.strftime('%Y-%m-%d', time.gmtime(epoch_time))
+        return formatted_time
+    except Exception:
+        return None
+
+def _build_location(raw_location: object) -> dict[str, Any]:
+    """Extract a clean location dict from an OpenActive location value."""
+    location: dict[str, Any] = {}
+    locations = (
+        raw_location if isinstance(raw_location, list)
+        else [raw_location] if raw_location else []
+    )
+    if locations:
+        first = locations[0]
+        if not isinstance(first, dict):
+            return {}
+
+        loc: dict[str, Any] = first
+
+        location["place_name"] = loc.get("name", "").strip()
+        geo = loc.get("geo") if isinstance(loc.get("geo"), dict) else {}
+        for coord in ("latitude", "longitude"):
+            try:
+                val = geo.get(coord)
+                if val is not None:
+                    location[coord] = round(float(val), 6)
+            except (TypeError, ValueError):
+                pass
+
+        raw_address = loc.get("address")
+        if isinstance(raw_address, str):
+            location["address"] = raw_address.strip()
+        elif isinstance(raw_address, dict):
+            location["postal_code"] = raw_address.get("postalCode")
+
+    return location
+
+
+def _extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[dict], list[dict]]:
+    """
+    Flatten opportunity *items* into row dicts ready for a DataFrame.
+    """
+    updated: list[dict] = []
+    deleted: list[dict] = []
+    for item in result.get("items", []):
+        if not isinstance(item, dict):
+            continue
+
+        if item.get("state") == "deleted":
+            deleted.append({
+                "dataset_url": dataset_url,
+                "feed_id": feed_id,
+                "id": item.get("id"),
+                "modified": item.get("modified"),
+            })
+        else:
+            data = item.get("data") if isinstance(item.get("data"), dict) else {}
+            updated.append({
+                "dataset_url":    dataset_url,
+                "feed_id":        feed_id,
+                "id":             item.get("id"),
+                "data_id":        data.get("@id"),
+                "kind":           data.get("@type"),
+                "modified":       item.get("modified"),
+                "modified_time":  _parse_modified_time(item.get("modified")),
+                "json_data":      data,
+                "inherited_data": {},
+                "activity":       data.get("activity", {}),
+                "location":       _build_location(data.get("location")),
+                "startDate":      data.get("startDate"),
+                "endDate":        data.get("endDate"),
+                "is_future_event": None,
+                "ageRange":       data.get("ageRange", {}),
+                "has_superEvent": data.get("superEvent"),
+                "has_subEvent":     data.get("subEvent"),
+            })
+    return updated, deleted
+
+
+def _write_dataset_csv(dataset_url: str, dataset_df: pd.DataFrame) -> None:
+    """
+    For debugging only.
+    Write all collected rows for one dataset_url to a single CSV.
+    """
+    Path(CSV_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+    safe_name = "".join(
+        ch if ch.isalnum() or ch in ("-", "_") else "_"
+        for ch in dataset_url
+    )
+    output_path = Path(CSV_OUTPUT_DIR) / f"{safe_name}.csv"
+
+    dataset_df.to_csv(output_path, index=False)
+    logger.info("Wrote %d rows to %s", len(dataset_df), output_path)
+
+def _merge_inherited_data(json_data: dict[str, Any], super_event_data: dict[str, Any], current_inherited: dict[str, Any]) -> dict[str, Any]:
+    """
+    Recursively merge super_event properties into inherited_data, excluding keys that exist in json_data.
+    Existing inherited_data values are overwritten by super_event values.
+
+    Args:
+        json_data: Current row's direct data.
+        super_event_data: Data from the superEvent row.
+        current_inherited: Existing inherited_data dict.
+
+    Returns:
+        Updated inherited_data dict with new properties from super_event_data.
+    """
+    merged = dict(current_inherited)  # Start with existing inherited data
+
+    for key, value in super_event_data.items():
+        # Skip keys that exist in json_data (prioritize direct data)
+        if key in json_data:
+            continue
+
+        # For nested dicts, recursively merge
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _merge_inherited_data(
+                json_data.get(key, {}),
+                value,
+                merged.get(key, {})
+            )
+        else:
+            # Overwrite with super_event value
+            merged[key] = value
+
+    return merged
+
+
+def handle_super_events(df: pd.DataFrame) -> None:
+    """
+    For rows with a superEvent, find the corresponding superEvent row and inherit properties.
+    Updates inherited_data to contain only properties from superEvent that don't exist in json_data.
+    Nested dict properties are recursively merged.
+    Df is modified in place.
+    """
+    super_events_mask = df["has_superEvent"].notnull()
+    super_events_indices = df[super_events_mask].index.tolist()
+
+    for idx in super_events_indices:
+        super_event_ref = df.at[idx, "has_superEvent"]
+        super_event_data: dict[str, Any] | None = None
+
+        # Resolve superEvent reference: can be inline dict or @id string reference
+        if isinstance(super_event_ref, dict):
+            # inline dict
+            super_event_data = super_event_ref
+        elif isinstance(super_event_ref, str):
+            # super event reference
+            super_event_id = super_event_ref
+            super_event_rows = df[df["data_id"] == super_event_id]
+            if not super_event_rows.empty:
+                # Extract and merge json_data and inherited_data from the superEvent row
+                super_event_json = super_event_rows.iloc[0]["json_data"]
+                super_event_inherited = super_event_rows.iloc[0]["inherited_data"]
+
+                json_data_dict = super_event_json if isinstance(super_event_json, dict) else {}
+                inherited_dict = super_event_inherited if isinstance(super_event_inherited, dict) else {}
+
+                # Merge inherited into json_data (json_data takes precedence)
+                super_event_data = {**inherited_dict, **json_data_dict}
+
+        if super_event_data:
+            current_json_data = df.at[idx, "json_data"]
+            if not isinstance(current_json_data, dict):
+                current_json_data = {}
+
+            current_inherited = df.at[idx, "inherited_data"]
+            if not isinstance(current_inherited, dict):
+                current_inherited = {}
+
+            # Merge inherited properties
+            updated_inherited = _merge_inherited_data(current_json_data, super_event_data, current_inherited)
+            df.at[idx, "inherited_data"] = updated_inherited
+            if "activity" in updated_inherited and (not df.at[idx, "activity"] or df.at[idx, "activity"] == {}):
+                df.at[idx, "activity"] = updated_inherited["activity"]
+            if "location" in updated_inherited and (not df.at[idx, "location"] or df.at[idx, "location"] == {}):
+                df.at[idx, "location"] = updated_inherited["location"]
+            if "startDate" in updated_inherited and (not df.at[idx, "startDate"] or df.at[idx, "startDate"] == ""):
+                df.at[idx, "startDate"] = updated_inherited["startDate"]
+            if "endDate" in updated_inherited and (not df.at[idx, "endDate"] or df.at[idx, "endDate"] == ""):
+                df.at[idx, "endDate"] = updated_inherited["endDate"]
+            if "ageRange" in updated_inherited and (not df.at[idx, "ageRange"] or df.at[idx, "ageRange"] == {}):
+                df.at[idx, "ageRange"] = updated_inherited["ageRange"]
+
+
+def denormalize_dataset(df: pd.DataFrame) -> None:
+    """
+    Denormalize dataset rows by inheriting properties from superEvent to subEvent where applicable and enriching location etc.
+    Df is modified in place.
+    Args:
+        df: DataFrame containing the collected rows for a dataset.
+    """
+    handle_super_events(df)
+    # handle_sub_events(df)
+
+
 def ingest_opportunities(
     target_date: date | None = None,
     datasets: list[str] | None = None,
@@ -117,15 +331,28 @@ def ingest_opportunities(
     for dataset_url in feeds:
         dataset_feeds = feeds[dataset_url]
         logger.info(
-            "[%d/%d] Processing feed: %s",
+            "[%d/%d] Processing dataset: %s",
             count,
             len(feeds),
-            dataset_url
+            dataset_url,
         )
         dataset_feeds.sort(key=lambda feed: FEED_EXECUTION_ORDER.index(feed["type"]))
+
+        dataset_rows: list[dict] = []
         for dataset_feed in dataset_feeds:
             after_timestamp, after_id = get_last_ingestion_info(dataset_feed["id"])
             result = access_feed_url(dataset_feed, after_timestamp, after_id)
+            updates, deletes = _extract_rows(dataset_url, dataset_feed["id"], result)
+            dataset_rows.extend(updates)
+            logger.info("Collected %d items from feed %s", len(updates), dataset_feed["id"])
+
+        # TODO: need to merge dataset rows with BigQuery rows to get the complete picture
+        # TODO handle deletions from both local and BigQuery
+
+        dataset_df = pd.DataFrame(dataset_rows, columns=DF_COLUMNS)
+        denormalize_dataset(dataset_df)
+        _write_dataset_csv(dataset_url, dataset_df)
+        count += 1
 
 
 
@@ -154,7 +381,7 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
     parsed_target_date = target_date.date() if target_date else None
     parsed_datasets = list(datasets) if datasets else None
 
-    parsed_target_date = datetime.strptime("2026-04-01", "%Y-%m-%d").date()
+    parsed_target_date = datetime.strptime("2026-04-08", "%Y-%m-%d").date()
     parsed_datasets = ["https://activehartlepool.gs-signature.cloud/OpenActive/"]
     # verbose = True
 
