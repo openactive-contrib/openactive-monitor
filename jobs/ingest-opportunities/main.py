@@ -9,6 +9,7 @@ import click
 import pandas as pd
 from dotenv import load_dotenv
 from google.cloud import bigquery
+from pandas import DataFrame
 
 from rpde import access_feed_url
 
@@ -251,15 +252,39 @@ def _extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[di
                 "modified_time":  _parse_modified_time(item.get("modified")),
                 "json_data":      data,
                 "inherited_data": {},
-                "activity":       data.get("activity", {}),
+                "activity": get_activity(data),
                 "location":       _build_location(data.get("location")),
                 "startDate":      data.get("startDate"),
                 "endDate":        data.get("endDate"),
                 "ageRange":       data.get("ageRange", {}),
-                "has_superEvent": data.get("superEvent"),
+                "has_superEvent": data.get("superEvent") or data.get("facilityUse"),
                 "has_subEvent":     data.get("subEvent"),
             })
     return updated, deleted
+
+
+def get_activity(data: dict) -> list[Any]:
+    """
+    Extract a clean activity list from an opportunity data.
+    FacilityUse may have a category instead of activity, and some older datasets may have activity nested in different ways. Try to extract activity from common locations.
+    Args:
+        data: opportunity data dict.
+    Returns:
+        list of activities
+    """
+    if data.get("activity"):
+        if isinstance(data["activity"], dict):
+            return [data["activity"]]
+        elif isinstance(data["activity"], list):
+            return data["activity"]
+    if data.get("category"):
+        if isinstance(data["category"], dict):
+            return [data["category"]]
+        elif isinstance(data["category"], list):
+            return data["category"]
+    if data.get("name"):
+        return [data["name"]]
+    return []
 
 
 def _write_dataset_csv(dataset_url: str, dataset_df: pd.DataFrame) -> None:
@@ -357,16 +382,60 @@ def handle_super_events(df: pd.DataFrame) -> None:
             # Merge inherited properties
             updated_inherited = _merge_inherited_data(current_json_data, super_event_data, current_inherited)
             df.at[idx, "inherited_data"] = updated_inherited
-            if "activity" in updated_inherited and (not df.at[idx, "activity"] or df.at[idx, "activity"] == {}):
-                df.at[idx, "activity"] = updated_inherited["activity"]
-            if "location" in updated_inherited and (not df.at[idx, "location"] or df.at[idx, "location"] == {}):
-                df.at[idx, "location"] = updated_inherited["location"]
-            if "startDate" in updated_inherited and (not df.at[idx, "startDate"] or df.at[idx, "startDate"] == ""):
-                df.at[idx, "startDate"] = updated_inherited["startDate"]
-            if "endDate" in updated_inherited and (not df.at[idx, "endDate"] or df.at[idx, "endDate"] == ""):
-                df.at[idx, "endDate"] = updated_inherited["endDate"]
-            if "ageRange" in updated_inherited and (not df.at[idx, "ageRange"] or df.at[idx, "ageRange"] == {}):
-                df.at[idx, "ageRange"] = updated_inherited["ageRange"]
+            apply_inherited_data(df, idx, updated_inherited)
+
+
+def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
+    """
+    Applies inherited properties to the current row if they don't exist in the row's own json_data.
+        df: DataFrame containing the dataset rows.
+        idx: Index of the current row to apply inherited data to.
+        inherited_data: Inherited properties from the superEvent to apply to the current row. Only applied if the current row doesn't have these properties in its own json_data.
+
+    Returns:
+        None. The DataFrame is modified in place.
+    """
+    if get_activity(inherited_data) and (not df.at[idx, "activity"] or df.at[idx, "activity"] == {}):
+        df.at[idx, "activity"] = get_activity(inherited_data)
+    if "location" in inherited_data and (not df.at[idx, "location"] or df.at[idx, "location"] == {}):
+        df.at[idx, "location"] = inherited_data["location"]
+    if "startDate" in inherited_data and (not df.at[idx, "startDate"] or df.at[idx, "startDate"] == ""):
+        df.at[idx, "startDate"] = inherited_data["startDate"]
+    if "endDate" in inherited_data and (not df.at[idx, "endDate"] or df.at[idx, "endDate"] == ""):
+        df.at[idx, "endDate"] = inherited_data["endDate"]
+    if "ageRange" in inherited_data and (not df.at[idx, "ageRange"] or df.at[idx, "ageRange"] == {}):
+        df.at[idx, "ageRange"] = inherited_data["ageRange"]
+
+
+def handle_sub_events(df: pd.DataFrame) -> None:
+    """
+    For rows with a subEvent, find the corresponding subEvent rows and enrich them with properties from the current row.
+    This is the inverse of superEvent handling - we want to enrich subEvents with properties from the parent event where they don't have them directly.
+    Df is modified in place.
+    """
+    sub_events_mask = df["has_subEvent"].notnull()
+    sub_events_indices = df[sub_events_mask].index.tolist()
+
+    for idx in sub_events_indices:
+        sub_event_refs = df.at[idx, "has_subEvent"]
+        if isinstance(sub_event_refs, list):
+            for sub_event_ref in sub_event_refs:
+                if isinstance(sub_event_ref, dict):
+                    continue  # inline dict subEvent - we won't be able to enrich this so skip
+                elif isinstance(sub_event_ref, str):
+                    sub_event_id = sub_event_ref
+                    sub_event_rows = df[df["data_id"] == sub_event_id]
+                    if not sub_event_rows.empty:
+                        # Enrich inherited_data of the subEvent row with properties from the current row
+                        parent_json = df.at[idx, "json_data"] if isinstance(df.at[idx, "json_data"], dict) else {}
+                        parent_inherited = df.at[idx, "inherited_data"] if isinstance(df.at[idx, "inherited_data"], dict) else {}
+                        super_event_data = {**parent_inherited, **parent_json}
+
+                        for sub_idx in sub_event_rows.index:
+                            current_json = df.at[sub_idx, "json_data"] if isinstance(df.at[sub_idx, "json_data"], dict) else {}
+                            # only inherit properties that don't exist in the subEvent's own json_data
+                            to_inherit = {super_event_data_key: super_event_data[super_event_data_key] for super_event_data_key in super_event_data if super_event_data_key not in current_json}
+                            df.at[sub_idx, "inherited_data"] = to_inherit
 
 
 def denormalize_dataset(df: pd.DataFrame) -> None:
@@ -377,7 +446,7 @@ def denormalize_dataset(df: pd.DataFrame) -> None:
         df: DataFrame containing the collected rows for a dataset.
     """
     handle_super_events(df)
-    # handle_sub_events(df)
+    handle_sub_events(df)
 
 
 def ingest_opportunities(
@@ -444,7 +513,8 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
     parsed_datasets = list(datasets) if datasets else None
 
     parsed_target_date = datetime.strptime("2026-04-08", "%Y-%m-%d").date()
-    parsed_datasets = ["https://activehartlepool.gs-signature.cloud/OpenActive/"]
+    # parsed_datasets = ["https://activehartlepool.gs-signature.cloud/OpenActive/"]
+    parsed_datasets = ["https://activeleeds-oa.leisurecloud.net/OpenActive/"]
     # verbose = True
 
     ingest_opportunities(parsed_target_date, parsed_datasets, verbose)
