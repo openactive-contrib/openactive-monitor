@@ -22,6 +22,8 @@ The only solutions would be:
 
 THIS IS WORKING NOW???
 
+## 2- Find My Facility feeds are empty 
+
 # Improvements 
 
 1. In https://activeleeds-oa.leisurecloud.net/OpenActive/ locations are only names such as "Aireborough", "Pudsey", "Kippax"

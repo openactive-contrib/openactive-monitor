@@ -113,7 +113,7 @@ def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None]:
 
 DF_COLUMNS = [
     "dataset_url", "feed_id", "id", "data_id", "kind", "modified",
-    "json_data", "inherited_data", "activity", "location", "startDate", "endDate", "ageRange", "has_superEvent", "has_subEvent"
+    "json_data", "inherited_data", "activity", "location", "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent"
 ]
 
 def _parse_date(date_value: object) -> date | None:
@@ -208,6 +208,7 @@ def _extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[di
                 "startDate":      data.get("startDate"),
                 "endDate":        data.get("endDate"),
                 "ageRange":       data.get("ageRange", {}),
+                "level":          data.get("level", {}),
                 "has_superEvent": data.get("superEvent") or data.get("facilityUse"),
                 "has_subEvent":     data.get("subEvent"),
             })
@@ -225,9 +226,9 @@ def get_activity(data: dict) -> list[Any]:
     """
     if data.get("activity"):
         if isinstance(data["activity"], dict):
-            return [data["activity"]]
+            return [data["activity"].get("prefLabel")]
         elif isinstance(data["activity"], list):
-            return data["activity"]
+            return [activity.get("prefLabel") for activity in data["activity"]]
     if data.get("facilityType"):
         facility_type = ""
         if isinstance(data["facilityType"], dict):
@@ -364,6 +365,9 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         df.at[idx, "endDate"] = inherited_data["endDate"]
     if "ageRange" in inherited_data and (not df.at[idx, "ageRange"] or df.at[idx, "ageRange"] == {}):
         df.at[idx, "ageRange"] = inherited_data["ageRange"]
+    if "level" in inherited_data and (not df.at[idx, "level"] or df.at[idx, "level"] == {}):
+        df.at[idx, "level"] = inherited_data["level"]
+
 
 
 def handle_sub_events(df: pd.DataFrame) -> None:
@@ -473,7 +477,7 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
 
     parsed_target_date = datetime.strptime("2026-04-08", "%Y-%m-%d").date()
     # parsed_datasets = ["https://activehartlepool.gs-signature.cloud/OpenActive/"]
-    parsed_datasets = ["https://stoweenterprisesltd.bookteq.com/api/open-active"]
+    parsed_datasets = ["https://data.bookwhen.com/"]
     # verbose = True
 
     ingest_opportunities(parsed_target_date, parsed_datasets, verbose)

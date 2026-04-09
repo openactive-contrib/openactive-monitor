@@ -24,10 +24,6 @@ def _build_location(raw_location: object) -> dict[str, Any]:
 
         loc: dict[str, Any] = first
 
-        name = loc.get("name")
-        if isinstance(name, str):
-            location["place_name"] = name.strip()
-
         geo = loc.get("geo") if isinstance(loc.get("geo"), dict) else {}
         for coord in ("latitude", "longitude"):
             try:
@@ -49,6 +45,12 @@ def _build_location(raw_location: object) -> dict[str, Any]:
             if "latitude" in location and "longitude" in location:
                 location = lc
                 geo_exists = True
+
+        if not geo_exists and loc.get("name"):
+            # just provide name for future geocoding if no geolocation info is found, as a last resort
+            name = loc.get("name")
+            if isinstance(name, str):
+                location["place_name"] = name.strip()
 
     return location
 
