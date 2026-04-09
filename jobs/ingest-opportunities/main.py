@@ -112,7 +112,7 @@ def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None]:
 
 
 DF_COLUMNS = [
-    "dataset_url", "feed_id", "id", "data_id", "kind", "modified", "modified_time",
+    "dataset_url", "feed_id", "id", "data_id", "kind", "modified",
     "json_data", "inherited_data", "activity", "location", "startDate", "endDate", "ageRange", "has_superEvent", "has_subEvent"
 ]
 
@@ -140,18 +140,6 @@ def _parse_date(date_value: object) -> date | None:
 
     return None
 
-def _parse_modified_time(modified: object) -> str | None:
-    """
-    Convert epoch time to Y-m-d format. Return None for errors.
-    """
-    if modified is None or not isinstance(modified, (int, float, str)):
-        return None
-    try:
-        epoch_time = int(modified)
-        formatted_time = time.strftime('%Y-%m-%d', time.gmtime(epoch_time))
-        return formatted_time
-    except Exception:
-        return None
 
 def unpack_data(data: dict) -> dict:
     """
@@ -213,10 +201,9 @@ def _extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[di
                 "data_id":        data.get("@id"),
                 "kind":           data.get("@type"),
                 "modified":       item.get("modified"),
-                "modified_time":  _parse_modified_time(item.get("modified")),
                 "json_data":      data,
                 "inherited_data": {},
-                "activity": get_activity(data),
+                "activity":         get_activity(data),
                 "location":       _build_location(data.get("location")),
                 "startDate":      data.get("startDate"),
                 "endDate":        data.get("endDate"),
@@ -241,6 +228,14 @@ def get_activity(data: dict) -> list[Any]:
             return [data["activity"]]
         elif isinstance(data["activity"], list):
             return data["activity"]
+    if data.get("facilityType"):
+        facility_type = ""
+        if isinstance(data["facilityType"], dict):
+            facility_type = data["facilityType"]
+        elif isinstance(data["facilityType"], list) and len(data["facilityType"]) > 0:
+            facility_type = data["facilityType"][0]
+        if facility_type and facility_type.get("prefLabel"):
+            return facility_type.get("prefLabel")
     if data.get("category"):
         if isinstance(data["category"], dict):
             return [data["category"]]
@@ -478,7 +473,7 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
 
     parsed_target_date = datetime.strptime("2026-04-08", "%Y-%m-%d").date()
     # parsed_datasets = ["https://activehartlepool.gs-signature.cloud/OpenActive/"]
-    parsed_datasets = ["https://activeleeds-oa.leisurecloud.net/OpenActive/"]
+    parsed_datasets = ["https://stoweenterprisesltd.bookteq.com/api/open-active"]
     # verbose = True
 
     ingest_opportunities(parsed_target_date, parsed_datasets, verbose)

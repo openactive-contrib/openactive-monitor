@@ -41,6 +41,14 @@ def _build_location(raw_location: object) -> dict[str, Any]:
         raw_address = loc.get("address")
         if not geo_exists and raw_address:
             process_raw_address(raw_address, location)
+            if "latitude" in location and "longitude" in location:
+                geo_exists = True
+
+        if not geo_exists and loc.get("containsPlace"):
+            lc = _build_location(loc.get("containsPlace"))
+            if "latitude" in location and "longitude" in location:
+                location = lc
+                geo_exists = True
 
     return location
 
