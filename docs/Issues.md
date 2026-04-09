@@ -22,3 +22,7 @@ The only solutions would be:
 
 THIS IS WORKING NOW???
 
+# Improvements 
+
+1. In https://activeleeds-oa.leisurecloud.net/OpenActive/ locations are only names such as "Aireborough", "Pudsey", "Kippax"
+Use ONS Index of Place Names to filter them and then https://api.postcodes.io/places?q={place_name} to get geolocations. Filtering is important otherwise we will get a lot of false positives.

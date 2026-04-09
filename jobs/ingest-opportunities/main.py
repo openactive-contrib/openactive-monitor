@@ -12,6 +12,7 @@ from google.cloud import bigquery
 from pandas import DataFrame
 
 from rpde import access_feed_url
+from geolocation import _build_location
 
 load_dotenv()
 
@@ -151,43 +152,6 @@ def _parse_modified_time(modified: object) -> str | None:
         return formatted_time
     except Exception:
         return None
-
-def _build_location(raw_location: object) -> dict[str, Any]:
-    """Extract a clean location dict from an OpenActive location value."""
-    location: dict[str, Any] = {}
-    locations = (
-        raw_location if isinstance(raw_location, list)
-        else [raw_location] if raw_location else []
-    )
-    if locations:
-        first = locations[0]
-        if not isinstance(first, dict):
-            return {}
-
-        loc: dict[str, Any] = first
-
-        name = loc.get("name")
-        if isinstance(name, str):
-            location["place_name"] = name.strip()
-
-        geo = loc.get("geo") if isinstance(loc.get("geo"), dict) else {}
-        for coord in ("latitude", "longitude"):
-            try:
-                val = geo.get(coord)
-                if val is not None:
-                    location[coord] = round(float(val), 6)
-            except (TypeError, ValueError):
-                pass
-
-        raw_address = loc.get("address")
-        if isinstance(raw_address, str):
-            location["address"] = raw_address.strip()
-        elif isinstance(raw_address, dict):
-            postal_code = raw_address.get("postalCode")
-            if isinstance(postal_code, str):
-                location["postal_code"] = postal_code.strip()
-
-    return location
 
 def unpack_data(data: dict) -> dict:
     """
@@ -398,7 +362,7 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
     if get_activity(inherited_data) and (not df.at[idx, "activity"] or df.at[idx, "activity"] == {}):
         df.at[idx, "activity"] = get_activity(inherited_data)
     if "location" in inherited_data and (not df.at[idx, "location"] or df.at[idx, "location"] == {}):
-        df.at[idx, "location"] = inherited_data["location"]
+        df.at[idx, "location"] = _build_location(inherited_data["location"])
     if "startDate" in inherited_data and (not df.at[idx, "startDate"] or df.at[idx, "startDate"] == ""):
         df.at[idx, "startDate"] = inherited_data["startDate"]
     if "endDate" in inherited_data and (not df.at[idx, "endDate"] or df.at[idx, "endDate"] == ""):
