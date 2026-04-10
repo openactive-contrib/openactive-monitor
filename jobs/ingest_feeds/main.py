@@ -11,6 +11,7 @@ Can be executed locally or as a Google Cloud Run job.
 import os
 import json
 import logging
+import re
 from datetime import date, datetime, timezone
 from time import sleep
 from typing import Any
@@ -19,6 +20,7 @@ import pandas as pd
 import pandas_gbq
 import requests
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 from google.cloud import bigquery
 from dotenv import load_dotenv
 from request_client import build_session, get_json, get_text
@@ -122,6 +124,8 @@ def _parse_feeds_from_dataset(
     feeds: list[dict] = []
 
     soup = BeautifulSoup(html, "html.parser")
+    rpde_version, model_version = _extract_spec_versions_from_html(soup)
+
     for script in soup.find_all("script", attrs={"type": "application/ld+json"}):
         try:
             jsonld = json.loads(script.string)
@@ -138,12 +142,85 @@ def _parse_feeds_from_dataset(
                 "license_url": jsonld.get("license", ""),
                 "logo_url": _nested_get(jsonld, "publisher", "logo", "url"),
                 "publisher_name": _nested_get(jsonld, "publisher", "name"),
+                "rpde_version": rpde_version,
+                "model_version": model_version,
             }
             feeds.append(feed_out)
 
     return feeds
 
+
+def _extract_spec_versions_from_html(soup: BeautifulSoup) -> tuple[str, str]:
+    """Extract RPDE and model spec URLs from dataset page links.
+
+    Scans all <a> tags and matches spec version URLs (with optional www prefix).
+    Uses "published using" context when available for prioritization.
+    """
+    rpde_version = ""
+    model_version = ""
+
+    rpde_pattern = re.compile(
+        r"^https?://(?:www\.)?openactive\.io/realtime-paged-data-exchange/\d+(?:\.\d+)*/?$",
+        re.IGNORECASE,
+    )
+    model_pattern = re.compile(
+        r"^https?://(?:www\.)?openactive\.io/modelling-opportunity-data/\d+(?:\.\d+)*/?$",
+        re.IGNORECASE,
+    )
+
+    # Find all <a> tags in the HTML
+    all_links = soup.find_all("a", href=True)
+
+    # Try to find the "published using" section for better context
+    published_using_section = None
+    for elem in soup.find_all(["p", "div", "span"]):
+        text = str(elem.get_text())
+        if "published using" in text.lower():
+            published_using_section = elem
+            break
+
+    # If found, prioritize links within that section
+    if published_using_section:
+        all_links = published_using_section.find_all("a", href=True) + all_links
+
+    for a_tag in all_links:
+        href = str(a_tag.get("href", "")).strip()
+        if not href:
+            continue
+
+        if not rpde_version and rpde_pattern.search(href):
+            rpde_version = _canonicalize_openactive_spec_url(href)
+            continue
+
+        if not model_version and model_pattern.search(href):
+            model_version = _canonicalize_openactive_spec_url(href)
+
+        if rpde_version and model_version:
+            break
+
+    return rpde_version, model_version
+
+
+def _canonicalize_openactive_spec_url(url: str) -> str:
+    """Normalize equivalent OpenActive spec URLs to a single canonical form."""
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url.strip())
+    host = parsed.netloc.lower()
+    if host.startswith("www."):
+        host = host[4:]
+
+    path = parsed.path or ""
+    if not path.startswith("/"):
+        path = f"/{path}"
+    if not path.endswith("/"):
+        path = f"{path}/"
+
+    return f"https://{host}{path}"
+
+
 expected_feed_names = ["HeadlineEvent", "Event", "OnDemandEvent", "FacilityUse", "IndividualFacilityUse", "Slot", "SessionSeries", "ScheduledSession", "CourseInstance", ""]
+
 
 def get_feed_type(feed_in) -> Any:
     feed_type = feed_in.get("name", "")
@@ -209,7 +286,7 @@ def collect_feeds(
     logger.info("Found %d datasets for %s feeds", len(dataset_urls), label)
 
     feeds: list[dict] = []
-    for idx, dataset_url in enumerate(dataset_urls):
+    for idx, dataset_url in enumerate(tqdm(dataset_urls, desc=f"Processing {label} datasets")):
         catalogue_url_for_dataset = dataset_to_catalogue.get(dataset_url, "")
         feeds.extend(_parse_feeds_from_dataset(session, dataset_url, catalogue_url=catalogue_url_for_dataset))
         if idx < len(dataset_urls) - 1:
@@ -275,7 +352,8 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
     Convert collected feeds to a DataFrame matching the BQ schema.
     Args:
         feeds: List of feed dicts with keys: url, type, dataset_name, dataset_url,
-               catalogue_url, license_url, logo_url, publisher_name.
+               catalogue_url, license_url, logo_url, publisher_name,
+               rpde_version, model_version.
     Returns:
         A pandas DataFrame with BQ table columns.
     """
@@ -289,6 +367,8 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
         "license_url",
         "logo_url",
         "publisher_name",
+        "rpde_version",
+        "model_version",
         "last_access",
     ]
     today = date.today()
@@ -310,6 +390,8 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
                 "license_url": feed["license_url"],
                 "logo_url": feed["logo_url"],
                 "publisher_name": feed["publisher_name"],
+                "rpde_version": feed.get("rpde_version", ""),
+                "model_version": feed.get("model_version", ""),
                 "last_access": today,
             }
         )
