@@ -40,67 +40,21 @@ def build_session() -> requests.Session:
     return session
 
 
-def _request_once(
-    session: requests.Session,
-    url: str,
-    headers: dict[str, str],
-    timeout: int,
-) -> requests.Response:
-    """Try verified TLS first, then fallback to verify=False on SSL errors."""
-    try:
-        return session.get(url, headers=headers, timeout=timeout, verify=True)
-    except requests.exceptions.SSLError:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", InsecureRequestWarning)
-            return session.get(url, headers=headers, timeout=timeout, verify=False)
-
-
 def get(
     session: requests.Session,
     url: str,
     timeout: int,
     headers: dict[str, str] | None = None,
 ) -> requests.Response:
-    """GET with browser-like headers and exponential retry waits on transient failures."""
+    """GET with browser-like headers. Retries handled by session adapter."""
     request_headers = headers or DEFAULT_HEADERS
-    last_exception: requests.RequestException | None = None
-
-    for attempt in range(MAX_RETRIES + 1):
-        try:
-            response = _request_once(session, url, request_headers, timeout)
-            if response.status_code in RETRY_STATUS_FORCELIST and attempt < MAX_RETRIES:
-                wait_seconds = BACKOFF_FACTOR * (2 ** attempt)
-                logger.warning(
-                    "HTTP %s fetching %s (attempt %d/%d). Retrying in %ss.",
-                    response.status_code,
-                    url,
-                    attempt + 1,
-                    MAX_RETRIES + 1,
-                    wait_seconds,
-                )
-                sleep(wait_seconds)
-                continue
-            return response
-        except requests.RequestException as exc:
-            last_exception = exc
-            if attempt < MAX_RETRIES:
-                wait_seconds = BACKOFF_FACTOR * (2 ** attempt)
-                logger.warning(
-                    "Request failed for %s (attempt %d/%d): %s. Retrying in %ss.",
-                    url,
-                    attempt + 1,
-                    MAX_RETRIES + 1,
-                    exc,
-                    wait_seconds,
-                )
-                sleep(wait_seconds)
-                continue
-            raise
-
-    if last_exception is not None:
-        raise last_exception
-
-    raise requests.RequestException(f"Failed to fetch {url}")
+    try:
+        return session.get(url, headers=request_headers, timeout=timeout, verify=True)
+    except requests.exceptions.SSLError:
+        # Fallback: retry without cert verification for problematic hosts
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", InsecureRequestWarning)
+            return session.get(url, headers=request_headers, timeout=timeout, verify=False)
 
 
 def get_json(session: requests.Session, url: str, timeout: int) -> dict | None:

@@ -391,9 +391,9 @@ def ingest_opportunities(
 
         dataset_df = pd.DataFrame(dataset_rows, columns=DF_COLUMNS)
         denormalize_dataset(dataset_df)
-        _write_dataset_csv(dataset_url, dataset_df)
-        # write_dataset_bigquery(dataset_url, dataset_df)
-        # write_opportunity_ingestion_records(ingestion_records)
+        # _write_dataset_csv(dataset_url, dataset_df)
+        write_dataset_bigquery(dataset_url, dataset_df)
+        write_opportunity_ingestion_records(ingestion_records)
 
         count += 1
 
@@ -422,8 +422,8 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
     parsed_target_date = target_date.date() if target_date else None
     parsed_datasets = list(datasets) if datasets else None
 
-    parsed_target_date = datetime.strptime("2026-04-08", "%Y-%m-%d").date()
-    parsed_datasets = ["https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
+    # parsed_target_date = datetime.strptime("2026-04-10", "%Y-%m-%d").date()
+    # parsed_datasets = ["https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
     # parsed_datasets = ["https://data.bookwhen.com/",
     #                    "https://activehartlepool.gs-signature.cloud/OpenActive/",
     #                    "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
