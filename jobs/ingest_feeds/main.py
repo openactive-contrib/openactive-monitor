@@ -11,7 +11,6 @@ Can be executed locally or as a Google Cloud Run job.
 import os
 import json
 import logging
-import warnings
 from datetime import date, datetime, timezone
 from time import sleep
 from typing import Any
@@ -21,10 +20,8 @@ import pandas_gbq
 import requests
 from bs4 import BeautifulSoup
 from google.cloud import bigquery
-from requests.adapters import HTTPAdapter
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3.util.retry import Retry
 from dotenv import load_dotenv
+from request_client import build_session, get_json, get_text
 
 load_dotenv()
 
@@ -38,97 +35,13 @@ CATALOG_COLLECTION_URLS = {
     "preview": "https://openactive.io/data-catalogs/data-catalog-collection-preview.jsonld",
 }
 
-DEFAULT_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-GB,en;q=0.9",
-}
 SECONDS_WAIT_BETWEEN_REQUESTS = 0.2
-
-# Retry / back-off settings
-MAX_RETRIES = 5
-BACKOFF_FACTOR = 1  # 0s, 1s, 2s, 4s, 8s …
-RETRY_STATUS_FORCELIST = (403, 429, 500, 502, 503, 504)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# HTTP helpers
-# ---------------------------------------------------------------------------
-
-
-def _build_session() -> requests.Session:
-    """Return a :class:`requests.Session` with automatic retries and
-    exponential back-off configured via an :class:`HTTPAdapter`."""
-    session = requests.Session()
-    retry = Retry(
-        total=MAX_RETRIES,
-        backoff_factor=BACKOFF_FACTOR,
-        status_forcelist=RETRY_STATUS_FORCELIST,
-        allowed_methods=["GET"],
-        raise_on_status=False,
-    )
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount("https://", adapter)
-    session.mount("http://", adapter)
-    return session
-
-
-def _get(session: requests.Session, url: str, **kwargs) -> requests.Response:
-    """GET *url*, falling back to ``verify=False`` on SSL certificate errors.
-
-    SSL verification is always attempted first.  If it fails with an
-    ``SSLError`` (e.g. a host with an untrusted/self-signed certificate that
-    browsers accept via the OS trust store), the request is retried with
-    verification disabled and a warning is logged.  All other errors are
-    re-raised as normal.
-    """
-    try:
-        return session.get(url, headers=DEFAULT_HEADERS, verify=True, **kwargs)
-    except requests.exceptions.SSLError:
-        # logger.warning(
-        #     "SSL certificate verification failed for %s – retrying without verification.", url
-        # )
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", InsecureRequestWarning)
-            return session.get(url, headers=DEFAULT_HEADERS, verify=False, **kwargs)
-
-
-def _get_json(session: requests.Session, url: str) -> dict | None:
-    """GET *url* and return the parsed JSON body, or ``None`` on failure."""
-    try:
-        resp = _get(session, url, timeout=180)
-        resp.raise_for_status()
-        return resp.json()
-    except requests.exceptions.HTTPError as e:
-        logger.warning("HTTP %s fetching: %s", e.response.status_code, url)
-        return None
-    except Exception:
-        logger.warning("Failed to fetch: %s", url, exc_info=True)
-        return None
-
-
-def _get_text(session: requests.Session, url: str) -> str | None:
-    """GET *url* and return the response text, or ``None`` on failure."""
-    try:
-        resp = _get(session, url, timeout=60)
-        resp.raise_for_status()
-        return resp.text
-    except requests.exceptions.HTTPError as e:
-        logger.warning("HTTP %s fetching: %s", e.response.status_code, url)
-        return None
-    except Exception:
-        logger.warning("Failed to fetch: %s", url, exc_info=True)
-        return None
-
 
 # ---------------------------------------------------------------------------
 # Feed collection logic
@@ -147,7 +60,7 @@ def get_catalogue_urls(
     Returns:
         A list of catalog URLs, or an empty list on failure.
     """
-    data = _get_json(session, collection_url)
+    data = get_json(session, collection_url, timeout=180)
     if data is None:
         logger.error("Cannot get collection: %s", collection_url)
         return []
@@ -172,7 +85,7 @@ def get_dataset_urls(
     dataset_urls: list[str] = []
 
     for idx, catalogue_url in enumerate(catalogue_urls):
-        data = _get_json(session, catalogue_url)
+        data = get_json(session, catalogue_url, timeout=180)
         if data is None:
             logger.error("Cannot get catalogue: %s", catalogue_url)
         else:
@@ -201,7 +114,7 @@ def _parse_feeds_from_dataset(
         dataset_url: The URL of the dataset page to scrape.
         catalogue_url: The parent catalogue URL (used to derive provider).
     """
-    html = _get_text(session, dataset_url)
+    html = get_text(session, dataset_url, timeout=60)
     if html is None:
         logger.error("Cannot get dataset: %s", dataset_url)
         return []
@@ -281,7 +194,7 @@ def collect_feeds(
     dataset_to_catalogue: dict[str, str] = {}
 
     for catalogue_url in catalogue_urls:
-        data = _get_json(session, catalogue_url)
+        data = get_json(session, catalogue_url, timeout=180)
         if data is None:
             logger.error("Cannot get catalogue: %s", catalogue_url)
         else:
@@ -509,7 +422,7 @@ def write_ingestion_record(
 
 def main() -> None:
     ingestion_ts = datetime.now(tz=timezone.utc)
-    session = _build_session()
+    session = build_session()
 
     all_feeds: list[dict] = []
     all_catalogue_urls: list[str] = []

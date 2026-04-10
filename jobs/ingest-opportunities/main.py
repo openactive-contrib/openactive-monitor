@@ -348,7 +348,7 @@ def ingest_opportunities(
     feeds = get_feeds(target_date, datasets)
     logger.info("Loaded %d feeds for date=%s", len(feeds), target_date or date.today())
 
-    count = 0
+    count = 1
     for dataset_url in feeds:
         dataset_feeds = feeds[dataset_url]
         logger.info(
@@ -392,12 +392,10 @@ def ingest_opportunities(
         dataset_df = pd.DataFrame(dataset_rows, columns=DF_COLUMNS)
         denormalize_dataset(dataset_df)
         _write_dataset_csv(dataset_url, dataset_df)
-        write_dataset_bigquery(dataset_url, dataset_df)
-        write_opportunity_ingestion_records(ingestion_records)
+        # write_dataset_bigquery(dataset_url, dataset_df)
+        # write_opportunity_ingestion_records(ingestion_records)
 
         count += 1
-
-
 
 
 @click.command()
@@ -425,11 +423,11 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
     parsed_datasets = list(datasets) if datasets else None
 
     parsed_target_date = datetime.strptime("2026-04-08", "%Y-%m-%d").date()
-    # parsed_datasets = ["https://activehartlepool.gs-signature.cloud/OpenActive/"]
-    parsed_datasets = ["https://data.bookwhen.com/",
-                       "https://activehartlepool.gs-signature.cloud/OpenActive/",
-                       "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
-                       "https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
+    parsed_datasets = ["https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
+    # parsed_datasets = ["https://data.bookwhen.com/",
+    #                    "https://activehartlepool.gs-signature.cloud/OpenActive/",
+    #                    "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
+    #                    "https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
     # verbose = True
 
     ingest_opportunities(parsed_target_date, parsed_datasets, verbose)

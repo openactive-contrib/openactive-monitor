@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import requests
+from request_client import build_session, get
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | Non
     items: list[dict] = []
     pages_fetched = 0
     status = "COMPLETE"
-    session = requests.Session()
+    session = build_session()
     last_after_timestamp: str | None = None
     last_after_id: str | None = None
 
@@ -70,7 +71,7 @@ def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | Non
                 last_after_id = page_after_id
             logger.debug("Fetching RPDE url: %s", current_url)
             try:
-                response = session.get(current_url, timeout=RPDE_REQUEST_TIMEOUT)
+                response = get(session, current_url, timeout=RPDE_REQUEST_TIMEOUT)
                 response.raise_for_status()
             except requests.RequestException as exc:
                 logger.error("Failed to fetch %s: %s", current_url, exc)
