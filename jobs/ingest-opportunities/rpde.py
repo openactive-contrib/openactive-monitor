@@ -13,7 +13,7 @@ from request_client import build_session, get
 logger = logging.getLogger(__name__)
 
 RPDE_REQUEST_TIMEOUT = 30  # seconds
-RPDE_WAIT_BETWEEN_PAGES = 0.1  # seconds
+RPDE_WAIT_BETWEEN_PAGES = 0  # seconds
 
 # for debugging and development
 OPPORTUNITIES_OUTPUT_DIR = os.getenv("OPPORTUNITIES_OUTPUT_DIR", "./opportunities")

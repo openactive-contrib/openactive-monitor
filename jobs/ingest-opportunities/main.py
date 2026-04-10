@@ -14,7 +14,7 @@ from bigquery_ops import (
     drain_deferred_deletes_until_timeout,
     get_dataset_opportunities,
     get_feeds,
-    get_last_ingestion_info,
+    get_last_ingestion_info_batch,
     retry_deferred_deletes,
     write_dataset_opportunities,
     write_opportunity_ingestion_records,
@@ -232,17 +232,16 @@ def _merge_inherited_data(json_data: dict[str, Any], super_event_data: dict[str,
     return merged
 
 
-def _build_super_event_lookup_df(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> pd.DataFrame:
+def _build_super_event_payload_by_data_id(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> dict[str, dict[str, Any]]:
     """
-    Build a combined DataFrame for superEvent lookup, prioritizing df on overlaps.
-    Filters empty/all-NA inputs to avoid pandas concat dtype FutureWarning.
+    Build a data_id -> merged superEvent payload lookup, prioritizing df rows over df_bigquery on overlaps.
     """
     concat_candidates = [
         frame for frame in (df_bigquery, df)
         if not frame.empty and not frame.isna().all(axis=None)
     ]
     if not concat_candidates:
-        return pd.DataFrame(columns=df.columns)
+        return {}
 
     if len(concat_candidates) == 1:
         combined_df = concat_candidates[0].copy().reset_index(drop=True)
@@ -252,10 +251,35 @@ def _build_super_event_lookup_df(df: pd.DataFrame, df_bigquery: pd.DataFrame) ->
     if "data_id" in combined_df.columns and not combined_df.empty:
         combined_df = combined_df.drop_duplicates(subset=["data_id"], keep="last").reset_index(drop=True)
 
-    return combined_df
+    payload_by_data_id: dict[str, dict[str, Any]] = {}
+    for row in combined_df.itertuples(index=False):
+        row_data_id = getattr(row, "data_id", None)
+        if not isinstance(row_data_id, str) or not row_data_id:
+            continue
+
+        row_json_data = getattr(row, "json_data", None)
+        row_inherited_data = getattr(row, "inherited_data", None)
+        json_data_dict = row_json_data if isinstance(row_json_data, dict) else {}
+        inherited_dict = row_inherited_data if isinstance(row_inherited_data, dict) else {}
+        payload_by_data_id[row_data_id] = {**inherited_dict, **json_data_dict}
+
+    return payload_by_data_id
 
 
-def handle_super_events(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
+def _build_df_indices_by_data_id(df: pd.DataFrame) -> dict[str, list[int]]:
+    """Build a data_id -> row indices lookup for fast in-dataset event linking."""
+    index_lookup: dict[str, list[int]] = {}
+    for idx, row_data_id in df["data_id"].items():
+        if not isinstance(row_data_id, str) or not row_data_id:
+            continue
+        index_lookup.setdefault(row_data_id, []).append(idx)
+    return index_lookup
+
+
+def handle_super_events(
+    df: pd.DataFrame,
+    super_event_payload_by_data_id: dict[str, dict[str, Any]],
+) -> None:
     """
     For rows with a superEvent, find the corresponding superEvent row and inherit properties.
     Updates inherited_data to contain only properties from superEvent that don't exist in json_data.
@@ -263,12 +287,10 @@ def handle_super_events(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
     Df is modified in place.
     Args:
         df: DataFrame containing the dataset rows newly collected.
-        df_bigquery: DataFrame containing the rows from bigquery table.
+        super_event_payload_by_data_id: Lookup of data_id -> merged payload for superEvent inheritance.
     """
     super_events_mask = df["has_superEvent"].notnull()
     super_events_indices = df[super_events_mask].index.tolist()
-
-    combined_df = _build_super_event_lookup_df(df, df_bigquery)
 
     for idx in super_events_indices:
         super_event_ref = df.at[idx, "has_superEvent"]
@@ -281,17 +303,7 @@ def handle_super_events(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
         elif isinstance(super_event_ref, str):
             # super event reference
             super_event_id = super_event_ref
-            super_event_rows = combined_df[combined_df["data_id"] == super_event_id]
-            if not super_event_rows.empty:
-                # Extract and merge json_data and inherited_data from the superEvent row
-                super_event_json = super_event_rows.iloc[0]["json_data"]
-                super_event_inherited = super_event_rows.iloc[0]["inherited_data"]
-
-                json_data_dict = super_event_json if isinstance(super_event_json, dict) else {}
-                inherited_dict = super_event_inherited if isinstance(super_event_inherited, dict) else {}
-
-                # Merge inherited into json_data (json_data takes precedence)
-                super_event_data = {**inherited_dict, **json_data_dict}
+            super_event_data = super_event_payload_by_data_id.get(super_event_id)
 
         if super_event_data:
             super_event_data = unpack_data(super_event_data)
@@ -334,14 +346,14 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
 
 
 
-def handle_sub_events(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
+def handle_sub_events(df: pd.DataFrame, sub_event_indices_by_data_id: dict[str, list[int]]) -> None:
     """
     For rows with a subEvent, find the corresponding subEvent rows and enrich them with properties from the current row.
     This is the inverse of superEvent handling - we want to enrich subEvents with properties from the parent event where they don't have them directly.
     Df is modified in place.
     Args:
         df: DataFrame containing the dataset rows newly collected.
-        df_bigquery: DataFrame containing the rows from bigquery table. [Not used yet, don't know how to handle subEvents referencing BQ]
+        sub_event_indices_by_data_id: Lookup of data_id -> row indices for subEvent enrichment.
     """
     sub_events_mask = df["has_subEvent"].notnull()
     sub_events_indices = df[sub_events_mask].index.tolist()
@@ -354,14 +366,14 @@ def handle_sub_events(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
                     continue  # inline dict subEvent - we won't be able to enrich this so skip
                 elif isinstance(sub_event_ref, str):
                     sub_event_id = sub_event_ref
-                    sub_event_rows = df[df["data_id"] == sub_event_id]
-                    if not sub_event_rows.empty:
+                    sub_event_indices = sub_event_indices_by_data_id.get(sub_event_id, [])
+                    if sub_event_indices:
                         # Enrich inherited_data of the subEvent row with properties from the current row
                         parent_json = df.at[idx, "json_data"] if isinstance(df.at[idx, "json_data"], dict) else {}
                         parent_inherited = df.at[idx, "inherited_data"] if isinstance(df.at[idx, "inherited_data"], dict) else {}
                         super_event_data = {**parent_inherited, **parent_json}
 
-                        for sub_idx in sub_event_rows.index:
+                        for sub_idx in sub_event_indices:
                             current_json = df.at[sub_idx, "json_data"] if isinstance(df.at[sub_idx, "json_data"], dict) else {}
                             # only inherit properties that don't exist in the subEvent's own json_data
                             to_inherit = {super_event_data_key: super_event_data[super_event_data_key] for super_event_data_key in super_event_data if super_event_data_key not in current_json}
@@ -376,8 +388,10 @@ def denormalize_dataset(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
         df: DataFrame containing the collected rows for a dataset.
         df_bigquery: DataFrame containing the rows from bigquery table.
     """
-    handle_super_events(df, df_bigquery)
-    handle_sub_events(df, df_bigquery)
+    super_event_payload_by_data_id = _build_super_event_payload_by_data_id(df, df_bigquery)
+    sub_event_indices_by_data_id = _build_df_indices_by_data_id(df)
+    handle_super_events(df, super_event_payload_by_data_id)
+    handle_sub_events(df, sub_event_indices_by_data_id)
 
 
 def _initialize_feed_states(dataset_url: str, dataset_feeds: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -422,10 +436,12 @@ def _collect_dataset_feed_rows(
     """
     dataset_updates: list[dict] = []
     dataset_deletes: list[dict[str, Any]] = []
+    feed_ids = [dataset_feed["id"] for dataset_feed in dataset_feeds]
+    latest_cursor_by_feed_id = get_last_ingestion_info_batch(feed_ids)
 
     for dataset_feed in dataset_feeds:
         feed_id = dataset_feed["id"]
-        after_timestamp, after_id = get_last_ingestion_info(feed_id)
+        after_timestamp, after_id = latest_cursor_by_feed_id.get(feed_id, (None, None))
         feed_states[feed_id]["previous_afterTimestamp"] = after_timestamp
         feed_states[feed_id]["previous_afterId"] = after_id
 

@@ -133,30 +133,43 @@ def get_feeds(target_date: date | None = None, datasets: list[str] | None = None
 
 def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None]:
     """Fetch the latest cursor values for the given feed from BigQuery."""
+    return get_last_ingestion_info_batch([feed_id]).get(feed_id, (None, None))
+
+
+def get_last_ingestion_info_batch(feed_ids: list[str]) -> dict[str, tuple[str | None, str | None]]:
+    """Fetch latest cursor values for multiple feed IDs in one BigQuery query."""
+    if not feed_ids:
+        return {}
+
+    unique_feed_ids = list(dict.fromkeys(feed_ids))
     table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITY_INGESTION_TABLE}"
 
     query = f"""
-        SELECT afterTimestamp, afterId
+        SELECT feed_id, afterTimestamp, afterId
         FROM `{table_id}`
-        WHERE feed_id = @feed_id
-        ORDER BY ingestion_date DESC
-        LIMIT 1
+        WHERE feed_id IN UNNEST(@feed_ids)
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY feed_id
+            ORDER BY ingestion_date DESC, afterTimestamp DESC, afterId DESC
+        ) = 1
     """
 
     client = bigquery.Client(project=BIGQUERY_PROJECT)
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter("feed_id", "STRING", feed_id)
+            bigquery.ArrayQueryParameter("feed_ids", "STRING", unique_feed_ids)
         ]
     )
 
-    rows = list(client.query(query, job_config=job_config).result())
+    rows = client.query(query, job_config=job_config).result()
+    cursor_by_feed_id: dict[str, tuple[str | None, str | None]] = {
+        feed_id: (None, None) for feed_id in unique_feed_ids
+    }
+    for row in rows:
+        row_feed_id = row["feed_id"]
+        cursor_by_feed_id[row_feed_id] = (row["afterTimestamp"], row["afterId"])
 
-    if not rows:
-        return None, None
-
-    row = rows[0]
-    return row["afterTimestamp"], row["afterId"]
+    return cursor_by_feed_id
 
 
 def get_dataset_opportunities(dataset_url: str) -> pd.DataFrame:
