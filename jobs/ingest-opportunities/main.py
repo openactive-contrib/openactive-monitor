@@ -24,6 +24,8 @@ from rpde import access_feed_url
 
 load_dotenv()
 
+# For Debugging True
+PERSIST_CSV=False
 CSV_OUTPUT_DIR = os.getenv("OPPORTUNITY_CSV_OUTPUT_DIR", "./opportunities/csv")
 
 FEED_EXECUTION_ORDER = ["HeadlineEvent", "Event", "OnDemandEvent", "FacilityUse", "IndividualFacilityUse", "Slot", "SessionSeries", "ScheduledSession", "CourseInstance", ""]
@@ -39,6 +41,9 @@ def _configure_logging(verbose: bool) -> None:
     """Configure app logging and set RPDE logger to DEBUG in verbose mode."""
     logging.getLogger().setLevel(logging.DEBUG if verbose else logging.INFO)
     logging.getLogger("rpde").setLevel(logging.DEBUG if verbose else logging.INFO)
+    logging.getLogger("bigquery_ops").setLevel(logging.DEBUG if verbose else logging.INFO)
+    logging.getLogger("geolocation").setLevel(logging.DEBUG if verbose else logging.INFO)
+    logging.getLogger("request_client").setLevel(logging.DEBUG if verbose else logging.INFO)
 
 
 DF_COLUMNS = [
@@ -227,6 +232,29 @@ def _merge_inherited_data(json_data: dict[str, Any], super_event_data: dict[str,
     return merged
 
 
+def _build_super_event_lookup_df(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> pd.DataFrame:
+    """
+    Build a combined DataFrame for superEvent lookup, prioritizing df on overlaps.
+    Filters empty/all-NA inputs to avoid pandas concat dtype FutureWarning.
+    """
+    concat_candidates = [
+        frame for frame in (df_bigquery, df)
+        if not frame.empty and not frame.isna().all(axis=None)
+    ]
+    if not concat_candidates:
+        return pd.DataFrame(columns=df.columns)
+
+    if len(concat_candidates) == 1:
+        combined_df = concat_candidates[0].copy().reset_index(drop=True)
+    else:
+        combined_df = pd.concat(concat_candidates, ignore_index=True)
+
+    if "data_id" in combined_df.columns and not combined_df.empty:
+        combined_df = combined_df.drop_duplicates(subset=["data_id"], keep="last").reset_index(drop=True)
+
+    return combined_df
+
+
 def handle_super_events(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
     """
     For rows with a superEvent, find the corresponding superEvent row and inherit properties.
@@ -240,8 +268,7 @@ def handle_super_events(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
     super_events_mask = df["has_superEvent"].notnull()
     super_events_indices = df[super_events_mask].index.tolist()
 
-    # merge df and df_bigquery to have holistic view of all rows for superEvent lookup, prioritizing df for any overlapping rows
-    combined_df = pd.concat([df_bigquery, df]).drop_duplicates(subset=["data_id"], keep="last").reset_index(drop=True)
+    combined_df = _build_super_event_lookup_df(df, df_bigquery)
 
     for idx in super_events_indices:
         super_event_ref = df.at[idx, "has_superEvent"]
@@ -439,7 +466,8 @@ def _persist_dataset_results(
     dataset_old_df = get_dataset_opportunities(dataset_url)
     dataset_new_df = pd.DataFrame(dataset_updates, columns=DF_COLUMNS)
     denormalize_dataset(dataset_new_df, dataset_old_df)
-    # _write_dataset_csv(dataset_url, dataset_new_df)
+    if PERSIST_CSV:
+        _write_dataset_csv(dataset_url, dataset_new_df)
     write_dataset_opportunities(dataset_url, dataset_new_df)
 
 
@@ -547,7 +575,7 @@ def ingest_opportunities(
     # Flush any remaining deferred deletes, waiting up to 90 minutes for BigQuery streaming buffer to clear if needed.
     drain_deferred_deletes_until_timeout(
         pending_deletes,
-        max_total_wait_seconds=90 * 60,
+        max_total_wait_seconds=120 * 60,
     )
 
 

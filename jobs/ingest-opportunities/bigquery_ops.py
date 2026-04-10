@@ -274,10 +274,11 @@ def delete_dataset_opportunities(
         )
 
     dataset_for_log = next(iter(dataset_urls), "unknown")
-    logger.debug(
-        "Deleted %d existing opportunities from BigQuery for dataset %s",
+    logger.info(
+        "Deleted %d existing opportunities from BigQuery for dataset %s (with %s pending deletes)",
         total_deleted,
         dataset_for_log,
+        len(pending_deletes),
     )
     if deferred_keys:
         logger.warning(

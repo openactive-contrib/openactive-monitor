@@ -11,3 +11,9 @@ TRUNCATE TABLE `openactive-monitor.openactive_analytics.opportunities`;
 ```SQL
 TRUNCATE TABLE `openactive-monitor.openactive_analytics.opportunity_ingestion`;
 ```
+
+After running these, you may still continue seeing old data in the tables due to caching. To ensure you see the latest data, you can run a simple query to refresh the cache:
+
+```SQL
+SELECT * FROM `openactive-monitor.openactive_analytics.opportunities` LIMIT 100;
+```
