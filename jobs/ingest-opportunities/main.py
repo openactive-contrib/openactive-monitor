@@ -1,25 +1,25 @@
 import logging
 import os
-import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import click
 import pandas as pd
 from dotenv import load_dotenv
-from google.cloud import bigquery
 from pandas import DataFrame
 
-from rpde import access_feed_url
+from bigquery_ops import (
+    get_feeds,
+    get_last_ingestion_info,
+    write_dataset_bigquery,
+    write_opportunity_ingestion_records,
+)
 from geolocation import _build_location
+from rpde import access_feed_url
 
 load_dotenv()
 
-BIGQUERY_PROJECT = os.getenv("GCP_PROJECT_ID")
-BIGQUERY_DATASET = os.getenv("BQ_DATASET_ID")
-FEEDS_TABLE = os.getenv("BQ_FEEDS_TABLE", "feeds")
-OPPORTUNITY_INGESTION_TABLE = os.getenv("BQ_OPPORTUNITY_INGESTION_TABLE", "opportunity_ingestion")
 CSV_OUTPUT_DIR = os.getenv("OPPORTUNITY_CSV_OUTPUT_DIR", "./opportunities/csv")
 
 FEED_EXECUTION_ORDER = ["HeadlineEvent", "Event", "OnDemandEvent", "FacilityUse", "IndividualFacilityUse", "Slot", "SessionSeries", "ScheduledSession", "CourseInstance", ""]
@@ -37,84 +37,11 @@ def _configure_logging(verbose: bool) -> None:
     logging.getLogger("rpde").setLevel(logging.DEBUG if verbose else logging.INFO)
 
 
-def get_feeds(target_date: date | None = None, datasets: list[str] | None = None) -> dict[str, list[dict]]:
-    """
-    Fetch list of the feeds collected for the given date from BigQuery.
-    Args:
-        target_date: Optional date to filter feeds by last_access date. Defaults to None (today's date).
-        datasets: Optional list of dataset names to filter feeds. Defaults to None (no dataset filter).
-    Returns:
-        Dict of feeds grouped by dataset_url. Key is dataset_url, value is list of dataset feed dicts with id, url, type, and dataset_name.
-    """
-    if target_date is None:
-        target_date = date.today()
-    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{FEEDS_TABLE}"
-
-    query = f"""
-        SELECT id, url, type, dataset_name, dataset_url
-        FROM `{table_id}`
-        WHERE DATE(last_access) = @target_date
-        ORDER BY id
-    """
-
-    client = bigquery.Client(project=BIGQUERY_PROJECT)
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("target_date", "DATE", target_date)
-        ]
-    )
-
-    rows = client.query(query, job_config=job_config).result()
-
-    feeds = {}
-    for row in rows:
-        if datasets is None or row["dataset_url"] in datasets:
-            if row["dataset_url"] not in feeds:
-                feeds[row["dataset_url"]] = []
-            dataset_feeds = feeds.get(row["dataset_url"])
-            dataset_feeds.append({"id": row["id"], "url": row["url"], "type": row["type"], "dataset_name": row["dataset_name"]})
-    return feeds
-
-
-def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None]:
-    """
-    Fetch the latest ingestion record for a given feed_id from the opportunity_ingestion table.
-    Args:
-        feed_id: The feed ID to query.
-    Returns:
-        Tuple of (afterTimestamp, afterId) from the latest ingestion record, or (None, None) if no record exists.
-    """
-    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITY_INGESTION_TABLE}"
-
-    query = f"""
-        SELECT afterTimestamp, afterId
-        FROM `{table_id}`
-        WHERE feed_id = @feed_id
-        ORDER BY ingestion_date DESC
-        LIMIT 1
-    """
-
-    client = bigquery.Client(project=BIGQUERY_PROJECT)
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("feed_id", "STRING", feed_id)
-        ]
-    )
-
-    rows = list(client.query(query, job_config=job_config).result())
-
-    if not rows:
-        return None, None
-
-    row = rows[0]
-    return row["afterTimestamp"], row["afterId"]
-
-
-
 DF_COLUMNS = [
     "dataset_url", "feed_id", "id", "data_id", "kind", "modified",
     "json_data", "inherited_data", "activity", "location", "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent"
 ]
+
 
 def _parse_date(date_value: object) -> date | None:
     """
@@ -433,12 +360,31 @@ def ingest_opportunities(
         dataset_feeds.sort(key=lambda feed: FEED_EXECUTION_ORDER.index(feed["type"]))
 
         dataset_rows: list[dict] = []
+        ingestion_records: list[dict[str, Any]] = []
         for dataset_feed in dataset_feeds:
             after_timestamp, after_id = get_last_ingestion_info(dataset_feed["id"])
             result = access_feed_url(dataset_feed, after_timestamp, after_id)
+            if result is None:
+                logger.warning("Skipping ingestion summary for feed %s due to RPDE error", dataset_feed["id"])
+                continue
+
             updates, deletes = _extract_rows(dataset_url, dataset_feed["id"], result)
             dataset_rows.extend(updates)
             logger.info("Collected %d items from feed %s", len(updates), dataset_feed["id"])
+
+            ingestion_records.append(
+                {
+                    "dataset_id": dataset_url,
+                    "feed_id": dataset_feed["id"],
+                    "kind": dataset_feed.get("type"),
+                    "ingestion_date": datetime.now(timezone.utc),
+                    "updated": len(updates),
+                    "deleted": len(deletes),
+                    "afterTimestamp": result.get("after_timestamp"),
+                    "afterId": result.get("after_id"),
+                    "status": result.get("status"),
+                }
+            )
 
         # TODO: need to merge dataset rows with BigQuery rows to get the complete picture
         # TODO handle deletions from both local and BigQuery
@@ -446,6 +392,9 @@ def ingest_opportunities(
         dataset_df = pd.DataFrame(dataset_rows, columns=DF_COLUMNS)
         denormalize_dataset(dataset_df)
         _write_dataset_csv(dataset_url, dataset_df)
+        write_dataset_bigquery(dataset_url, dataset_df)
+        write_opportunity_ingestion_records(ingestion_records)
+
         count += 1
 
 
@@ -477,7 +426,10 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
 
     parsed_target_date = datetime.strptime("2026-04-08", "%Y-%m-%d").date()
     # parsed_datasets = ["https://activehartlepool.gs-signature.cloud/OpenActive/"]
-    parsed_datasets = ["https://data.bookwhen.com/"]
+    parsed_datasets = ["https://data.bookwhen.com/",
+                       "https://activehartlepool.gs-signature.cloud/OpenActive/",
+                       "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
+                       "https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
     # verbose = True
 
     ingest_opportunities(parsed_target_date, parsed_datasets, verbose)

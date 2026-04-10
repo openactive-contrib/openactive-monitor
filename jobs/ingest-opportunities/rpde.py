@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from time import sleep
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import requests
 
@@ -29,6 +29,14 @@ def _build_initial_url(feed_url: str, after_timestamp: str | None, after_id: str
     return f"{feed_url}{separator}{params}"
 
 
+def _extract_cursor_from_url(url: str) -> tuple[str | None, str | None]:
+    """Extract RPDE cursor values from a page URL query string."""
+    query = parse_qs(urlparse(url).query)
+    after_timestamp = query.get("afterTimestamp", [None])[0]
+    after_id = query.get("afterId", [None])[0]
+    return after_timestamp, after_id
+
+
 def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | None) -> dict | None:
     """
         Traverse all RPDE pages for a feed and returns the collected data information.
@@ -50,10 +58,16 @@ def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | Non
     pages_fetched = 0
     status = "COMPLETE"
     session = requests.Session()
+    last_after_timestamp: str | None = None
+    last_after_id: str | None = None
 
     try:
         while url:
             current_url = url
+            page_after_timestamp, page_after_id = _extract_cursor_from_url(current_url)
+            if page_after_timestamp and page_after_id:
+                last_after_timestamp = page_after_timestamp
+                last_after_id = page_after_id
             logger.debug("Fetching RPDE url: %s", current_url)
             try:
                 response = session.get(current_url, timeout=RPDE_REQUEST_TIMEOUT)
@@ -108,6 +122,8 @@ def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | Non
             "items_count": len(items),
             "items": items,
             "status": status,
+            "after_timestamp": last_after_timestamp,
+            "after_id": last_after_id,
         }
 
         if DUMP_TO_FILE:
