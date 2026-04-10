@@ -19,6 +19,25 @@ FEEDS_TABLE = os.getenv("BQ_FEEDS_TABLE")
 OPPORTUNITY_INGESTION_TABLE = os.getenv("BQ_OPPORTUNITY_INGESTION_TABLE")
 OPPORTUNITIES_TABLE = os.getenv("BQ_OPPORTUNITIES_TABLE")
 
+OPPORTUNITIES_COLUMNS = [
+    "dataset_url",
+    "feed_id",
+    "id",
+    "data_id",
+    "kind",
+    "modified",
+    "json_data",
+    "inherited_data",
+    "activity",
+    "location",
+    "startDate",
+    "endDate",
+    "ageRange",
+    "level",
+    "has_superEvent",
+    "has_subEvent",
+]
+
 
 def get_feeds(target_date: date | None = None, datasets: list[str] | None = None) -> dict[str, list[dict]]:
     """Fetch list of feeds collected for the given date from BigQuery."""
@@ -85,6 +104,104 @@ def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None]:
 
     row = rows[0]
     return row["afterTimestamp"], row["afterId"]
+
+
+def get_dataset_opportunities(dataset_url: str) -> pd.DataFrame:
+    """Fetch existing opportunities rows for a dataset_url from BigQuery."""
+    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}"
+    selected_columns = ", ".join(OPPORTUNITIES_COLUMNS)
+
+    query = f"""
+        SELECT {selected_columns}
+        FROM `{table_id}`
+        WHERE dataset_url = @dataset_url
+    """
+
+    client = bigquery.Client(project=BIGQUERY_PROJECT)
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("dataset_url", "STRING", dataset_url)
+        ]
+    )
+
+    dataset_df = client.query(query, job_config=job_config).to_dataframe()
+    if dataset_df.empty:
+        logger.debug(
+            "Loaded %d existing opportunities from BigQuery for dataset %s",
+            0,
+            dataset_url,
+        )
+        return pd.DataFrame(columns=OPPORTUNITIES_COLUMNS)
+
+    normalized_df = dataset_df.reindex(columns=OPPORTUNITIES_COLUMNS)
+    logger.debug(
+        "Loaded %d existing opportunities from BigQuery for dataset %s",
+        len(normalized_df),
+        dataset_url,
+    )
+    return normalized_df
+
+
+def delete_dataset_opportunities(delete_rows: list[dict[str, Any]]) -> int:
+    """Delete opportunities rows by dataset_url + feed_id + id (ignores modified)."""
+    if not delete_rows:
+        logger.debug(
+            "Deleted %d existing opportunities from BigQuery for dataset %s",
+            0,
+            "unknown",
+        )
+        return 0
+
+    composite_keys: set[str] = set()
+    dataset_urls: set[str] = set()
+    for row in delete_rows:
+        dataset_url = row.get("dataset_url")
+        feed_id = row.get("feed_id")
+        item_id = row.get("id")
+        if not dataset_url or not feed_id or not item_id:
+            continue
+        dataset_urls.add(str(dataset_url))
+        composite_keys.add(f"{dataset_url}|{feed_id}|{item_id}")
+
+    if not composite_keys:
+        dataset_for_log = next(iter(dataset_urls), "unknown")
+        logger.debug(
+            "Deleted %d existing opportunities from BigQuery for dataset %s",
+            0,
+            dataset_for_log,
+        )
+        return 0
+
+    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}"
+    query = f"""
+        DELETE FROM `{table_id}`
+        WHERE CONCAT(IFNULL(dataset_url, ''), '|', IFNULL(feed_id, ''), '|', IFNULL(id, '')) IN UNNEST(@composite_keys)
+    """
+
+    client = bigquery.Client(project=BIGQUERY_PROJECT)
+    total_deleted = 0
+    batch_size = 1000
+    sorted_keys = sorted(composite_keys)
+
+    for start in range(0, len(sorted_keys), batch_size):
+        batch_keys = sorted_keys[start:start + batch_size]
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ArrayQueryParameter("composite_keys", "STRING", batch_keys)
+            ]
+        )
+        job = client.query(query, job_config=job_config)
+        job.result()
+        total_deleted += int(job.num_dml_affected_rows or 0)
+
+    dataset_for_log = next(iter(dataset_urls), "unknown")
+    logger.debug(
+        "Deleted %d existing opportunities from BigQuery for dataset %s",
+        total_deleted,
+        dataset_for_log,
+    )
+
+    return total_deleted
 
 
 def _is_missing_value(value: Any) -> bool:
@@ -296,7 +413,7 @@ def _prettify_insert_errors(errors: list[dict[str, Any]], batch_rows: list[dict[
     return "\n".join(lines)
 
 
-def write_dataset_bigquery(dataset_url: str, dataset_df: pd.DataFrame) -> None:
+def write_dataset_opportunities(dataset_url: str, dataset_df: pd.DataFrame) -> None:
     """Append dataset rows to the opportunities BigQuery table."""
     if dataset_df.empty:
         logger.info("No rows to write to opportunities table for dataset %s", dataset_url)
@@ -305,7 +422,7 @@ def write_dataset_bigquery(dataset_url: str, dataset_df: pd.DataFrame) -> None:
     table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}"
     client = bigquery.Client(project=BIGQUERY_PROJECT)
     table = client.get_table(table_id)
-    logger.info(
+    logger.debug(
         "Detected opportunities schema: %s",
         {field.name: f"{field.field_type}/{field.mode}" for field in table.schema},
     )
@@ -342,7 +459,7 @@ def write_opportunity_ingestion_records(records: list[dict[str, Any]]) -> None:
     table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITY_INGESTION_TABLE}"
     client = bigquery.Client(project=BIGQUERY_PROJECT)
     table = client.get_table(table_id)
-    logger.info(
+    logger.debug(
         "Detected ingestion schema: %s",
         {field.name: f"{field.field_type}/{field.mode}" for field in table.schema},
     )

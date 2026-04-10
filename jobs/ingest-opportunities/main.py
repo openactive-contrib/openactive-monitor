@@ -10,9 +10,11 @@ from dotenv import load_dotenv
 from pandas import DataFrame
 
 from bigquery_ops import (
+    delete_dataset_opportunities,
+    get_dataset_opportunities,
     get_feeds,
     get_last_ingestion_info,
-    write_dataset_bigquery,
+    write_dataset_opportunities,
     write_opportunity_ingestion_records,
 )
 from geolocation import _build_location
@@ -223,15 +225,21 @@ def _merge_inherited_data(json_data: dict[str, Any], super_event_data: dict[str,
     return merged
 
 
-def handle_super_events(df: pd.DataFrame) -> None:
+def handle_super_events(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
     """
     For rows with a superEvent, find the corresponding superEvent row and inherit properties.
     Updates inherited_data to contain only properties from superEvent that don't exist in json_data.
     Nested dict properties are recursively merged.
     Df is modified in place.
+    Args:
+        df: DataFrame containing the dataset rows newly collected.
+        df_bigquery: DataFrame containing the rows from bigquery table.
     """
     super_events_mask = df["has_superEvent"].notnull()
     super_events_indices = df[super_events_mask].index.tolist()
+
+    # merge df and df_bigquery to have holistic view of all rows for superEvent lookup, prioritizing df for any overlapping rows
+    combined_df = pd.concat([df_bigquery, df]).drop_duplicates(subset=["data_id"], keep="last").reset_index(drop=True)
 
     for idx in super_events_indices:
         super_event_ref = df.at[idx, "has_superEvent"]
@@ -244,7 +252,7 @@ def handle_super_events(df: pd.DataFrame) -> None:
         elif isinstance(super_event_ref, str):
             # super event reference
             super_event_id = super_event_ref
-            super_event_rows = df[df["data_id"] == super_event_id]
+            super_event_rows = combined_df[combined_df["data_id"] == super_event_id]
             if not super_event_rows.empty:
                 # Extract and merge json_data and inherited_data from the superEvent row
                 super_event_json = super_event_rows.iloc[0]["json_data"]
@@ -297,11 +305,14 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
 
 
 
-def handle_sub_events(df: pd.DataFrame) -> None:
+def handle_sub_events(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
     """
     For rows with a subEvent, find the corresponding subEvent rows and enrich them with properties from the current row.
     This is the inverse of superEvent handling - we want to enrich subEvents with properties from the parent event where they don't have them directly.
     Df is modified in place.
+    Args:
+        df: DataFrame containing the dataset rows newly collected.
+        df_bigquery: DataFrame containing the rows from bigquery table. [Not used yet, don't know how to handle subEvents referencing BQ]
     """
     sub_events_mask = df["has_subEvent"].notnull()
     sub_events_indices = df[sub_events_mask].index.tolist()
@@ -328,15 +339,16 @@ def handle_sub_events(df: pd.DataFrame) -> None:
                             df.at[sub_idx, "inherited_data"] = to_inherit
 
 
-def denormalize_dataset(df: pd.DataFrame) -> None:
+def denormalize_dataset(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
     """
     Denormalize dataset rows by inheriting properties from superEvent to subEvent where applicable and enriching location etc.
     Df is modified in place.
     Args:
         df: DataFrame containing the collected rows for a dataset.
+        df_bigquery: DataFrame containing the rows from bigquery table.
     """
-    handle_super_events(df)
-    handle_sub_events(df)
+    handle_super_events(df, df_bigquery)
+    handle_sub_events(df, df_bigquery)
 
 
 def ingest_opportunities(
@@ -360,6 +372,7 @@ def ingest_opportunities(
         dataset_feeds.sort(key=lambda feed: FEED_EXECUTION_ORDER.index(feed["type"]))
 
         dataset_rows: list[dict] = []
+        dataset_deletes: list[dict[str, Any]] = []
         ingestion_records: list[dict[str, Any]] = []
         for dataset_feed in dataset_feeds:
             after_timestamp, after_id = get_last_ingestion_info(dataset_feed["id"])
@@ -370,6 +383,7 @@ def ingest_opportunities(
 
             updates, deletes = _extract_rows(dataset_url, dataset_feed["id"], result)
             dataset_rows.extend(updates)
+            dataset_deletes.extend(deletes)
             logger.info("Collected %d items from feed %s", len(updates), dataset_feed["id"])
 
             ingestion_records.append(
@@ -386,13 +400,16 @@ def ingest_opportunities(
                 }
             )
 
-        # TODO: need to merge dataset rows with BigQuery rows to get the complete picture
-        # TODO handle deletions from both local and BigQuery
+        delete_dataset_opportunities(dataset_deletes)
 
-        dataset_df = pd.DataFrame(dataset_rows, columns=DF_COLUMNS)
-        denormalize_dataset(dataset_df)
-        # _write_dataset_csv(dataset_url, dataset_df)
-        write_dataset_bigquery(dataset_url, dataset_df)
+        dataset_old_df = get_dataset_opportunities(dataset_url)
+
+        # TODO: need to merge dataset_old_df and dataset_new_df to get the complete picture
+
+        dataset_new_df = pd.DataFrame(dataset_rows, columns=DF_COLUMNS)
+        denormalize_dataset(dataset_new_df, dataset_old_df)
+        _write_dataset_csv(dataset_url, dataset_new_df)
+        write_dataset_opportunities(dataset_url, dataset_new_df)
         write_opportunity_ingestion_records(ingestion_records)
 
         count += 1
@@ -422,12 +439,12 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
     parsed_target_date = target_date.date() if target_date else None
     parsed_datasets = list(datasets) if datasets else None
 
-    # parsed_target_date = datetime.strptime("2026-04-10", "%Y-%m-%d").date()
+    parsed_target_date = datetime.strptime("2026-04-10", "%Y-%m-%d").date()
     # parsed_datasets = ["https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
-    # parsed_datasets = ["https://data.bookwhen.com/",
-    #                    "https://activehartlepool.gs-signature.cloud/OpenActive/",
-    #                    "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
-    #                    "https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
+    parsed_datasets = ["https://data.bookwhen.com/",
+                       "https://activehartlepool.gs-signature.cloud/OpenActive/",
+                       "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
+                       "https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
     # verbose = True
 
     ingest_opportunities(parsed_target_date, parsed_datasets, verbose)
