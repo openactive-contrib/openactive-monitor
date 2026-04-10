@@ -429,7 +429,7 @@ def _collect_dataset_feed_rows(
         feed_states[feed_id]["previous_afterTimestamp"] = after_timestamp
         feed_states[feed_id]["previous_afterId"] = after_id
 
-        result = access_feed_url(dataset_feed, after_timestamp, after_id)
+        result = access_feed_url(dataset_feed, after_timestamp, after_id, PERSIST_CSV)
         if result is None:
             raise RuntimeError(f"RPDE returned no result for feed {feed_id}")
 

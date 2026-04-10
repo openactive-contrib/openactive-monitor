@@ -16,7 +16,6 @@ RPDE_REQUEST_TIMEOUT = 30  # seconds
 RPDE_WAIT_BETWEEN_PAGES = 0.1  # seconds
 
 # for debugging and development
-DUMP_TO_FILE = True
 OPPORTUNITIES_OUTPUT_DIR = os.getenv("OPPORTUNITIES_OUTPUT_DIR", "./opportunities")
 
 
@@ -38,13 +37,14 @@ def _extract_cursor_from_url(url: str) -> tuple[str | None, str | None]:
     return after_timestamp, after_id
 
 
-def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | None) -> dict | None:
+def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | None, persist_data : bool = False) -> dict | None:
     """
         Traverse all RPDE pages for a feed and returns the collected data information.
         Args:
             feed: Dictionary containing feed information, must include 'id' and 'url' keys.
             after_timestamp: Optional RPDE cursor parameter for incremental fetching.
             after_id: Optional RPDE cursor parameter for incremental fetching.
+            persist_data: Whether to persist the fetched items to a file for debugging purposes. Defaults to False.
         Returns:
             Dictionary with feed_id, feed_url, items_count, items list, and status. Returns None if an unexpected error occurs.
     """
@@ -127,7 +127,7 @@ def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | Non
             "after_id": last_after_id,
         }
 
-        if DUMP_TO_FILE:
+        if persist_data:
             output_file = dump_to_file(feed_id, result)
             logger.debug("Saved %d items from %d pages to %s", len(items), pages_fetched, output_file)
 
