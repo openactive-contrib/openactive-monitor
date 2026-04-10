@@ -7,6 +7,7 @@ from typing import Any
 
 import pandas as pd
 from dotenv import load_dotenv
+from google.api_core import exceptions as google_exceptions
 from google.cloud import bigquery
 
 load_dotenv()
@@ -180,19 +181,19 @@ def delete_dataset_opportunities(delete_rows: list[dict[str, Any]]) -> int:
 
     client = bigquery.Client(project=BIGQUERY_PROJECT)
     total_deleted = 0
+    total_deferred = 0
     batch_size = 1000
     sorted_keys = sorted(composite_keys)
 
     for start in range(0, len(sorted_keys), batch_size):
         batch_keys = sorted_keys[start:start + batch_size]
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ArrayQueryParameter("composite_keys", "STRING", batch_keys)
-            ]
+        deleted_count, deferred_count = _delete_batch_with_streaming_buffer_fallback(
+            client,
+            query,
+            batch_keys,
         )
-        job = client.query(query, job_config=job_config)
-        job.result()
-        total_deleted += int(job.num_dml_affected_rows or 0)
+        total_deleted += deleted_count
+        total_deferred += deferred_count
 
     dataset_for_log = next(iter(dataset_urls), "unknown")
     logger.debug(
@@ -200,8 +201,71 @@ def delete_dataset_opportunities(delete_rows: list[dict[str, Any]]) -> int:
         total_deleted,
         dataset_for_log,
     )
+    if total_deferred:
+        logger.warning(
+            "Deferred %d deletes for dataset %s because matching rows are in BigQuery streaming buffer",
+            total_deferred,
+            dataset_for_log,
+        )
 
     return total_deleted
+
+
+def _is_streaming_buffer_delete_error(exc: Exception) -> bool:
+    if not isinstance(exc, google_exceptions.BadRequest):
+        return False
+
+    message = str(exc).lower()
+    return "update or delete statement" in message and "streaming buffer" in message
+
+
+def _delete_batch_with_streaming_buffer_fallback(
+    client: bigquery.Client,
+    query: str,
+    composite_keys: list[str],
+) -> tuple[int, int]:
+    """
+    Delete keys in one batch.
+    If BigQuery reports streaming-buffer conflicts, split recursively to isolate
+    blocked keys and delete everything else now.
+    Returns: (deleted_count, deferred_count)
+    """
+    if not composite_keys:
+        return 0, 0
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ArrayQueryParameter("composite_keys", "STRING", composite_keys)
+        ]
+    )
+
+    try:
+        job = client.query(query, job_config=job_config)
+        job.result()
+        return int(job.num_dml_affected_rows or 0), 0
+    except Exception as exc:
+        if not _is_streaming_buffer_delete_error(exc):
+            raise
+
+        if len(composite_keys) == 1:
+            logger.debug(
+                "Deferring delete for key %s due to streaming buffer conflict",
+                composite_keys[0],
+            )
+            return 0, 1
+
+        midpoint = len(composite_keys) // 2
+        left_deleted, left_deferred = _delete_batch_with_streaming_buffer_fallback(
+            client,
+            query,
+            composite_keys[:midpoint],
+        )
+        right_deleted, right_deferred = _delete_batch_with_streaming_buffer_fallback(
+            client,
+            query,
+            composite_keys[midpoint:],
+        )
+        return left_deleted + right_deleted, left_deferred + right_deferred
 
 
 def _is_missing_value(value: Any) -> bool:

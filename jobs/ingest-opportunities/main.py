@@ -351,6 +351,145 @@ def denormalize_dataset(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
     handle_sub_events(df, df_bigquery)
 
 
+def _initialize_feed_states(dataset_url: str, dataset_feeds: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """
+    Initialize per-feed state used for cursor handling and ingestion summaries.
+    Args:
+        dataset_url: URL pointing to the dataset to query.
+        dataset_feeds: list of dictionaries containing feed information.
+    Returns:
+        Dictionary containing per-feed state for cursor handling and ingestion summaries.
+    """
+    return {
+        dataset_feed["id"]: {
+            "dataset_id": dataset_url,
+            "feed_id": dataset_feed["id"],
+            "kind": dataset_feed.get("type"),
+            "previous_afterTimestamp": None,
+            "previous_afterId": None,
+            "next_afterTimestamp": None,
+            "next_afterId": None,
+            "status": None,
+            "updated": 0,
+            "deleted": 0,
+        }
+        for dataset_feed in dataset_feeds
+    }
+
+
+def _collect_dataset_feed_rows(
+    dataset_url: str,
+    dataset_feeds: list[dict[str, Any]],
+    feed_states: dict[str, dict[str, Any]],
+) -> tuple[list[dict], list[dict[str, Any]]]:
+    """
+    Traverse dataset feeds and collect update/delete rows while tracking feed cursor state.
+    Args:
+        dataset_url: URL pointing to the dataset feed.
+        dataset_feeds: List of dataset feeds.
+        feed_states: Dictionary of feed states.
+    Returns:
+        Updated and deleted rows.
+    """
+    dataset_updates: list[dict] = []
+    dataset_deletes: list[dict[str, Any]] = []
+
+    for dataset_feed in dataset_feeds:
+        feed_id = dataset_feed["id"]
+        after_timestamp, after_id = get_last_ingestion_info(feed_id)
+        feed_states[feed_id]["previous_afterTimestamp"] = after_timestamp
+        feed_states[feed_id]["previous_afterId"] = after_id
+
+        result = access_feed_url(dataset_feed, after_timestamp, after_id)
+        if result is None:
+            raise RuntimeError(f"RPDE returned no result for feed {feed_id}")
+
+        updates, deletes = _extract_rows(dataset_url, feed_id, result)
+        dataset_updates.extend(updates)
+        dataset_deletes.extend(deletes)
+        logger.info("Collected %d items from feed %s", len(updates), feed_id)
+
+        feed_states[feed_id]["updated"] = len(updates)
+        feed_states[feed_id]["deleted"] = len(deletes)
+        feed_states[feed_id]["next_afterTimestamp"] = result.get("after_timestamp")
+        feed_states[feed_id]["next_afterId"] = result.get("after_id")
+        feed_states[feed_id]["status"] = result.get("status")
+
+    return dataset_updates, dataset_deletes
+
+
+def _persist_dataset_results(dataset_url: str, dataset_updates: list[dict], dataset_deletes: list[dict[str, Any]]) -> None:
+    """
+    Persist collected dataset rows to BigQuery opportunities after denormalization.
+    Args:
+        dataset_url: URL pointing to the dataset feed.
+        dataset_updates: List of dataset rows.
+        dataset_deletes: List of dataset deletes.
+    """
+    delete_dataset_opportunities(dataset_deletes)
+
+    dataset_old_df = get_dataset_opportunities(dataset_url)
+    dataset_new_df = pd.DataFrame(dataset_updates, columns=DF_COLUMNS)
+    denormalize_dataset(dataset_new_df, dataset_old_df)
+    # _write_dataset_csv(dataset_url, dataset_new_df)
+    write_dataset_opportunities(dataset_url, dataset_new_df)
+
+
+def _build_ingestion_records(
+    dataset_url: str,
+    dataset_feeds: list[dict[str, Any]],
+    feed_states: dict[str, dict[str, Any]],
+    dataset_failed: bool,
+) -> list[dict[str, Any]]:
+    """
+    Build ingestion-summary rows based on success/failure cursor semantics. If any of the feeds failed, the entire
+    dataset is marked as ERROR and the previous cursor is retained for all feeds to enable retry from last successful
+    state. If successful, the next cursor is saved for all feeds.
+    Args:
+        dataset_url: URL pointing to the dataset feed.
+        dataset_feeds: List of dataset feeds.
+        feed_states: Dictionary of feed states.
+        dataset_failed: Boolean indicating if the dataset processing failed.
+    Returns:
+        List of opportunity_ingestion record dicts to write to BigQuery.
+    """
+    records_to_write: list[dict[str, Any]] = []
+
+    for dataset_feed in dataset_feeds:
+        feed_id = dataset_feed["id"]
+        state = feed_states.get(feed_id, {})
+
+        if dataset_failed:
+            # Keep the previous cursor so consecutive runs retry from the last successful state.
+            record = {
+                "dataset_id": dataset_url,
+                "feed_id": feed_id,
+                "kind": dataset_feed.get("type"),
+                "ingestion_date": datetime.now(timezone.utc),
+                "updated": 0,
+                "deleted": 0,
+                "afterTimestamp": state.get("previous_afterTimestamp"),
+                "afterId": state.get("previous_afterId"),
+                "status": "ERROR",
+            }
+        else:
+            record = {
+                "dataset_id": dataset_url,
+                "feed_id": feed_id,
+                "kind": dataset_feed.get("type"),
+                "ingestion_date": datetime.now(timezone.utc),
+                "updated": state.get("updated", 0),
+                "deleted": state.get("deleted", 0),
+                "afterTimestamp": state.get("next_afterTimestamp"),
+                "afterId": state.get("next_afterId"),
+                "status": state.get("status"),
+            }
+
+        records_to_write.append(record)
+
+    return records_to_write
+
+
 def ingest_opportunities(
     target_date: date | None = None,
     datasets: list[str] | None = None,
@@ -371,46 +510,24 @@ def ingest_opportunities(
         )
         dataset_feeds.sort(key=lambda feed: FEED_EXECUTION_ORDER.index(feed["type"]))
 
-        dataset_rows: list[dict] = []
-        dataset_deletes: list[dict[str, Any]] = []
-        ingestion_records: list[dict[str, Any]] = []
-        for dataset_feed in dataset_feeds:
-            after_timestamp, after_id = get_last_ingestion_info(dataset_feed["id"])
-            result = access_feed_url(dataset_feed, after_timestamp, after_id)
-            if result is None:
-                logger.warning("Skipping ingestion summary for feed %s due to RPDE error", dataset_feed["id"])
-                continue
+        dataset_failed = False
+        feed_states = _initialize_feed_states(dataset_url, dataset_feeds)
 
-            updates, deletes = _extract_rows(dataset_url, dataset_feed["id"], result)
-            dataset_rows.extend(updates)
-            dataset_deletes.extend(deletes)
-            logger.info("Collected %d items from feed %s", len(updates), dataset_feed["id"])
-
-            ingestion_records.append(
-                {
-                    "dataset_id": dataset_url,
-                    "feed_id": dataset_feed["id"],
-                    "kind": dataset_feed.get("type"),
-                    "ingestion_date": datetime.now(timezone.utc),
-                    "updated": len(updates),
-                    "deleted": len(deletes),
-                    "afterTimestamp": result.get("after_timestamp"),
-                    "afterId": result.get("after_id"),
-                    "status": result.get("status"),
-                }
+        try:
+            dataset_updates, dataset_deletes = _collect_dataset_feed_rows(dataset_url, dataset_feeds, feed_states)
+            _persist_dataset_results(dataset_url, dataset_updates, dataset_deletes)
+        except Exception:
+            dataset_failed = True
+            logger.exception(
+                "Dataset processing failed for %s; writing ERROR ingestion status and continuing",
+                dataset_url,
             )
-
-        delete_dataset_opportunities(dataset_deletes)
-
-        dataset_old_df = get_dataset_opportunities(dataset_url)
-
-        # TODO: need to merge dataset_old_df and dataset_new_df to get the complete picture
-
-        dataset_new_df = pd.DataFrame(dataset_rows, columns=DF_COLUMNS)
-        denormalize_dataset(dataset_new_df, dataset_old_df)
-        _write_dataset_csv(dataset_url, dataset_new_df)
-        write_dataset_opportunities(dataset_url, dataset_new_df)
-        write_opportunity_ingestion_records(ingestion_records)
+        finally:
+            records_to_write = _build_ingestion_records(dataset_url, dataset_feeds, feed_states, dataset_failed)
+            try:
+                write_opportunity_ingestion_records(records_to_write)
+            except Exception:
+                logger.exception("Failed writing ingestion records for dataset %s", dataset_url)
 
         count += 1
 

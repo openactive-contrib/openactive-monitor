@@ -135,7 +135,7 @@ def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | Non
         return result
     except Exception as exc:
         logger.error("Unexpected error fetching feed %s: %s", feed_id, exc, exc_info=True)
-        return None
+        raise RuntimeError(f"RPDE returned no result for feed {feed_id}")
     finally:
         session.close()
 
