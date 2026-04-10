@@ -11,9 +11,11 @@ from pandas import DataFrame
 
 from bigquery_ops import (
     delete_dataset_opportunities,
+    drain_deferred_deletes_until_timeout,
     get_dataset_opportunities,
     get_feeds,
     get_last_ingestion_info,
+    retry_deferred_deletes,
     write_dataset_opportunities,
     write_opportunity_ingestion_records,
 )
@@ -418,15 +420,21 @@ def _collect_dataset_feed_rows(
     return dataset_updates, dataset_deletes
 
 
-def _persist_dataset_results(dataset_url: str, dataset_updates: list[dict], dataset_deletes: list[dict[str, Any]]) -> None:
+def _persist_dataset_results(
+    dataset_url: str,
+    dataset_updates: list[dict],
+    dataset_deletes: list[dict[str, Any]],
+    pending_deletes: dict[str, dict[str, Any]],
+) -> None:
     """
     Persist collected dataset rows to BigQuery opportunities after denormalization.
     Args:
         dataset_url: URL pointing to the dataset feed.
         dataset_updates: List of dataset rows.
         dataset_deletes: List of dataset deletes.
+        pending_deletes: List of pending deletes.
     """
-    delete_dataset_opportunities(dataset_deletes)
+    delete_dataset_opportunities(dataset_deletes, pending_deletes=pending_deletes)
 
     dataset_old_df = get_dataset_opportunities(dataset_url)
     dataset_new_df = pd.DataFrame(dataset_updates, columns=DF_COLUMNS)
@@ -496,11 +504,16 @@ def ingest_opportunities(
     verbose: bool = False,
 ) -> None:
     _configure_logging(verbose)
+    pending_deletes: dict[str, dict[str, Any]] = {}
+
     feeds = get_feeds(target_date, datasets)
     logger.info("Loaded %d feeds for date=%s", len(feeds), target_date or date.today())
 
     count = 1
     for dataset_url in feeds:
+        # Workaround to handle BQ streaming buffer
+        retry_deferred_deletes(pending_deletes)
+
         dataset_feeds = feeds[dataset_url]
         logger.info(
             "[%d/%d] Processing dataset: %s",
@@ -515,7 +528,7 @@ def ingest_opportunities(
 
         try:
             dataset_updates, dataset_deletes = _collect_dataset_feed_rows(dataset_url, dataset_feeds, feed_states)
-            _persist_dataset_results(dataset_url, dataset_updates, dataset_deletes)
+            _persist_dataset_results(dataset_url, dataset_updates, dataset_deletes, pending_deletes)
         except Exception:
             dataset_failed = True
             logger.exception(
@@ -530,6 +543,12 @@ def ingest_opportunities(
                 logger.exception("Failed writing ingestion records for dataset %s", dataset_url)
 
         count += 1
+
+    # Flush any remaining deferred deletes, waiting up to 90 minutes for BigQuery streaming buffer to clear if needed.
+    drain_deferred_deletes_until_timeout(
+        pending_deletes,
+        max_total_wait_seconds=90 * 60,
+    )
 
 
 @click.command()

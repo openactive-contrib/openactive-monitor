@@ -2,7 +2,8 @@ import json
 import logging
 import os
 import re
-from datetime import date, datetime, timezone
+import time
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import pandas as pd
@@ -38,6 +39,57 @@ OPPORTUNITIES_COLUMNS = [
     "has_superEvent",
     "has_subEvent",
 ]
+
+DEFAULT_DELETE_RETRY_BASE_SECONDS = 10
+DEFAULT_DELETE_RETRY_MAX_SECONDS = 15 * 60
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _build_composite_key(dataset_url: str, feed_id: str, item_id: str) -> str:
+    return f"{dataset_url}|{feed_id}|{item_id}"
+
+
+def _parse_composite_key(composite_key: str) -> tuple[str, str, str] | None:
+    parts = composite_key.split("|", 2)
+    if len(parts) != 3:
+        return None
+    return parts[0], parts[1], parts[2]
+
+
+def _retry_delay_seconds(retry_count: int, base_delay_seconds: int, max_delay_seconds: int) -> int:
+    exponent = max(retry_count - 1, 0)
+    return min(max_delay_seconds, base_delay_seconds * (2 ** exponent))
+
+
+def _upsert_pending_delete(
+    pending_deletes: dict[str, dict[str, Any]],
+    composite_key: str,
+    now: datetime,
+    base_delay_seconds: int,
+    max_delay_seconds: int,
+) -> None:
+    parsed = _parse_composite_key(composite_key)
+    if parsed is None:
+        return
+
+    dataset_url, feed_id, item_id = parsed
+    existing = pending_deletes.get(composite_key)
+    retry_count = int(existing.get("retry_count", 0) + 1) if existing else 1
+    first_seen = existing.get("first_seen") if existing else now
+    delay_seconds = _retry_delay_seconds(retry_count, base_delay_seconds, max_delay_seconds)
+    next_retry_at = now + timedelta(seconds=delay_seconds)
+
+    pending_deletes[composite_key] = {
+        "dataset_url": dataset_url,
+        "feed_id": feed_id,
+        "id": item_id,
+        "first_seen": first_seen,
+        "retry_count": retry_count,
+        "next_retry_at": next_retry_at,
+    }
 
 
 def get_feeds(target_date: date | None = None, datasets: list[str] | None = None) -> dict[str, list[dict]]:
@@ -143,10 +195,21 @@ def get_dataset_opportunities(dataset_url: str) -> pd.DataFrame:
     return normalized_df
 
 
-def delete_dataset_opportunities(delete_rows: list[dict[str, Any]]) -> int:
+def delete_dataset_opportunities(
+    delete_rows: list[dict[str, Any]],
+    pending_deletes: dict[str, dict[str, Any]] | None = None,
+    now: datetime | None = None,
+    base_delay_seconds: int = DEFAULT_DELETE_RETRY_BASE_SECONDS,
+    max_delay_seconds: int = DEFAULT_DELETE_RETRY_MAX_SECONDS,
+) -> int:
     """Delete opportunities rows by dataset_url + feed_id + id (ignores modified)."""
+    if pending_deletes is None:
+        pending_deletes = {}
+    if now is None:
+        now = _utc_now()
+
     if not delete_rows:
-        logger.debug(
+        logger.info(
             "Deleted %d existing opportunities from BigQuery for dataset %s",
             0,
             "unknown",
@@ -162,14 +225,15 @@ def delete_dataset_opportunities(delete_rows: list[dict[str, Any]]) -> int:
         if not dataset_url or not feed_id or not item_id:
             continue
         dataset_urls.add(str(dataset_url))
-        composite_keys.add(f"{dataset_url}|{feed_id}|{item_id}")
+        composite_keys.add(_build_composite_key(str(dataset_url), str(feed_id), str(item_id)))
 
     if not composite_keys:
         dataset_for_log = next(iter(dataset_urls), "unknown")
-        logger.debug(
-            "Deleted %d existing opportunities from BigQuery for dataset %s",
+        logger.info(
+            "Deleted %d existing opportunities from BigQuery for dataset %s (with %s pending deletes)",
             0,
             dataset_for_log,
+            len(pending_deletes),
         )
         return 0
 
@@ -181,7 +245,7 @@ def delete_dataset_opportunities(delete_rows: list[dict[str, Any]]) -> int:
 
     client = bigquery.Client(project=BIGQUERY_PROJECT)
     total_deleted = 0
-    total_deferred = 0
+    deferred_keys: set[str] = set()
     batch_size = 1000
     sorted_keys = sorted(composite_keys)
 
@@ -193,7 +257,21 @@ def delete_dataset_opportunities(delete_rows: list[dict[str, Any]]) -> int:
             batch_keys,
         )
         total_deleted += deleted_count
-        total_deferred += deferred_count
+        deferred_keys.update(deferred_count)
+
+    attempted_keys = set(sorted_keys)
+    resolved_keys = attempted_keys - deferred_keys
+    for resolved_key in resolved_keys:
+        pending_deletes.pop(resolved_key, None)
+
+    for deferred_key in deferred_keys:
+        _upsert_pending_delete(
+            pending_deletes,
+            deferred_key,
+            now,
+            base_delay_seconds,
+            max_delay_seconds,
+        )
 
     dataset_for_log = next(iter(dataset_urls), "unknown")
     logger.debug(
@@ -201,10 +279,10 @@ def delete_dataset_opportunities(delete_rows: list[dict[str, Any]]) -> int:
         total_deleted,
         dataset_for_log,
     )
-    if total_deferred:
+    if deferred_keys:
         logger.warning(
             "Deferred %d deletes for dataset %s because matching rows are in BigQuery streaming buffer",
-            total_deferred,
+            len(deferred_keys),
             dataset_for_log,
         )
 
@@ -223,15 +301,15 @@ def _delete_batch_with_streaming_buffer_fallback(
     client: bigquery.Client,
     query: str,
     composite_keys: list[str],
-) -> tuple[int, int]:
+) -> tuple[int, set[str]]:
     """
     Delete keys in one batch.
     If BigQuery reports streaming-buffer conflicts, split recursively to isolate
     blocked keys and delete everything else now.
-    Returns: (deleted_count, deferred_count)
+    Returns: (deleted_count, deferred_keys)
     """
     if not composite_keys:
-        return 0, 0
+        return 0, set()
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -242,7 +320,7 @@ def _delete_batch_with_streaming_buffer_fallback(
     try:
         job = client.query(query, job_config=job_config)
         job.result()
-        return int(job.num_dml_affected_rows or 0), 0
+        return int(job.num_dml_affected_rows or 0), set()
     except Exception as exc:
         if not _is_streaming_buffer_delete_error(exc):
             raise
@@ -252,7 +330,7 @@ def _delete_batch_with_streaming_buffer_fallback(
                 "Deferring delete for key %s due to streaming buffer conflict",
                 composite_keys[0],
             )
-            return 0, 1
+            return 0, {composite_keys[0]}
 
         midpoint = len(composite_keys) // 2
         left_deleted, left_deferred = _delete_batch_with_streaming_buffer_fallback(
@@ -265,7 +343,102 @@ def _delete_batch_with_streaming_buffer_fallback(
             query,
             composite_keys[midpoint:],
         )
-        return left_deleted + right_deleted, left_deferred + right_deferred
+        return left_deleted + right_deleted, left_deferred.union(right_deferred)
+
+
+def retry_deferred_deletes(
+    pending_deletes: dict[str, dict[str, Any]],
+    now: datetime | None = None,
+    base_delay_seconds: int = DEFAULT_DELETE_RETRY_BASE_SECONDS,
+    max_delay_seconds: int = DEFAULT_DELETE_RETRY_MAX_SECONDS,
+) -> int:
+    """
+    Retry due deferred deletes and update pending_deletes in place. To overcome BQ streaming buffer issue.
+    """
+    if now is None:
+        now = _utc_now()
+
+    due_rows: list[dict[str, Any]] = []
+    for composite_key, metadata in pending_deletes.items():
+        next_retry_at = metadata.get("next_retry_at")
+        if isinstance(next_retry_at, datetime) and next_retry_at > now:
+            continue
+
+        parsed = _parse_composite_key(composite_key)
+        if parsed is None:
+            continue
+        dataset_url, feed_id, item_id = parsed
+        due_rows.append({"dataset_url": dataset_url, "feed_id": feed_id, "id": item_id})
+
+    if not due_rows:
+        return 0
+
+    logger.info("Retrying %d deferred deletes", len(due_rows))
+    return delete_dataset_opportunities(
+        due_rows,
+        pending_deletes=pending_deletes,
+        now=now,
+        base_delay_seconds=base_delay_seconds,
+        max_delay_seconds=max_delay_seconds,
+    )
+
+
+def drain_deferred_deletes_until_timeout(
+    pending_deletes: dict[str, dict[str, Any]],
+    max_total_wait_seconds: int = 90 * 60,
+    base_delay_seconds: int = DEFAULT_DELETE_RETRY_BASE_SECONDS,
+    max_delay_seconds: int = DEFAULT_DELETE_RETRY_MAX_SECONDS,
+) -> None:
+    """
+    Keep retrying deferred deletes with exponential backoff up to timeout.
+    """
+    if not pending_deletes:
+        return
+
+    deadline = time.monotonic() + max_total_wait_seconds
+
+    while pending_deletes and time.monotonic() < deadline:
+        now = _utc_now()
+        retry_deferred_deletes(
+            pending_deletes,
+            now=now,
+            base_delay_seconds=base_delay_seconds,
+            max_delay_seconds=max_delay_seconds,
+        )
+
+        if not pending_deletes:
+            break
+
+        next_due_candidates = [
+            meta.get("next_retry_at")
+            for meta in pending_deletes.values()
+            if isinstance(meta.get("next_retry_at"), datetime)
+        ]
+
+        if not next_due_candidates:
+            wait_seconds = 1
+        else:
+            next_due = min(next_due_candidates)
+            wait_seconds = max(1.0, (next_due - _utc_now()).total_seconds())
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+
+        sleep_seconds = min(wait_seconds, remaining)
+        logger.info(
+            "Pending deferred deletes=%d; waiting %.1f seconds before next retry",
+            len(pending_deletes),
+            sleep_seconds,
+        )
+        time.sleep(sleep_seconds)
+
+    if pending_deletes:
+        logger.error(
+            "Deferred deletes still pending after %.0f minutes: %d",
+            max_total_wait_seconds / 60,
+            len(pending_deletes),
+        )
 
 
 def _is_missing_value(value: Any) -> bool:
