@@ -11,6 +11,9 @@ from dotenv import load_dotenv
 from google.api_core import exceptions as google_exceptions
 from google.cloud import bigquery
 
+# TODO reduce this to 200 on prod
+DELETE_BATCH_SIZE = 1000
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -42,6 +45,7 @@ OPPORTUNITIES_COLUMNS = [
 
 DEFAULT_DELETE_RETRY_BASE_SECONDS = 10
 DEFAULT_DELETE_RETRY_MAX_SECONDS = 15 * 60
+DATA_ID_QUERY_BATCH_SIZE = 2000
 
 
 def _utc_now() -> datetime:
@@ -172,40 +176,129 @@ def get_last_ingestion_info_batch(feed_ids: list[str]) -> dict[str, tuple[str | 
     return cursor_by_feed_id
 
 
-def get_dataset_opportunities(dataset_url: str) -> pd.DataFrame:
-    """Fetch existing opportunities rows for a dataset_url from BigQuery."""
+def get_dataset_opportunities(
+    dataset_url: str,
+    required_data_ids: list[str] | None = None,
+    fallback_to_full_scan: bool = True,
+) -> pd.DataFrame:
+    """Fetch existing opportunities rows for a dataset_url from BigQuery.
+
+    If required_data_ids is provided, only matching data_id rows are fetched.
+    """
     table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}"
     selected_columns = ", ".join(OPPORTUNITIES_COLUMNS)
 
-    query = f"""
-        SELECT {selected_columns}
-        FROM `{table_id}`
-        WHERE dataset_url = @dataset_url
-    """
-
-    client = bigquery.Client(project=BIGQUERY_PROJECT)
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("dataset_url", "STRING", dataset_url)
-        ]
-    )
-
-    dataset_df = client.query(query, job_config=job_config).to_dataframe()
-    if dataset_df.empty:
+    target_ids = _normalize_required_data_ids(required_data_ids)
+    if required_data_ids is not None and not target_ids:
         logger.debug(
-            "Loaded %d existing opportunities from BigQuery for dataset %s",
+            "Loaded %d existing opportunities from BigQuery for dataset %s (targeted by %d ids)",
             0,
             dataset_url,
+            0,
         )
         return pd.DataFrame(columns=OPPORTUNITIES_COLUMNS)
 
+    client = bigquery.Client(project=BIGQUERY_PROJECT)
+    try:
+        if target_ids is None:
+            query = f"""
+                SELECT {selected_columns}
+                FROM `{table_id}`
+                WHERE dataset_url = @dataset_url
+            """
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("dataset_url", "STRING", dataset_url)
+                ]
+            )
+            dataset_df = client.query(query, job_config=job_config).to_dataframe()
+        else:
+            query = f"""
+                SELECT {selected_columns}
+                FROM `{table_id}`
+                WHERE dataset_url = @dataset_url
+                  AND data_id IN UNNEST(@data_ids)
+            """
+            chunk_frames: list[pd.DataFrame] = []
+            for start in range(0, len(target_ids), DATA_ID_QUERY_BATCH_SIZE):
+                chunk_ids = target_ids[start:start + DATA_ID_QUERY_BATCH_SIZE]
+                job_config = bigquery.QueryJobConfig(
+                    query_parameters=[
+                        bigquery.ScalarQueryParameter("dataset_url", "STRING", dataset_url),
+                        bigquery.ArrayQueryParameter("data_ids", "STRING", chunk_ids),
+                    ]
+                )
+                chunk_df = client.query(query, job_config=job_config).to_dataframe()
+                if not chunk_df.empty:
+                    chunk_frames.append(chunk_df)
+
+            if not chunk_frames:
+                dataset_df = pd.DataFrame(columns=OPPORTUNITIES_COLUMNS)
+            elif len(chunk_frames) == 1:
+                dataset_df = chunk_frames[0]
+            else:
+                dataset_df = pd.concat(chunk_frames, ignore_index=True)
+    except Exception:
+        if target_ids is not None and fallback_to_full_scan:
+            logger.exception(
+                "Targeted opportunities fetch failed for dataset %s; falling back to full dataset fetch",
+                dataset_url,
+            )
+            return get_dataset_opportunities(
+                dataset_url,
+                required_data_ids=None,
+                fallback_to_full_scan=False,
+            )
+        raise
+
+    if dataset_df.empty:
+        if target_ids is None:
+            logger.debug(
+                "Loaded %d existing opportunities from BigQuery for dataset %s",
+                0,
+                dataset_url,
+            )
+        else:
+            logger.debug(
+                "Loaded %d existing opportunities from BigQuery for dataset %s (targeted by %d ids)",
+                0,
+                dataset_url,
+                len(target_ids),
+            )
+        return pd.DataFrame(columns=OPPORTUNITIES_COLUMNS)
+
     normalized_df = dataset_df.reindex(columns=OPPORTUNITIES_COLUMNS)
-    logger.debug(
-        "Loaded %d existing opportunities from BigQuery for dataset %s",
-        len(normalized_df),
-        dataset_url,
-    )
+    if target_ids is None:
+        logger.debug(
+            "Loaded %d existing opportunities from BigQuery for dataset %s",
+            len(normalized_df),
+            dataset_url,
+        )
+    else:
+        logger.debug(
+            "Loaded %d existing opportunities from BigQuery for dataset %s (targeted by %d ids)",
+            len(normalized_df),
+            dataset_url,
+            len(target_ids),
+        )
     return normalized_df
+
+
+def _normalize_required_data_ids(required_data_ids: list[str] | None) -> list[str] | None:
+    if required_data_ids is None:
+        return None
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in required_data_ids:
+        if not isinstance(item, str):
+            continue
+        value = item.strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        normalized.append(value)
+    return normalized
 
 
 def delete_dataset_opportunities(
@@ -259,10 +352,11 @@ def delete_dataset_opportunities(
     client = bigquery.Client(project=BIGQUERY_PROJECT)
     total_deleted = 0
     deferred_keys: set[str] = set()
-    batch_size = 1000
+    batch_size = DELETE_BATCH_SIZE
     sorted_keys = sorted(composite_keys)
 
     for start in range(0, len(sorted_keys), batch_size):
+        logger.debug("Processing batch delete %d of %d", len(sorted_keys), batch_size)
         batch_keys = sorted_keys[start:start + batch_size]
         deleted_count, deferred_count = _delete_batch_with_streaming_buffer_fallback(
             client,
@@ -339,25 +433,11 @@ def _delete_batch_with_streaming_buffer_fallback(
         if not _is_streaming_buffer_delete_error(exc):
             raise
 
-        if len(composite_keys) == 1:
-            logger.debug(
-                "Deferring delete for key %s due to streaming buffer conflict",
-                composite_keys[0],
-            )
-            return 0, {composite_keys[0]}
-
-        midpoint = len(composite_keys) // 2
-        left_deleted, left_deferred = _delete_batch_with_streaming_buffer_fallback(
-            client,
-            query,
-            composite_keys[:midpoint],
+        logger.debug(
+            "Deferring entire delete batch (%d keys) due to streaming buffer conflict",
+            len(composite_keys),
         )
-        right_deleted, right_deferred = _delete_batch_with_streaming_buffer_fallback(
-            client,
-            query,
-            composite_keys[midpoint:],
-        )
-        return left_deleted + right_deleted, left_deferred.union(right_deferred)
+        return 0, set(composite_keys)
 
 
 def retry_deferred_deletes(

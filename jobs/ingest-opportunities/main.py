@@ -1,7 +1,9 @@
+import gc
 import logging
 import os
 from datetime import date, datetime, timezone
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import click
@@ -29,6 +31,8 @@ PERSIST_CSV=False
 CSV_OUTPUT_DIR = os.getenv("OPPORTUNITY_CSV_OUTPUT_DIR", "./opportunities/csv")
 
 FEED_EXECUTION_ORDER = ["HeadlineEvent", "Event", "OnDemandEvent", "FacilityUse", "IndividualFacilityUse", "Slot", "SessionSeries", "ScheduledSession", "CourseInstance", ""]
+FIRST_BATCH_FEED_TYPES = {"FacilityUse", "IndividualFacilityUse", "Slot"}
+MAX_INHERITED_MERGE_DEPTH = 6
 
 logging.basicConfig(
     level=logging.INFO,
@@ -198,7 +202,13 @@ def _write_dataset_csv(dataset_url: str, dataset_df: pd.DataFrame) -> None:
     dataset_df.to_csv(output_path, index=False)
     logger.info("Wrote %d rows to %s", len(dataset_df), output_path)
 
-def _merge_inherited_data(json_data: dict[str, Any], super_event_data: dict[str, Any], current_inherited: dict[str, Any]) -> dict[str, Any]:
+def _merge_inherited_data(
+    json_data: dict[str, Any],
+    super_event_data: dict[str, Any],
+    current_inherited: dict[str, Any],
+    seen_pairs: set[tuple[int, int]] | None = None,
+    depth: int = 0,
+) -> dict[str, Any]:
     """
     Recursively merge super_event properties into inherited_data, excluding keys that exist in json_data.
     Existing inherited_data values are overwritten by super_event values.
@@ -212,6 +222,18 @@ def _merge_inherited_data(json_data: dict[str, Any], super_event_data: dict[str,
         Updated inherited_data dict with new properties from super_event_data.
     """
     merged = dict(current_inherited)  # Start with existing inherited data
+    if seen_pairs is None:
+        seen_pairs = set()
+
+    if depth >= MAX_INHERITED_MERGE_DEPTH:
+        logger.warning("Reached max inherited merge depth=%d; skipping deeper merge", MAX_INHERITED_MERGE_DEPTH)
+        return merged
+
+    merge_pair = (id(json_data), id(super_event_data))
+    if merge_pair in seen_pairs:
+        logger.warning("Detected cyclic inherited merge input; skipping repeated merge branch")
+        return merged
+    seen_pairs.add(merge_pair)
 
     for key, value in super_event_data.items():
         # Skip keys that exist in json_data (prioritize direct data)
@@ -223,7 +245,9 @@ def _merge_inherited_data(json_data: dict[str, Any], super_event_data: dict[str,
             merged[key] = _merge_inherited_data(
                 json_data.get(key, {}),
                 value,
-                merged.get(key, {})
+                merged.get(key, {}),
+                seen_pairs,
+                depth + 1,
             )
         else:
             # Overwrite with super_event value
@@ -232,47 +256,47 @@ def _merge_inherited_data(json_data: dict[str, Any], super_event_data: dict[str,
     return merged
 
 
-def _build_super_event_payload_by_data_id(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> dict[str, dict[str, Any]]:
-    """
-    Build a data_id -> merged superEvent payload lookup, prioritizing df rows over df_bigquery on overlaps.
-    """
-    concat_candidates = [
-        frame for frame in (df_bigquery, df)
-        if not frame.empty and not frame.isna().all(axis=None)
-    ]
-    if not concat_candidates:
-        return {}
+def _build_super_event_payload_by_data_id(df, df_bigquery):
+    """Build data_id -> payload lookup from old then new frame; new frame overrides duplicates."""
+    payload_by_data_id = {}
 
-    if len(concat_candidates) == 1:
-        combined_df = concat_candidates[0].copy().reset_index(drop=True)
-    else:
-        combined_df = pd.concat(concat_candidates, ignore_index=True)
-
-    if "data_id" in combined_df.columns and not combined_df.empty:
-        combined_df = combined_df.drop_duplicates(subset=["data_id"], keep="last").reset_index(drop=True)
-
-    payload_by_data_id: dict[str, dict[str, Any]] = {}
-    for row in combined_df.itertuples(index=False):
-        row_data_id = getattr(row, "data_id", None)
-        if not isinstance(row_data_id, str) or not row_data_id:
+    for frame in (df_bigquery, df):
+        if frame.empty or "data_id" not in frame.columns:
             continue
 
-        row_json_data = getattr(row, "json_data", None)
-        row_inherited_data = getattr(row, "inherited_data", None)
-        json_data_dict = row_json_data if isinstance(row_json_data, dict) else {}
-        inherited_dict = row_inherited_data if isinstance(row_inherited_data, dict) else {}
-        payload_by_data_id[row_data_id] = {**inherited_dict, **json_data_dict}
+        for row in frame.itertuples(index=False):
+            row_data_id = getattr(row, "data_id", None)
+            if not isinstance(row_data_id, str) or not row_data_id:
+                continue
+
+            row_json = getattr(row, "json_data", None)
+            row_inherited = getattr(row, "inherited_data", None)
+            json_data = row_json if isinstance(row_json, dict) else {}
+            inherited = row_inherited if isinstance(row_inherited, dict) else {}
+            payload_by_data_id[row_data_id] = {**inherited, **json_data}
 
     return payload_by_data_id
 
 
-def _build_df_indices_by_data_id(df: pd.DataFrame) -> dict[str, list[int]]:
-    """Build a data_id -> row indices lookup for fast in-dataset event linking."""
+def _build_df_indices_by_data_id(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> dict[str, list[int]]:
+    """Build data_id -> mutable df indices using old/new frame iteration; only current df adds indices."""
     index_lookup: dict[str, list[int]] = {}
-    for idx, row_data_id in df["data_id"].items():
-        if not isinstance(row_data_id, str) or not row_data_id:
+
+    for frame in (df_bigquery, df):
+        if frame.empty or "data_id" not in frame.columns:
             continue
-        index_lookup.setdefault(row_data_id, []).append(idx)
+
+        is_current_df = frame is df
+        for idx, row_data_id in frame["data_id"].items():
+            if not isinstance(row_data_id, str) or not row_data_id:
+                continue
+
+            if is_current_df:
+                index_lookup.setdefault(row_data_id, []).append(idx)
+            else:
+                # Keep key presence from existing rows; only current df indices are mutable.
+                index_lookup.setdefault(row_data_id, [])
+
     return index_lookup
 
 
@@ -303,6 +327,10 @@ def handle_super_events(
         elif isinstance(super_event_ref, str):
             # super event reference
             super_event_id = super_event_ref
+            row_data_id = df.at[idx, "data_id"]
+            if isinstance(row_data_id, str) and super_event_id == row_data_id:
+                logger.warning("Skipping self-referential superEvent for data_id=%s", row_data_id)
+                continue
             super_event_data = super_event_payload_by_data_id.get(super_event_id)
 
         if super_event_data:
@@ -317,7 +345,8 @@ def handle_super_events(
 
             # Merge inherited properties
             updated_inherited = _merge_inherited_data(current_json_data, super_event_data, current_inherited)
-            df.at[idx, "inherited_data"] = updated_inherited
+            # TODO this is causing massive redundancy and disk usage. Don't persis, just use for apply_inherited_data
+            # df.at[idx, "inherited_data"] = updated_inherited
             apply_inherited_data(df, idx, updated_inherited)
 
 
@@ -374,6 +403,8 @@ def handle_sub_events(df: pd.DataFrame, sub_event_indices_by_data_id: dict[str, 
                         super_event_data = {**parent_inherited, **parent_json}
 
                         for sub_idx in sub_event_indices:
+                            if sub_idx == idx:
+                                continue
                             current_json = df.at[sub_idx, "json_data"] if isinstance(df.at[sub_idx, "json_data"], dict) else {}
                             # only inherit properties that don't exist in the subEvent's own json_data
                             to_inherit = {super_event_data_key: super_event_data[super_event_data_key] for super_event_data_key in super_event_data if super_event_data_key not in current_json}
@@ -389,7 +420,7 @@ def denormalize_dataset(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
         df_bigquery: DataFrame containing the rows from bigquery table.
     """
     super_event_payload_by_data_id = _build_super_event_payload_by_data_id(df, df_bigquery)
-    sub_event_indices_by_data_id = _build_df_indices_by_data_id(df)
+    sub_event_indices_by_data_id = _build_df_indices_by_data_id(df, df_bigquery)
     handle_super_events(df, super_event_payload_by_data_id)
     handle_sub_events(df, sub_event_indices_by_data_id)
 
@@ -463,6 +494,22 @@ def _collect_dataset_feed_rows(
     return dataset_updates, dataset_deletes
 
 
+def _partition_dataset_feeds(
+    dataset_feeds: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split dataset feeds into two batches to reduce peak memory usage."""
+    first_batch: list[dict[str, Any]] = []
+    second_batch: list[dict[str, Any]] = []
+
+    for dataset_feed in dataset_feeds:
+        if dataset_feed.get("type") in FIRST_BATCH_FEED_TYPES:
+            first_batch.append(dataset_feed)
+        else:
+            second_batch.append(dataset_feed)
+
+    return first_batch, second_batch
+
+
 def _persist_dataset_results(
     dataset_url: str,
     dataset_updates: list[dict],
@@ -477,14 +524,87 @@ def _persist_dataset_results(
         dataset_deletes: List of dataset deletes.
         pending_deletes: List of pending deletes.
     """
-    delete_dataset_opportunities(dataset_deletes, pending_deletes=pending_deletes)
+    total_start = perf_counter()
+    logger.info(
+        "Persist start for dataset %s: updates=%d deletes=%d",
+        dataset_url,
+        len(dataset_updates),
+        len(dataset_deletes),
+    )
 
-    dataset_old_df = get_dataset_opportunities(dataset_url)
+    phase_start = perf_counter()
+    delete_dataset_opportunities(dataset_deletes, pending_deletes=pending_deletes)
+    logger.info("Persist phase delete_dataset_opportunities completed in %.2fs", perf_counter() - phase_start)
+    del dataset_deletes
+    gc.collect()
+
+    phase_start = perf_counter()
     dataset_new_df = pd.DataFrame(dataset_updates, columns=DF_COLUMNS)
+    logger.info("Persist phase build_dataset_new_df completed in %.2fs (rows=%d)", perf_counter() - phase_start, len(dataset_new_df))
+    del dataset_updates
+    gc.collect()
+
+    phase_start = perf_counter()
+    denormalization_reference_ids = _extract_denormalization_reference_ids(dataset_new_df)
+    logger.info(
+        "Persist phase extract_denormalization_reference_ids completed in %.2fs (reference_ids=%d)",
+        perf_counter() - phase_start,
+        len(denormalization_reference_ids),
+    )
+
+    phase_start = perf_counter()
+    dataset_old_df = get_dataset_opportunities(dataset_url, required_data_ids=denormalization_reference_ids)
+    logger.info("Persist phase get_dataset_opportunities completed in %.2fs (rows=%d)", perf_counter() - phase_start, len(dataset_old_df))
+
+    phase_start = perf_counter()
     denormalize_dataset(dataset_new_df, dataset_old_df)
+    logger.info("Persist phase denormalize_dataset completed in %.2fs", perf_counter() - phase_start)
+
     if PERSIST_CSV:
+        phase_start = perf_counter()
         _write_dataset_csv(dataset_url, dataset_new_df)
+        logger.info("Persist phase write_dataset_csv completed in %.2fs", perf_counter() - phase_start)
+
+    logger.info("Persist complete for dataset %s in %.2fs", dataset_url, perf_counter() - total_start)
     write_dataset_opportunities(dataset_url, dataset_new_df)
+
+
+def _extract_denormalization_reference_ids(dataset_new_df: pd.DataFrame) -> list[str]:
+    """Collect unique super/sub references not already present in this batch's data_id values."""
+    if dataset_new_df.empty:
+        return []
+
+    reference_ids: list[str] = []
+    seen: set[str] = set()
+    existing_data_ids: set[str] = {
+        data_id
+        for data_id in dataset_new_df["data_id"].tolist()
+        if isinstance(data_id, str) and data_id
+    }
+
+    def add_reference(value: Any) -> None:
+        if isinstance(value, str):
+            if value and value not in existing_data_ids and value not in seen:
+                seen.add(value)
+                reference_ids.append(value)
+            return
+
+        if isinstance(value, list):
+            for item in value:
+                if (
+                    isinstance(item, str)
+                    and item
+                    and item not in existing_data_ids
+                    and item not in seen
+                ):
+                    seen.add(item)
+                    reference_ids.append(item)
+
+    for super_event_ref, sub_event_ref in dataset_new_df[["has_superEvent", "has_subEvent"]].itertuples(index=False, name=None):
+        add_reference(super_event_ref)
+        add_reference(sub_event_ref)
+
+    return reference_ids
 
 
 def _build_ingestion_records(
@@ -551,7 +671,7 @@ def ingest_opportunities(
     pending_deletes: dict[str, dict[str, Any]] = {}
 
     feeds = get_feeds(target_date, datasets)
-    logger.info("Loaded %d feeds for date=%s", len(feeds), target_date or date.today())
+    logger.info("Loaded %d datasets for date=%s", len(feeds), target_date or date.today())
 
     count = 1
     for dataset_url in feeds:
@@ -571,8 +691,25 @@ def ingest_opportunities(
         feed_states = _initialize_feed_states(dataset_url, dataset_feeds)
 
         try:
-            dataset_updates, dataset_deletes = _collect_dataset_feed_rows(dataset_url, dataset_feeds, feed_states)
-            _persist_dataset_results(dataset_url, dataset_updates, dataset_deletes, pending_deletes)
+            first_batch_feeds, second_batch_feeds = _partition_dataset_feeds(dataset_feeds)
+            feed_batches = [
+                ("FacilityUse/IndividualFacilityUse/Slot", first_batch_feeds),
+                ("remaining", second_batch_feeds),
+            ]
+
+            for batch_label, batch_feeds in feed_batches:
+                if not batch_feeds:
+                    continue
+
+                logger.info(
+                    "Processing %s feed batch for dataset %s (%d feeds)",
+                    batch_label,
+                    dataset_url,
+                    len(batch_feeds),
+                )
+                dataset_updates, dataset_deletes = _collect_dataset_feed_rows(dataset_url, batch_feeds, feed_states)
+                _persist_dataset_results(dataset_url, dataset_updates, dataset_deletes, pending_deletes)
+                gc.collect()
         except Exception:
             dataset_failed = True
             logger.exception(
@@ -620,11 +757,11 @@ def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) 
     parsed_datasets = list(datasets) if datasets else None
 
     parsed_target_date = datetime.strptime("2026-04-10", "%Y-%m-%d").date()
-    # parsed_datasets = ["https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
-    parsed_datasets = ["https://data.bookwhen.com/",
-                       "https://activehartlepool.gs-signature.cloud/OpenActive/",
-                       "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
-                       "https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
+    # parsed_datasets = ["https://better-admin.org.uk/api/openactive/better"]
+    # parsed_datasets = ["https://data.bookwhen.com/",
+    #                    "https://activehartlepool.gs-signature.cloud/OpenActive/",
+    #                    "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
+    #                    "https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
     # verbose = True
 
     ingest_opportunities(parsed_target_date, parsed_datasets, verbose)
