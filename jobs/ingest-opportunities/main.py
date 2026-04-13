@@ -560,6 +560,9 @@ def _persist_dataset_results(
     denormalize_dataset(dataset_new_df, dataset_old_df)
     logger.info("Persist phase denormalize_dataset completed in %.2fs", perf_counter() - phase_start)
 
+    del dataset_old_df
+    gc.collect()
+
     if PERSIST_CSV:
         phase_start = perf_counter()
         _write_dataset_csv(dataset_url, dataset_new_df)
@@ -611,17 +614,18 @@ def _build_ingestion_records(
     dataset_url: str,
     dataset_feeds: list[dict[str, Any]],
     feed_states: dict[str, dict[str, Any]],
-    dataset_failed: bool,
+    persisted_feed_ids: set[str],
+    failed_feed_ids: set[str],
 ) -> list[dict[str, Any]]:
     """
-    Build ingestion-summary rows based on success/failure cursor semantics. If any of the feeds failed, the entire
-    dataset is marked as ERROR and the previous cursor is retained for all feeds to enable retry from last successful
-    state. If successful, the next cursor is saved for all feeds.
+    Build ingestion-summary rows based on per-feed batch outcomes.
+    Feeds whose batch was persisted keep next cursors and counters; all others retain previous cursors with ERROR.
     Args:
         dataset_url: URL pointing to the dataset feed.
         dataset_feeds: List of dataset feeds.
         feed_states: Dictionary of feed states.
-        dataset_failed: Boolean indicating if the dataset processing failed.
+        persisted_feed_ids: Feed IDs for batches that were fully persisted.
+        failed_feed_ids: Feed IDs for the batch that failed (safe fallback marks those as ERROR).
     Returns:
         List of opportunity_ingestion record dicts to write to BigQuery.
     """
@@ -631,7 +635,19 @@ def _build_ingestion_records(
         feed_id = dataset_feed["id"]
         state = feed_states.get(feed_id, {})
 
-        if dataset_failed:
+        if feed_id in persisted_feed_ids and feed_id not in failed_feed_ids:
+            record = {
+                "dataset_id": dataset_url,
+                "feed_id": feed_id,
+                "kind": dataset_feed.get("type"),
+                "ingestion_date": datetime.now(timezone.utc),
+                "updated": state.get("updated", 0),
+                "deleted": state.get("deleted", 0),
+                "afterTimestamp": state.get("next_afterTimestamp"),
+                "afterId": state.get("next_afterId"),
+                "status": state.get("status"),
+            }
+        else:
             # Keep the previous cursor so consecutive runs retry from the last successful state.
             record = {
                 "dataset_id": dataset_url,
@@ -643,18 +659,6 @@ def _build_ingestion_records(
                 "afterTimestamp": state.get("previous_afterTimestamp"),
                 "afterId": state.get("previous_afterId"),
                 "status": "ERROR",
-            }
-        else:
-            record = {
-                "dataset_id": dataset_url,
-                "feed_id": feed_id,
-                "kind": dataset_feed.get("type"),
-                "ingestion_date": datetime.now(timezone.utc),
-                "updated": state.get("updated", 0),
-                "deleted": state.get("deleted", 0),
-                "afterTimestamp": state.get("next_afterTimestamp"),
-                "afterId": state.get("next_afterId"),
-                "status": state.get("status"),
             }
 
         records_to_write.append(record)
@@ -688,6 +692,9 @@ def ingest_opportunities(
         dataset_feeds.sort(key=lambda feed: FEED_EXECUTION_ORDER.index(feed["type"]))
 
         dataset_failed = False
+        persisted_feed_ids: set[str] = set()
+        failed_feed_ids: set[str] = set()
+        current_batch_feed_ids: set[str] = set()
         feed_states = _initialize_feed_states(dataset_url, dataset_feeds)
 
         try:
@@ -700,7 +707,7 @@ def ingest_opportunities(
             for batch_label, batch_feeds in feed_batches:
                 if not batch_feeds:
                     continue
-
+                current_batch_feed_ids = {feed["id"] for feed in batch_feeds}
                 logger.info(
                     "Processing %s feed batch for dataset %s (%d feeds)",
                     batch_label,
@@ -709,15 +716,23 @@ def ingest_opportunities(
                 )
                 dataset_updates, dataset_deletes = _collect_dataset_feed_rows(dataset_url, batch_feeds, feed_states)
                 _persist_dataset_results(dataset_url, dataset_updates, dataset_deletes, pending_deletes)
+                persisted_feed_ids.update(current_batch_feed_ids)
+                current_batch_feed_ids = set()
                 gc.collect()
         except Exception:
-            dataset_failed = True
+            failed_feed_ids.update(current_batch_feed_ids)
             logger.exception(
                 "Dataset processing failed for %s; writing ERROR ingestion status and continuing",
                 dataset_url,
             )
         finally:
-            records_to_write = _build_ingestion_records(dataset_url, dataset_feeds, feed_states, dataset_failed)
+            records_to_write = _build_ingestion_records(
+                dataset_url,
+                dataset_feeds,
+                feed_states,
+                persisted_feed_ids,
+                failed_feed_ids,
+            )
             try:
                 write_opportunity_ingestion_records(records_to_write)
             except Exception:
