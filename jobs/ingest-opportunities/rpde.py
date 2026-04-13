@@ -111,7 +111,11 @@ def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | Non
             # Guard against infinite self-loop on malformed RPDE pages.
             if next_url == current_url:
                 logger.error("RPDE self-loop with non-empty items at %s", current_url)
-                status = "ERROR"
+                status = "WARNING"
+                break
+            if len(page_items) == 0:
+                logger.error("RPDE malformed self-loop without items %s", current_url)
+                status = "WARNING"
                 break
 
             url = next_url

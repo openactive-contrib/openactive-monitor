@@ -803,44 +803,42 @@ def _unwrap_json_fields_for_load(
     return result
 
 
-def write_dataset_opportunities(dataset_url: str, dataset_df: pd.DataFrame) -> None:
+def _dedup_on_merge_keys(dataset_df: pd.DataFrame, dataset_url: str) -> pd.DataFrame:
     """
-    Upsert dataset rows into the opportunities BigQuery table.
+    Drop rows with duplicate MERGE keys, keeping the last occurrence.
 
-    Rows whose (dataset_url, feed_id, id, modified) already exist in the table are updated;
-    new combinations are inserted.  This makes the operation idempotent so re-runs are safe.
-
-    Implementation:
-        1. Prepare / coerce rows for BigQuery.
-        2. Load prepared rows into a short-lived staging table via a load job (not streaming
-           insert) so the data is immediately visible to DML.
-        3. Run a MERGE statement from staging into the main table.
-        4. Drop the staging table regardless of outcome.
+    Guards against malformed RPDE feeds (e.g. a self-loop that returns the same items
+    on multiple pages) which would otherwise cause BigQuery MERGE to fail with
+    "UPDATE/MERGE must match at most one source row for each target row".
     """
-    if dataset_df.empty:
-        logger.info("No rows to write to opportunities table for dataset %s", dataset_url)
-        return
+    merge_key_cols = [c for c in _OPPORTUNITY_MERGE_KEYS if c in dataset_df.columns]
+    deduped = dataset_df.drop_duplicates(subset=merge_key_cols, keep="last")
+    dropped = len(dataset_df) - len(deduped)
+    if dropped:
+        logger.warning(
+            "Dropped %d duplicate rows (on merge keys %s) before staging for dataset %s",
+            dropped,
+            merge_key_cols,
+            dataset_url,
+        )
+    return deduped
 
-    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}"
-    staging_table_id = (
-        f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}_staging_{uuid4().hex[:12]}"
-    )
-    client = bigquery.Client(project=BIGQUERY_PROJECT)
-    table = client.get_table(table_id)
-    logger.debug(
-        "Detected opportunities schema: %s",
-        {field.name: f"{field.field_type}/{field.mode}" for field in table.schema},
-    )
 
-    schema_fields = list(table.schema)
+def _prepare_rows_for_staging(
+    dataset_df: pd.DataFrame,
+    schema_fields: list[bigquery.SchemaField],
+) -> list[dict[str, Any]]:
+    """
+    Coerce DataFrame rows into dicts ready for ``load_table_from_json``.
+
+    ``_prepare_row_for_bigquery`` serialises JSON-typed columns to strings, but
+    ``load_table_from_json`` expects real Python objects for those columns, so the
+    string coercion is reversed here.
+    """
     json_col_names = {f.name for f in schema_fields if f.field_type.upper() == "JSON"}
-
-    prepared_rows = []
+    prepared_rows: list[dict[str, Any]] = []
     for row in dataset_df.to_dict(orient="records"):
-        # Prepare row for BigQuery with string coercion
         prepared = _prepare_row_for_bigquery({str(k): v for k, v in row.items()}, schema_fields)
-
-        # Reverse JSON-string coercion for JSON-typed fields so load_table_from_json stores proper JSON objects
         for col in json_col_names:
             val = prepared.get(col)
             if isinstance(val, str):
@@ -848,38 +846,91 @@ def write_dataset_opportunities(dataset_url: str, dataset_df: pd.DataFrame) -> N
                     prepared[col] = json.loads(val)
                 except (TypeError, ValueError):
                     pass  # keep the original string if it is not valid JSON
-
         prepared_rows.append(prepared)
+    return prepared_rows
+
+
+def _load_staging_table(
+    client: bigquery.Client,
+    prepared_rows: list[dict[str, Any]],
+    staging_table_id: str,
+    table_schema: list[bigquery.SchemaField],
+    dataset_url: str,
+) -> None:
+    """Load prepared rows into a staging table via a load job so they are immediately DML-queryable."""
+    load_job_config = bigquery.LoadJobConfig(
+        schema=table_schema,
+        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+    )
+    load_job = client.load_table_from_json(
+        prepared_rows, staging_table_id, job_config=load_job_config
+    )
+    load_job.result()
+    logger.info(
+        "Staged %d rows in %s for dataset %s",
+        len(prepared_rows),
+        staging_table_id,
+        dataset_url,
+    )
+
+
+def _merge_staging_to_main(
+    client: bigquery.Client,
+    table_id: str,
+    staging_table_id: str,
+    dataset_url: str,
+) -> None:
+    """Run the MERGE statement that upserts rows from the staging table into the main table."""
+    merge_query = _build_upsert_merge_query(table_id, staging_table_id)
+    merge_job = client.query(merge_query)
+    merge_job.result()
+    logger.info(
+        "Upserted %d rows into %s for dataset %s (inserted+updated)",
+        merge_job.num_dml_affected_rows or 0,
+        table_id,
+        dataset_url,
+    )
+
+
+def write_dataset_opportunities(dataset_url: str, dataset_df: pd.DataFrame) -> None:
+    """
+    Upsert dataset rows into the opportunities BigQuery table.
+
+    Rows whose (dataset_url, feed_id, id, modified) already exist in the table are updated;
+    new combinations are inserted.  This makes the operation idempotent so re-runs are safe.
+
+    Steps:
+        1. Deduplicate on merge keys to guard against malformed RPDE feeds.
+        2. Coerce rows into dicts ready for BigQuery.
+        3. Load rows into a short-lived staging table via a load job (immediately DML-queryable).
+        4. MERGE staging into the main table (update matched rows, insert new ones).
+        5. Drop the staging table regardless of outcome.
+    """
+    if dataset_df.empty:
+        logger.info("No rows to write to opportunities table for dataset %s", dataset_url)
+        return
+
+    dataset_df = _dedup_on_merge_keys(dataset_df, dataset_url)
+
+    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}"
+    staging_table_id = (
+        f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}_staging_{uuid4().hex[:12]}"
+    )
+    client = bigquery.Client(project=BIGQUERY_PROJECT)
+    table = client.get_table(table_id)
+    schema_fields = list(table.schema)
+    logger.debug(
+        "Detected opportunities schema: %s",
+        {field.name: f"{field.field_type}/{field.mode}" for field in schema_fields},
+    )
+
+    prepared_rows = _prepare_rows_for_staging(dataset_df, schema_fields)
     del dataset_df
     gc.collect()
 
     try:
-        # --- Stage rows via a load job so they are immediately DML-queryable ---
-        load_job_config = bigquery.LoadJobConfig(
-            schema=table.schema,
-            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
-        )
-        load_job = client.load_table_from_json(
-            prepared_rows, staging_table_id, job_config=load_job_config
-        )
-        load_job.result()
-        logger.info(
-            "Staged %d rows in %s for dataset %s",
-            len(prepared_rows),
-            staging_table_id,
-            dataset_url,
-        )
-
-        # --- MERGE staging -> main table ---
-        merge_query = _build_upsert_merge_query(table_id, staging_table_id)
-        merge_job = client.query(merge_query)
-        merge_job.result()
-        logger.info(
-            "Upserted %d rows into %s for dataset %s (inserted+updated)",
-            merge_job.num_dml_affected_rows or 0,
-            table_id,
-            dataset_url,
-        )
+        _load_staging_table(client, prepared_rows, staging_table_id, table.schema, dataset_url)
+        _merge_staging_to_main(client, table_id, staging_table_id, dataset_url)
     except Exception:
         logger.exception(
             "Failed upserting opportunities for dataset %s into %s",

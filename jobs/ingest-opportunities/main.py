@@ -27,6 +27,7 @@ from rpde import access_feed_url
 load_dotenv()
 
 # For Debugging True
+# TODO
 PERSIST_CSV=False
 CSV_OUTPUT_DIR = os.getenv("OPPORTUNITY_CSV_OUTPUT_DIR", "./opportunities/csv")
 
