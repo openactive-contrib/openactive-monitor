@@ -49,6 +49,11 @@ DEFAULT_DELETE_RETRY_BASE_SECONDS = 10
 DEFAULT_DELETE_RETRY_MAX_SECONDS = 15 * 60
 DATA_ID_QUERY_BATCH_SIZE = 2000
 
+# Ingestion record insertion retry configuration
+INGESTION_INSERT_RETRY_MAX_ATTEMPTS = 3
+INGESTION_INSERT_RETRY_BASE_SECONDS = 2
+INGESTION_INSERT_BATCH_SIZE = 500
+
 # Columns used to match existing rows for MERGE upserts.
 _OPPORTUNITY_MERGE_KEYS = ("dataset_url", "feed_id", "id", "modified")
 _OPPORTUNITY_UPDATE_COLS = tuple(c for c in OPPORTUNITIES_COLUMNS if c not in _OPPORTUNITY_MERGE_KEYS)
@@ -943,8 +948,147 @@ def write_dataset_opportunities(dataset_url: str, dataset_df: pd.DataFrame) -> N
         logger.debug("Dropped staging table %s", staging_table_id)
 
 
+def _calculate_insert_retry_delay(attempt: int, base_delay_seconds: int) -> int:
+    """
+    Calculate exponential backoff delay in seconds.
+
+    Args:
+        attempt: 0-based attempt number
+        base_delay_seconds: Base delay for first retry
+
+    Returns:
+        Delay in seconds
+    """
+    exponent = min(attempt, 5)  # Cap exponent to prevent excessive delays
+    return base_delay_seconds * (2 ** exponent)
+
+
+def _insert_batch_with_retry(
+    client: bigquery.Client,
+    table_id: str,
+    batch: list[dict[str, Any]],
+    max_attempts: int = INGESTION_INSERT_RETRY_MAX_ATTEMPTS,
+    base_delay_seconds: int = INGESTION_INSERT_RETRY_BASE_SECONDS,
+) -> list[dict[str, Any]]:
+    """
+    Insert a batch of rows into BigQuery with exponential backoff retry logic.
+
+    Retries on transient errors (e.g., 404 NotFound). Non-transient errors are
+    raised immediately.
+
+    Args:
+        client: BigQuery client
+        table_id: Target table ID
+        batch: Rows to insert
+        max_attempts: Maximum number of insertion attempts
+        base_delay_seconds: Base delay for exponential backoff
+
+    Returns:
+        List of errors from insert_rows_json (may be empty)
+    """
+    last_exception: Exception | None = None
+
+    for attempt in range(max_attempts):
+        try:
+            return client.insert_rows_json(table_id, batch)
+        except Exception as exc:
+            last_exception = exc
+
+            # Non-transient errors should be raised immediately
+            if not isinstance(exc, google_exceptions.NotFound):
+                raise
+
+            # Don't retry on last attempt
+            if attempt >= max_attempts - 1:
+                logger.error(
+                    "Failed to insert batch after %d attempts. Raising error: %s",
+                    max_attempts,
+                    str(exc),
+                )
+                raise
+
+            # Wait before retrying
+            delay_seconds = _calculate_insert_retry_delay(attempt, base_delay_seconds)
+            logger.warning(
+                "Transient insert error on attempt %d/%d (will retry in %.1f seconds): %s",
+                attempt + 1,
+                max_attempts,
+                delay_seconds,
+                str(exc),
+            )
+            time.sleep(delay_seconds)
+
+    # Should not reach here, but just in case
+    if last_exception:
+        raise last_exception
+    return []
+
+
+def _prepare_ingestion_rows(
+    records: list[dict[str, Any]],
+    schema_fields: list[bigquery.SchemaField],
+) -> list[dict[str, Any]]:
+    """
+    Prepare ingestion records for BigQuery insertion.
+
+    Args:
+        records: Raw ingestion records
+        schema_fields: BigQuery table schema fields
+
+    Returns:
+        Normalized rows ready for BigQuery insert_rows_json
+    """
+    return [
+        _prepare_row_for_bigquery({str(k): v for k, v in row.items()}, schema_fields)
+        for row in records
+    ]
+
+
+def _insert_ingestion_batches(
+    client: bigquery.Client,
+    table_id: str,
+    prepared_rows: list[dict[str, Any]],
+) -> list[str]:
+    """
+    Insert prepared rows in batches, collecting any insertion errors.
+
+    Args:
+        client: BigQuery client
+        table_id: Target table ID
+        prepared_rows: Prepared rows ready for insertion
+
+    Returns:
+        List of formatted error messages (empty if no errors)
+    """
+    pretty_errors: list[str] = []
+
+    for batch_start in range(0, len(prepared_rows), INGESTION_INSERT_BATCH_SIZE):
+        batch_end = min(batch_start + INGESTION_INSERT_BATCH_SIZE, len(prepared_rows))
+        batch = prepared_rows[batch_start:batch_end]
+
+        logger.debug(
+            "Inserting batch %d-%d of %d rows",
+            batch_start,
+            batch_end,
+            len(prepared_rows),
+        )
+
+        errors = _insert_batch_with_retry(client, table_id, batch)
+
+        if errors:
+            pretty_errors.append(_prettify_insert_errors(errors, batch, batch_start))
+
+    return pretty_errors
+
+
 def write_opportunity_ingestion_records(records: list[dict[str, Any]]) -> None:
-    """Append ingestion summary records to the opportunity_ingestion table."""
+    """
+    Append ingestion summary records to the opportunity_ingestion table.
+
+    Handles transient BigQuery errors (e.g., 404) with exponential backoff retry logic.
+    Non-transient errors are raised immediately. Data validation errors are logged
+    and re-raised.
+    """
     if not records:
         logger.info("No ingestion summary rows to write.")
         return
@@ -952,25 +1096,19 @@ def write_opportunity_ingestion_records(records: list[dict[str, Any]]) -> None:
     table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITY_INGESTION_TABLE}"
     client = bigquery.Client(project=BIGQUERY_PROJECT)
     table = client.get_table(table_id)
+
     logger.debug(
         "Detected ingestion schema: %s",
         {field.name: f"{field.field_type}/{field.mode}" for field in table.schema},
     )
 
-    prepared_rows = [
-        _prepare_row_for_bigquery({str(k): v for k, v in row.items()}, list(table.schema))
-        for row in records
-    ]
+    # Prepare rows for insertion
+    prepared_rows = _prepare_ingestion_rows(records, list(table.schema))
 
-    batch_size = 500
-    pretty_errors: list[str] = []
+    # Insert rows in batches with retry logic
+    pretty_errors = _insert_ingestion_batches(client, table_id, prepared_rows)
 
-    for batch_start in range(0, len(prepared_rows), batch_size):
-        batch = prepared_rows[batch_start:batch_start + batch_size]
-        errors = client.insert_rows_json(table_id, batch)
-        if errors:
-            pretty_errors.append(_prettify_insert_errors(errors, batch, batch_start))
-
+    # Raise if any data validation errors occurred
     if pretty_errors:
         pretty_message = "\n".join(pretty_errors)
         logger.error("Failed writing opportunity ingestion rows into %s:\n%s", table_id, pretty_message)
