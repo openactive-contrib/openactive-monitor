@@ -55,7 +55,7 @@ INGESTION_INSERT_RETRY_BASE_SECONDS = 2
 INGESTION_INSERT_BATCH_SIZE = 500
 
 # Columns used to match existing rows for MERGE upserts.
-_OPPORTUNITY_MERGE_KEYS = ("dataset_url", "feed_id", "id", "modified")
+_OPPORTUNITY_MERGE_KEYS = ("dataset_url", "feed_id", "id")
 _OPPORTUNITY_UPDATE_COLS = tuple(c for c in OPPORTUNITIES_COLUMNS if c not in _OPPORTUNITY_MERGE_KEYS)
 
 
@@ -758,13 +758,12 @@ def _prettify_insert_errors(errors: list[dict[str, Any]], batch_rows: list[dict[
 def _build_upsert_merge_query(main_table_id: str, staging_table_id: str) -> str:
     """
     Build a BigQuery MERGE statement that upserts rows from the staging table into the main table.
-    Matching is done on (dataset_url, feed_id, id, modified); `modified` is NULL-safe.
+    Matching is done on (dataset_url, feed_id, id)
     """
     on_clause = (
         "S.dataset_url = T.dataset_url"
         " AND S.feed_id = T.feed_id"
         " AND S.id = T.id"
-        " AND (S.modified = T.modified OR (S.modified IS NULL AND T.modified IS NULL))"
     )
     update_set = ", ".join(f"T.{col} = S.{col}" for col in _OPPORTUNITY_UPDATE_COLS)
     insert_cols = ", ".join(OPPORTUNITIES_COLUMNS)
@@ -901,7 +900,7 @@ def write_dataset_opportunities(dataset_url: str, dataset_df: pd.DataFrame) -> N
     """
     Upsert dataset rows into the opportunities BigQuery table.
 
-    Rows whose (dataset_url, feed_id, id, modified) already exist in the table are updated;
+    Rows whose (dataset_url, feed_id, id) already exist in the table are updated;
     new combinations are inserted.  This makes the operation idempotent so re-runs are safe.
 
     Steps:
