@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from time import sleep
 from typing import Any
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
 from request_client import build_session, get
@@ -103,6 +103,9 @@ def access_feed_url(feed: dict, after_timestamp: str | None, after_id: str | Non
             if not isinstance(next_url, str) or not next_url:
                 url = None
                 continue
+
+            # Resolve relative next URLs (e.g. "/api/feed?afterTimestamp=123") against the current page URL.
+            next_url = urljoin(current_url, next_url)
 
             if is_terminal_page(current_url, next_url, page_items):
                 url = None
