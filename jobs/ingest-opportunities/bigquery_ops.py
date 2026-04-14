@@ -107,10 +107,26 @@ def _upsert_pending_delete(
     }
 
 
-def get_feeds(target_date: date | None = None, datasets: list[str] | None = None) -> dict[str, list[dict]]:
-    """Fetch list of feeds collected for the given date from BigQuery."""
-    if target_date is None:
-        target_date = date.today()
+def _get_latest_ingestion_date() -> date:
+    """Return the date portion of the most recent ingestion_date in the opportunity ingestion table."""
+    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITY_INGESTION_TABLE}"
+    query = f"SELECT MAX(ingestion_date) AS latest FROM `{table_id}`"
+    client = bigquery.Client(project=BIGQUERY_PROJECT)
+    rows = list(client.query(query).result())
+    latest = rows[0]["latest"] if rows else None
+    if latest is None:
+        return date.today()
+    if isinstance(latest, datetime):
+        return latest.date()
+    if isinstance(latest, date):
+        return latest
+    return date.today()
+
+
+def get_feeds(datasets: list[str] | None = None) -> dict[str, list[dict]]:
+    """Fetch list of feeds collected for the latest ingestion date from BigQuery."""
+    target_date = _get_latest_ingestion_date()
+    logger.info("Using latest ingestion date as feed target date: %s", target_date)
     table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{FEEDS_TABLE}"
 
     query = f"""

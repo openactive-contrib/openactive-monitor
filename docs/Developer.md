@@ -110,14 +110,13 @@ Run it from `jobs/ingest-opportunities`:
 
 Available options:
 
-- `--target-date YYYY-MM-DD`: selects which day of feed metadata to read from the feeds table. If omitted, the implementation defaults to today.
 - `--dataset TEXT`: optional dataset filter matched against `dataset_url`. Repeat the flag to process multiple datasets.
 - `--verbose`: enables debug logging for the main job plus the RPDE, BigQuery, geolocation and request layers.
 - `--help`: prints the Click help output.
 
 #### High-level execution flow
 
-1. Query the feeds table in BigQuery for the selected date, optionally filter to the requested datasets, and group the returned feeds by `dataset_url`.
+1. System queries BigQuery the latest feed_ingestion date, retrieved feeds for that date and group the returned feeds by `dataset_url`.
 2. Process datasets one at a time. At the start of each dataset, retry any deferred deletes from earlier work to reduce conflicts with the BigQuery streaming buffer.
 3. Sort each dataset's feeds by `FEED_EXECUTION_ORDER`, then split them into two batches for memory efficiency:
    - first batch: `FacilityUse`, `IndividualFacilityUse`, `Slot`

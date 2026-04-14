@@ -668,15 +668,14 @@ def _build_ingestion_records(
 
 
 def ingest_opportunities(
-    target_date: date | None = None,
     datasets: list[str] | None = None,
     verbose: bool = False,
 ) -> None:
     _configure_logging(verbose)
     pending_deletes: dict[str, dict[str, Any]] = {}
 
-    feeds = get_feeds(target_date, datasets)
-    logger.info("Loaded %d datasets for date=%s", len(feeds), target_date or date.today())
+    feeds = get_feeds(datasets)
+    logger.info("Loaded %d datasets", len(feeds))
 
     count = 1
     for dataset_url in feeds:
@@ -692,7 +691,6 @@ def ingest_opportunities(
         )
         dataset_feeds.sort(key=lambda feed: FEED_EXECUTION_ORDER.index(feed["type"]))
 
-        dataset_failed = False
         persisted_feed_ids: set[str] = set()
         failed_feed_ids: set[str] = set()
         current_batch_feed_ids: set[str] = set()
@@ -750,12 +748,6 @@ def ingest_opportunities(
 
 @click.command()
 @click.option(
-    "--target-date",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=None,
-    help="Optional feed date in yyyy-mm-dd. Defaults to today.",
-)
-@click.option(
     "--dataset",
     "datasets",
     multiple=True,
@@ -767,20 +759,18 @@ def ingest_opportunities(
     default=False,
     help="Enable verbose logging (includes RPDE traversal logs).",
 )
-def cli(target_date: datetime | None, datasets: tuple[str, ...], verbose: bool) -> None:
+def cli(datasets: tuple[str, ...], verbose: bool) -> None:
     """Ingest opportunities from RPDE feeds."""
-    parsed_target_date = target_date.date() if target_date else None
     parsed_datasets = list(datasets) if datasets else None
 
-    parsed_target_date = datetime.strptime("2026-04-10", "%Y-%m-%d").date()
-    # parsed_datasets = ["https://better-admin.org.uk/api/openactive/better"]
+    parsed_datasets = ["https://oneleisure.gs-signature.cloud/OpenActive/"]
     # parsed_datasets = ["https://data.bookwhen.com/",
     #                    "https://activehartlepool.gs-signature.cloud/OpenActive/",
     #                    "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
     #                    "https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
     # verbose = True
 
-    ingest_opportunities(parsed_target_date, parsed_datasets, verbose)
+    ingest_opportunities(parsed_datasets, verbose)
 
 
 if __name__ == "__main__":
