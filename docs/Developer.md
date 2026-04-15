@@ -121,7 +121,7 @@ Available options:
 3. Sort each dataset's feeds by `FEED_EXECUTION_ORDER`, then split them into two batches for memory efficiency:
    - first batch: `FacilityUse`, `IndividualFacilityUse`, `Slot`
    - second batch: all remaining feed types
-4. For each batch, fetch the last successful RPDE cursor (`afterTimestamp` / `afterId`) for each feed from the opportunity-ingestion table, then traverse the RPDE pages incrementally from that cursor.
+4. For each batch, fetch the last successful RPDE cursor (`afterTimestamp` + `afterId` or `afterChangeNumber`) for each feed from the opportunity-ingestion table, then traverse the RPDE pages incrementally from that cursor.
 5. Flatten RPDE items into two collections:
    - updated items become opportunity rows with extracted fields such as `data_id`, `kind`, `activity`, `location`, `startDate`, `endDate`, `ageRange`, `level`, `has_superEvent`, and `has_subEvent`
    - items with `state=deleted` become delete instructions keyed by dataset, feed and item id

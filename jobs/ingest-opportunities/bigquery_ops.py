@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 BIGQUERY_PROJECT = os.getenv("GCP_PROJECT_ID")
 BIGQUERY_DATASET = os.getenv("BQ_DATASET_ID")
 FEEDS_TABLE = os.getenv("BQ_FEEDS_TABLE")
+FEED_INGESTION_TABLE = os.getenv("BQ_FEED_INGESTION_TABLE")
 OPPORTUNITY_INGESTION_TABLE = os.getenv("BQ_OPPORTUNITY_INGESTION_TABLE")
 OPPORTUNITIES_TABLE = os.getenv("BQ_OPPORTUNITIES_TABLE")
 
@@ -109,7 +110,7 @@ def _upsert_pending_delete(
 
 def _get_latest_ingestion_date() -> date:
     """Return the date portion of the most recent ingestion_date in the opportunity ingestion table."""
-    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITY_INGESTION_TABLE}"
+    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{FEED_INGESTION_TABLE}"
     query = f"SELECT MAX(ingestion_date) AS latest FROM `{table_id}`"
     client = bigquery.Client(project=BIGQUERY_PROJECT)
     rows = list(client.query(query).result())
@@ -162,12 +163,12 @@ def get_feeds(datasets: list[str] | None = None) -> dict[str, list[dict]]:
     return feeds
 
 
-def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None]:
+def get_last_ingestion_info(feed_id: str) -> tuple[str | None, str | None, int | None]:
     """Fetch the latest cursor values for the given feed from BigQuery."""
-    return get_last_ingestion_info_batch([feed_id]).get(feed_id, (None, None))
+    return get_last_ingestion_info_batch([feed_id]).get(feed_id, (None, None, None))
 
 
-def get_last_ingestion_info_batch(feed_ids: list[str]) -> dict[str, tuple[str | None, str | None]]:
+def get_last_ingestion_info_batch(feed_ids: list[str]) -> dict[str, tuple[str | None, str | None, int | None]]:
     """Fetch latest cursor values for multiple feed IDs in one BigQuery query."""
     if not feed_ids:
         return {}
@@ -176,12 +177,12 @@ def get_last_ingestion_info_batch(feed_ids: list[str]) -> dict[str, tuple[str | 
     table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITY_INGESTION_TABLE}"
 
     query = f"""
-        SELECT feed_id, afterTimestamp, afterId
+        SELECT feed_id, afterTimestamp, afterId, afterChangeNumber
         FROM `{table_id}`
         WHERE feed_id IN UNNEST(@feed_ids)
         QUALIFY ROW_NUMBER() OVER (
             PARTITION BY feed_id
-            ORDER BY ingestion_date DESC, afterTimestamp DESC, afterId DESC
+            ORDER BY ingestion_date DESC, afterChangeNumber DESC, afterTimestamp DESC, afterId DESC
         ) = 1
     """
 
@@ -193,12 +194,16 @@ def get_last_ingestion_info_batch(feed_ids: list[str]) -> dict[str, tuple[str | 
     )
 
     rows = client.query(query, job_config=job_config).result()
-    cursor_by_feed_id: dict[str, tuple[str | None, str | None]] = {
-        feed_id: (None, None) for feed_id in unique_feed_ids
+    cursor_by_feed_id: dict[str, tuple[str | None, str | None, int | None]] = {
+        feed_id: (None, None, None) for feed_id in unique_feed_ids
     }
     for row in rows:
         row_feed_id = row["feed_id"]
-        cursor_by_feed_id[row_feed_id] = (row["afterTimestamp"], row["afterId"])
+        cursor_by_feed_id[row_feed_id] = (
+            row["afterTimestamp"],
+            row["afterId"],
+            row["afterChangeNumber"],
+        )
 
     return cursor_by_feed_id
 

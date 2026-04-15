@@ -169,7 +169,7 @@ def get_activity(data: dict) -> list[Any]:
         if isinstance(data["activity"], dict):
             return [data["activity"].get("prefLabel")]
         elif isinstance(data["activity"], list):
-            return [activity.get("prefLabel") for activity in data["activity"]]
+            return [activity.get("prefLabel") for activity in data["activity"] if activity]
     if data.get("facilityType"):
         facility_type = ""
         if isinstance(data["facilityType"], dict):
@@ -442,8 +442,10 @@ def _initialize_feed_states(dataset_url: str, dataset_feeds: list[dict[str, Any]
             "kind": dataset_feed.get("type"),
             "previous_afterTimestamp": None,
             "previous_afterId": None,
+            "previous_afterChangeNumber": None,
             "next_afterTimestamp": None,
             "next_afterId": None,
+            "next_afterChangeNumber": None,
             "status": None,
             "updated": 0,
             "deleted": 0,
@@ -473,11 +475,12 @@ def _collect_dataset_feed_rows(
 
     for dataset_feed in dataset_feeds:
         feed_id = dataset_feed["id"]
-        after_timestamp, after_id = latest_cursor_by_feed_id.get(feed_id, (None, None))
+        after_timestamp, after_id, after_change_number = latest_cursor_by_feed_id.get(feed_id, (None, None, None))
         feed_states[feed_id]["previous_afterTimestamp"] = after_timestamp
         feed_states[feed_id]["previous_afterId"] = after_id
+        feed_states[feed_id]["previous_afterChangeNumber"] = after_change_number
 
-        result = access_feed_url(dataset_feed, after_timestamp, after_id, PERSIST_CSV)
+        result = access_feed_url(dataset_feed, after_timestamp, after_id, after_change_number, PERSIST_CSV)
         if result is None:
             raise RuntimeError(f"RPDE returned no result for feed {feed_id}")
 
@@ -490,6 +493,7 @@ def _collect_dataset_feed_rows(
         feed_states[feed_id]["deleted"] = len(deletes)
         feed_states[feed_id]["next_afterTimestamp"] = result.get("after_timestamp")
         feed_states[feed_id]["next_afterId"] = result.get("after_id")
+        feed_states[feed_id]["next_afterChangeNumber"] = result.get("after_change_number")
         feed_states[feed_id]["status"] = result.get("status")
 
     return dataset_updates, dataset_deletes
@@ -646,6 +650,7 @@ def _build_ingestion_records(
                 "deleted": state.get("deleted", 0),
                 "afterTimestamp": state.get("next_afterTimestamp"),
                 "afterId": state.get("next_afterId"),
+                "afterChangeNumber": state.get("next_afterChangeNumber"),
                 "status": state.get("status"),
             }
         else:
@@ -659,6 +664,7 @@ def _build_ingestion_records(
                 "deleted": 0,
                 "afterTimestamp": state.get("previous_afterTimestamp"),
                 "afterId": state.get("previous_afterId"),
+                "afterChangeNumber": state.get("previous_afterChangeNumber"),
                 "status": "ERROR",
             }
 
@@ -763,7 +769,7 @@ def cli(datasets: tuple[str, ...], verbose: bool) -> None:
     """Ingest opportunities from RPDE feeds."""
     parsed_datasets = list(datasets) if datasets else None
 
-    parsed_datasets = ["https://oneleisure.gs-signature.cloud/OpenActive/"]
+    parsed_datasets = ["https://openactive.played.co/openactive/"]
     # parsed_datasets = ["https://data.bookwhen.com/",
     #                    "https://activehartlepool.gs-signature.cloud/OpenActive/",
     #                    "https://wymondhamtownunitedfc.bookteq.com/api/open-active",

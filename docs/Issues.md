@@ -28,3 +28,13 @@ THIS IS WORKING NOW???
 
 1. In https://activeleeds-oa.leisurecloud.net/OpenActive/ locations are only names such as "Aireborough", "Pudsey", "Kippax"
 Use ONS Index of Place Names to filter them and then https://api.postcodes.io/places?q={place_name} to get geolocations. Filtering is important otherwise we will get a lot of false positives.
+
+
+## Feed Issues:
+
+- https://betterflow.coursepro.co.uk/odi/feed
+  - https://betterflow.coursepro.co.uk/odi/scheduled-sessions uses `?afterChangeNumber=16874847` instead of `afterTimestamp` or `afterId`
+
+- https://openactive.played.co/openactive/ uses `afterChangeNumber` as well
+
+- 
