@@ -74,9 +74,8 @@ def access_feed_url(
     feed_id = feed["id"]
     feed_url = feed["url"]
 
-    logger.debug("Fetching RPDE feed: %s (%s)", feed_id, feed.get("type", "unknown"))
-
     url = _build_initial_url(feed_url, after_timestamp, after_id, after_change_number)
+    logger.debug("Fetching RPDE feed: %s (%s)", url, feed.get("type", "unknown"))
 
     items: list[dict] = []
     pages_fetched = 0
@@ -129,6 +128,7 @@ def access_feed_url(
             pages_fetched += 1
 
             next_url = page_data.get("next")
+            url = next_url
             if not isinstance(next_url, str) or not next_url:
                 url = None
                 continue

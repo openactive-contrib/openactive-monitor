@@ -769,7 +769,7 @@ def cli(datasets: tuple[str, ...], verbose: bool) -> None:
     """Ingest opportunities from RPDE feeds."""
     parsed_datasets = list(datasets) if datasets else None
 
-    parsed_datasets = ["https://openactive.played.co/openactive/"]
+    # parsed_datasets = ["https://openactive.played.co/openactive/"]
     # parsed_datasets = ["https://data.bookwhen.com/",
     #                    "https://activehartlepool.gs-signature.cloud/OpenActive/",
     #                    "https://wymondhamtownunitedfc.bookteq.com/api/open-active",
