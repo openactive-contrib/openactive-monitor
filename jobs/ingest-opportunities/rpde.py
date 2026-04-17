@@ -75,7 +75,7 @@ def access_feed_url(
     feed_url = feed["url"]
 
     url = _build_initial_url(feed_url, after_timestamp, after_id, after_change_number)
-    logger.debug("Fetching RPDE feed: %s (%s)", url, feed.get("type", "unknown"))
+    logger.info("Start fetching RPDE feed: %s (%s)", url, feed.get("type", "unknown"))
 
     items: list[dict] = []
     pages_fetched = 0
