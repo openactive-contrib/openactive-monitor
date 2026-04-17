@@ -19,8 +19,8 @@ DEFAULT_HEADERS = {
     "Accept-Language": "en-GB,en;q=0.9",
 }
 
-MAX_RETRIES = 3
-BACKOFF_FACTOR = 0.5  # 1s, 2s, 4s, 8s, 16s ...
+MAX_RETRIES = 6
+BACKOFF_FACTOR = 0.3  # 0.3s, 0.6s, 1.2s, 2.4s, 4.8s, 9.6s ...
 RETRY_STATUS_FORCELIST = {403, 429, 500, 502, 503, 504}
 
 
