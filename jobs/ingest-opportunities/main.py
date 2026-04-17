@@ -1,6 +1,8 @@
 import gc
 import logging
 import os
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timezone
 from pathlib import Path
 from time import perf_counter
@@ -26,6 +28,8 @@ from rpde import access_feed_url
 
 load_dotenv()
 
+INGEST_MAX_WORKERS = int(os.getenv("INGEST_MAX_WORKERS", "4"))
+
 # For Debugging True
 # TODO
 PERSIST_CSV=False
@@ -37,18 +41,44 @@ MAX_INHERITED_MERGE_DEPTH = 6
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    format="%(asctime)s  %(levelname)-8s  [%(threadName)s] [dataset=%(dataset_context)s]  %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 
 def _configure_logging(verbose: bool) -> None:
-    """Configure app logging and set RPDE logger to DEBUG in verbose mode."""
-    logging.getLogger().setLevel(logging.DEBUG if verbose else logging.INFO)
-    logging.getLogger("rpde").setLevel(logging.DEBUG if verbose else logging.INFO)
-    logging.getLogger("bigquery_ops").setLevel(logging.DEBUG if verbose else logging.INFO)
-    logging.getLogger("geolocation").setLevel(logging.DEBUG if verbose else logging.INFO)
-    logging.getLogger("request_client").setLevel(logging.DEBUG if verbose else logging.INFO)
+    """Configure app logging and set component loggers to DEBUG in verbose mode."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.getLogger().setLevel(level)
+    logging.getLogger("rpde").setLevel(level)
+    logging.getLogger("bigquery_ops").setLevel(level)
+    logging.getLogger("geolocation").setLevel(level)
+    logging.getLogger("request_client").setLevel(level)
+
+
+_LOG_CONTEXT = threading.local()
+
+
+def _set_log_dataset_context(dataset_url: str) -> None:
+    _LOG_CONTEXT.dataset_context = dataset_url
+
+
+def _clear_log_dataset_context() -> None:
+    if hasattr(_LOG_CONTEXT, "dataset_context"):
+        delattr(_LOG_CONTEXT, "dataset_context")
+
+
+# Ensure every log record always has dataset_context to satisfy formatter fields.
+_previous_factory = logging.getLogRecordFactory()
+
+
+def _record_factory(*args, **kwargs):
+    record = _previous_factory(*args, **kwargs)
+    record.dataset_context = getattr(_LOG_CONTEXT, "dataset_context", "-")
+    return record
+
+
+logging.setLogRecordFactory(_record_factory)
 
 
 DF_COLUMNS = [
@@ -171,13 +201,13 @@ def get_activity(data: dict) -> list[Any]:
         elif isinstance(data["activity"], list):
             return [activity.get("prefLabel") for activity in data["activity"] if activity]
     if data.get("facilityType"):
-        facility_type = ""
+        facility_types = []
         if isinstance(data["facilityType"], dict):
-            facility_type = data["facilityType"]
+            facility_types = [data["facilityType"]]
         elif isinstance(data["facilityType"], list) and len(data["facilityType"]) > 0:
-            facility_type = data["facilityType"][0]
-        if facility_type and facility_type.get("prefLabel"):
-            return facility_type.get("prefLabel")
+            facility_types = data["facilityType"]
+        if facility_types:
+            return [ft.get("prefLabel") for ft in facility_types if ft and ft.get("prefLabel")]
     if data.get("category"):
         if isinstance(data["category"], dict):
             return [data["category"]]
@@ -520,6 +550,7 @@ def _persist_dataset_results(
     dataset_updates: list[dict],
     dataset_deletes: list[dict[str, Any]],
     pending_deletes: dict[str, dict[str, Any]],
+    pending_deletes_lock: threading.Lock,
 ) -> None:
     """
     Persist collected dataset rows to BigQuery opportunities after denormalization.
@@ -537,8 +568,31 @@ def _persist_dataset_results(
         len(dataset_deletes),
     )
 
+    attempted_delete_keys = {
+        f"{row.get('dataset_url')}|{row.get('feed_id')}|{row.get('id')}"
+        for row in dataset_deletes
+        if row.get("dataset_url") and row.get("feed_id") and row.get("id")
+    }
+
+    # Keep lock scope small: snapshot relevant pending state, run slow BQ delete work unlocked,
+    # then merge only this batch's key updates back into the shared pending map.
+    with pending_deletes_lock:
+        local_pending_deletes = {
+            key: dict(value)
+            for key, value in pending_deletes.items()
+            if key in attempted_delete_keys
+        }
+
     phase_start = perf_counter()
-    delete_dataset_opportunities(dataset_deletes, pending_deletes=pending_deletes)
+    delete_dataset_opportunities(dataset_deletes, pending_deletes=local_pending_deletes)
+
+    with pending_deletes_lock:
+        for key in attempted_delete_keys:
+            if key in local_pending_deletes:
+                pending_deletes[key] = local_pending_deletes[key]
+            else:
+                pending_deletes.pop(key, None)
+
     logger.info("Persist phase delete_dataset_opportunities completed in %.2fs", perf_counter() - phase_start)
     del dataset_deletes
     gc.collect()
@@ -672,29 +726,22 @@ def _build_ingestion_records(
 
     return records_to_write
 
-
-def ingest_opportunities(
-    datasets: list[str] | None = None,
-    verbose: bool = False,
+def _process_single_dataset(
+    dataset_url: str,
+    dataset_feeds: list[dict[str, Any]],
+    pending_deletes: dict[str, dict[str, Any]],
+    pending_deletes_lock: threading.Lock,
+    index: int,
+    total: int,
 ) -> None:
-    _configure_logging(verbose)
-    pending_deletes: dict[str, dict[str, Any]] = {}
-
-    feeds = get_feeds(datasets)
-    logger.info("Loaded %d datasets", len(feeds))
-
-    count = 1
-    for dataset_url in feeds:
+    """Process one dataset: fetch feeds, persist results, write ingestion records."""
+    _set_log_dataset_context(dataset_url)
+    try:
         # Workaround to handle BQ streaming buffer
-        retry_deferred_deletes(pending_deletes)
+        with pending_deletes_lock:
+            retry_deferred_deletes(pending_deletes)
 
-        dataset_feeds = feeds[dataset_url]
-        logger.info(
-            "[%d/%d] Processing dataset: %s",
-            count,
-            len(feeds),
-            dataset_url,
-        )
+        logger.info("[%d/%d] Processing dataset: %s", index, total, dataset_url)
         dataset_feeds.sort(key=lambda feed: FEED_EXECUTION_ORDER.index(feed["type"]))
 
         persisted_feed_ids: set[str] = set()
@@ -720,7 +767,13 @@ def ingest_opportunities(
                     len(batch_feeds),
                 )
                 dataset_updates, dataset_deletes = _collect_dataset_feed_rows(dataset_url, batch_feeds, feed_states)
-                _persist_dataset_results(dataset_url, dataset_updates, dataset_deletes, pending_deletes)
+                _persist_dataset_results(
+                    dataset_url,
+                    dataset_updates,
+                    dataset_deletes,
+                    pending_deletes,
+                    pending_deletes_lock,
+                )
                 persisted_feed_ids.update(current_batch_feed_ids)
                 current_batch_feed_ids = set()
                 gc.collect()
@@ -742,10 +795,43 @@ def ingest_opportunities(
                 write_opportunity_ingestion_records(records_to_write)
             except Exception:
                 logger.exception("Failed writing ingestion records for dataset %s", dataset_url)
+    finally:
+        _clear_log_dataset_context()
 
-        count += 1
+def ingest_opportunities(
+    datasets: list[str] | None = None,
+    verbose: bool = False,
+) -> None:
+    _configure_logging(verbose)
+    pending_deletes: dict[str, dict[str, Any]] = {}
+    pending_deletes_lock = threading.Lock()
 
-    # Flush any remaining deferred deletes, waiting up to 90 minutes for BigQuery streaming buffer to clear if needed.
+    feeds = get_feeds(datasets)
+    logger.info("Loaded %d datasets", len(feeds))
+    total = len(feeds)
+
+    with ThreadPoolExecutor(max_workers=INGEST_MAX_WORKERS, thread_name_prefix="ingest-worker") as executor:
+        futures = {
+            executor.submit(
+                _process_single_dataset,
+                dataset_url,
+                feeds[dataset_url],
+                pending_deletes,
+                pending_deletes_lock,
+                idx,
+                total,
+            ): dataset_url
+            for idx, dataset_url in enumerate(feeds, start=1)
+        }
+
+        for future in as_completed(futures):
+            dataset_url = futures[future]
+            try:
+                future.result()
+            except Exception:
+                logger.exception("Unhandled error processing dataset %s", dataset_url)
+
+    # Flush any remaining deferred deletes, waiting up to 120 minutes for BigQuery streaming buffer to clear if needed.
     drain_deferred_deletes_until_timeout(
         pending_deletes,
         max_total_wait_seconds=120 * 60,
