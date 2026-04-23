@@ -14,7 +14,7 @@ from google.api_core import exceptions as google_exceptions
 from google.cloud import bigquery
 
 # TODO reduce this to 200 on prod
-DELETE_BATCH_SIZE = 1000
+DELETE_BATCH_SIZE = 50000
 
 load_dotenv()
 

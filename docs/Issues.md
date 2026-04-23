@@ -24,6 +24,17 @@ THIS IS WORKING NOW???
 
 ## 2- Find My Facility feeds are empty 
 
+## **** 3- Delete is slow
+
+ingest-worker_1 is gone for 1 hour
+ 
+2026-04-23 13:45:57,685  INFO      [ingest-worker_1] [dataset=https://better-admin.org.uk/api/openactive/better]  Persist start for dataset https://better-admin.org.uk/api/openactive/better: updates=118875 deletes=669733
+
+## **** 4- Separate columns for activity and facility names
+
+
+
+
 # Improvements 
 
 1. In https://activeleeds-oa.leisurecloud.net/OpenActive/ locations are only names such as "Aireborough", "Pudsey", "Kippax"
