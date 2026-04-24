@@ -84,6 +84,7 @@ Stores metadata about all discovered OpenActive RPDE feeds.
 | `publisher_name` | STRING | Publisher name from JSON-LD |
 | `rpde_version` | STRING | RPDE spec version URL |
 | `model_version` | STRING | Modelling Opportunity Data spec version URL |
+| `is_regular` | BOOL | `TRUE` if the feed was found in the regular catalog, `FALSE` if preview-only. |
 | `last_access` | DATE | Date when this feed was last seen/collected |
 
 ### Table: `feed_ingestion`
@@ -101,6 +102,8 @@ Append-only log of feed collection runs.
 
 ### Table: `opportunities`
 Stores denormalized opportunity data from RPDE feeds.
+
+**Scale note:** This is the only large table in the project (about 8 million rows, about 10 GB). Other tables are typically small.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -186,6 +189,15 @@ Each job has its own `virt/` virtual environment and `requirements.txt`. Do NOT 
 - Pandas DataFrames for data manipulation
 - Each job is self-contained with its own `requirements.txt` and `virt/`
 
+## Performance and Memory Guidance
+
+- Runtime target environment is typically 16 GB Cloud Run/VM memory; design processing to stay comfortably below this.
+- Treat `opportunities` as the primary scale bottleneck; optimize queries and ingestion logic for this table first.
+- Prefer incremental and chunked processing (paged RPDE fetches, batched BigQuery writes/reads) over loading full datasets into memory.
+- Avoid holding the same dataset in multiple in-memory representations at once (for example dict + DataFrame + inverted dict) unless strictly necessary.
+- Select only required columns from BigQuery and push filters/aggregations to SQL to minimize transfer and Python-side memory use.
+- Clean up large temporary objects promptly and stream outputs where possible.
+
 ## Testing
 
 - No formal unit tests currently, but code is structured for testability (e.g. separation of concerns, pure functions where possible).
@@ -193,4 +205,3 @@ Each job has its own `virt/` virtual environment and `requirements.txt`. Do NOT 
 ## Skills
 
 Claude should reference the `.claude/skills/` directory for task-specific guidance.
-

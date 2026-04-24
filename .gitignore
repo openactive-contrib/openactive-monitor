@@ -14,6 +14,8 @@ node_modules/
 virt*/
 .venv
 
+.env
+
 # Jupyter
 .ipynb_checkpoints/
 

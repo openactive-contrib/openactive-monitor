@@ -1,0 +1,9 @@
+google-cloud-bigquery
+google-cloud-bigquery-storage
+pyarrow
+pandas
+pandas-gbq
+python-dotenv
+click
+geopandas
+shapely

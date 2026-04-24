@@ -369,6 +369,7 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
         "publisher_name",
         "rpde_version",
         "model_version",
+        "is_regular",
         "last_access",
     ]
     today = date.today()
@@ -392,12 +393,15 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
                 "publisher_name": feed["publisher_name"],
                 "rpde_version": feed.get("rpde_version", ""),
                 "model_version": feed.get("model_version", ""),
+                "is_regular": bool(feed.get("is_regular", False)),
                 "last_access": today,
             }
         )
 
     df = pd.DataFrame(rows, columns=columns)
-    # De-duplicate: keep last occurrence (same id may appear in regular + preview)
+    # De-duplicate: keep last occurrence (same id may appear in regular + preview).
+    # main() collects preview first, then regular, so this preserves is_regular=True
+    # when a feed appears in both catalogues.
     df = df.drop_duplicates(subset="id", keep="last").reset_index(drop=True)
     return df
 
@@ -513,6 +517,9 @@ def main() -> None:
     for label in ("preview", "regular"):
         try:
             result = collect_feeds(session, label=label)
+            is_regular = label == "regular"
+            for feed in result["feeds"]:
+                feed["is_regular"] = is_regular
             all_feeds.extend(result["feeds"])
             all_catalogue_urls.extend(result["catalogue_urls"])
             all_dataset_urls.extend(result["dataset_urls"])

@@ -1,0 +1,530 @@
+"""opportunity-insights — BigQuery-based analysis job.
+
+Reads from the ``opportunities`` table produced by ``ingest-opportunities`` and
+writes per-feed and aggregate insights into a set of ``insight_*`` tables.
+Replaces the pickle-based ``analyse-opportunities`` job while keeping the same
+overall metric definitions.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import sys
+from collections import defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import click
+import pandas as pd
+from dotenv import load_dotenv
+
+import bigquery_ops
+import geolookup
+import queries
+from sad_mapping import run_sad_matching
+
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_GEO_DIR = Path(os.getenv("INSIGHTS_GEO_DIR", "../../volume-1/data-analysis")).resolve()
+
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+def _configure_logging(verbose: bool) -> None:
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        stream=sys.stdout,
+    )
+    logging.getLogger("google").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+
+# ---------------------------------------------------------------------------
+# Data assembly helpers
+# ---------------------------------------------------------------------------
+
+def _pivot_counts_to_dicts(df: pd.DataFrame) -> dict[str, dict[str, int]]:
+    """Pivot a per-feed category-count DataFrame into ``{feed_id: {value: count}}``."""
+    out: dict[str, dict[str, int]] = defaultdict(dict)
+    for feed_id, value, cnt in zip(df["feed_id"], df["value"], df["cnt"]):
+        if feed_id is None or value is None:
+            continue
+        out[feed_id][str(value)] = int(cnt)
+    return out
+
+
+def _resolve_geo_counts(
+    df_points: pd.DataFrame,
+) -> tuple[dict[str, dict[str, int]], dict[str, dict[str, int]], dict[str, dict[str, int]]]:
+    """Group location points per feed into ``regions_counts`` / ``districts_counts`` / ``trusts_counts`` dicts."""
+    regions: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    districts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    trusts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+
+    for feed_id, lat, lng, cnt in zip(df_points["feed_id"], df_points["lat"], df_points["lng"], df_points["cnt"]):
+        if feed_id is None:
+            continue
+        region, district, trust = geolookup.lookup(lng, lat)
+        if region:
+            regions[feed_id][region] += int(cnt)
+        if district:
+            districts[feed_id][district] += int(cnt)
+        if trust:
+            trusts[feed_id][trust] += int(cnt)
+
+    return (
+        {fid: dict(d) for fid, d in regions.items()},
+        {fid: dict(d) for fid, d in districts.items()},
+        {fid: dict(d) for fid, d in trusts.items()},
+    )
+
+
+def _collect_per_feed_dicts(opportunities_tbl: str) -> dict[str, dict[str, dict[str, int]]]:
+    """Run one query per categorical dimension and pivot each into per-feed dicts."""
+    return {
+        "item_kinds_counts":      _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_kind_counts(opportunities_tbl))),
+        "activities_counts":      _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_activity_counts(opportunities_tbl))),
+        "facilities_counts":      _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_facility_counts(opportunities_tbl))),
+        "accessibilities_counts": _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_accessibility_counts(opportunities_tbl))),
+        "organizer_names_counts": _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_organizer_counts(opportunities_tbl))),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Per-feed assembly
+# ---------------------------------------------------------------------------
+
+def _build_feed_insights_rows(
+    run_date: datetime,
+    df_feeds: pd.DataFrame,
+    df_base: pd.DataFrame,
+    df_status: pd.DataFrame,
+    per_feed_dicts: dict[str, dict[str, dict[str, int]]],
+    regions_counts: dict[str, dict[str, int]],
+    districts_counts: dict[str, dict[str, int]],
+    trusts_counts: dict[str, dict[str, int]],
+) -> list[dict[str, Any]]:
+    base_by_feed = {row["feed_id"]: row for _, row in df_base.iterrows() if row["feed_id"]}
+    status_by_feed = {row["feed_id"]: row["status"] for _, row in df_status.iterrows() if row["feed_id"]}
+
+    feed_ids_with_data = set(base_by_feed.keys())
+    # Only emit rows for feeds that have at least one opportunity row in the window.
+    # This matches legacy semantics (feeds_with_analysed_data).
+    rows: list[dict[str, Any]] = []
+
+    feed_meta_by_id = {row["feed_id"]: row for _, row in df_feeds.iterrows() if row["feed_id"]}
+
+    for feed_id in feed_ids_with_data:
+        meta = feed_meta_by_id.get(feed_id, pd.Series(dtype=object))
+        base = base_by_feed[feed_id]
+        feed_type = meta.get("feed_type") if not meta.empty else None
+        num_items = int(base.get("num_items") or 0)
+
+        # item_types_counts: in the new model each feed is a single type, so the per-feed
+        # types dict is simply {feed_type: num_items}. Summing across feeds gives the
+        # aggregate type distribution (matches legacy's df_total_item_types_counts).
+        item_types_counts = {feed_type: num_items} if feed_type else {}
+
+        row = {
+            "run_date": run_date,
+            "feed_id": feed_id,
+            "dataset_url": meta.get("dataset_url"),
+            "dataset_name": meta.get("dataset_name"),
+            "publisher_name": meta.get("publisher_name"),
+            "feed_url": meta.get("feed_url"),
+            "license_url": meta.get("license_url"),
+            "logo_url": meta.get("logo_url"),
+            "feed_type": feed_type,
+            "event_type": None,  # Not derivable cheaply from new schema; left NULL.
+            "is_regular": _coerce_bool(meta.get("is_regular")) if not meta.empty else None,
+            "status": status_by_feed.get(feed_id),
+            "num_items": num_items,
+            "num_analysis_items": num_items,
+            "num_opportunity_items": int(base.get("num_opportunity_items") or 0),
+            "num_future_opportunity_items": int(base.get("num_future_opportunity_items") or 0),
+            "num_future_week_opportunity_items": int(base.get("num_future_week_opportunity_items") or 0),
+            "num_opportunity_start_dates": int(base.get("num_opportunity_items") or 0),
+            "num_future_opportunity_start_dates": int(base.get("num_future_opportunity_items") or 0),
+            "num_future_week_opportunity_start_dates": int(base.get("num_future_week_opportunity_items") or 0),
+            "item_kinds_counts":      per_feed_dicts["item_kinds_counts"].get(feed_id, {}),
+            "item_types_counts":      item_types_counts,
+            "organizer_names_counts": per_feed_dicts["organizer_names_counts"].get(feed_id, {}),
+            "activities_counts":      per_feed_dicts["activities_counts"].get(feed_id, {}),
+            "facilities_counts":      per_feed_dicts["facilities_counts"].get(feed_id, {}),
+            "accessibilities_counts": per_feed_dicts["accessibilities_counts"].get(feed_id, {}),
+            "regions_counts":         regions_counts.get(feed_id, {}),
+            "districts_counts":       districts_counts.get(feed_id, {}),
+            "trusts_counts":          trusts_counts.get(feed_id, {}),
+        }
+        rows.append(row)
+
+    logger.info("Built %d feed_insights rows", len(rows))
+    return rows
+
+
+def _coerce_bool(value: Any) -> bool | None:
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        s = value.strip().lower()
+        if s in {"true", "t", "yes", "y", "1"}:
+            return True
+        if s in {"false", "f", "no", "n", "0"}:
+            return False
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Aggregates
+# ---------------------------------------------------------------------------
+
+_SCOPES = ("all", "regular", "preview")
+
+
+def _feeds_in_scope(df_feeds: pd.DataFrame, scope: str) -> pd.DataFrame:
+    if scope == "all":
+        return df_feeds
+    if scope == "regular":
+        return df_feeds[df_feeds["is_regular"] == True]
+    if scope == "preview":
+        return df_feeds[df_feeds["is_regular"] == False]
+    raise ValueError(f"Unknown scope: {scope}")
+
+
+def _aggregate_category(
+    rows: list[dict[str, Any]],
+    feed_id_col: str,
+    value_col: str,
+    count_col: str,
+    scope_feed_ids: dict[str, set[str]],
+) -> dict[str, list[dict[str, Any]]]:
+    """Collapse a per-feed SQL result into one aggregated count list per scope."""
+    out: dict[str, list[dict[str, Any]]] = {}
+    for scope in _SCOPES:
+        feed_ids = scope_feed_ids[scope]
+        totals: dict[str, int] = defaultdict(int)
+        for row in rows:
+            if row[feed_id_col] in feed_ids and row[value_col] is not None:
+                totals[str(row[value_col])] += int(row[count_col])
+        grand_total = sum(totals.values())
+        scope_rows: list[dict[str, Any]] = []
+        for value, count in sorted(totals.items(), key=lambda x: -x[1]):
+            scope_rows.append({
+                "value": value,
+                "count": count,
+                "percentage": (count / grand_total * 100) if grand_total else 0.0,
+            })
+        out[scope] = scope_rows
+    return out
+
+
+def _sum_counts(rows_a: list[dict[str, Any]], rows_b: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Merge two already-aggregated count lists by value, recomputing percentage."""
+    totals: dict[str, int] = defaultdict(int)
+    for row in (*rows_a, *rows_b):
+        totals[row["value"]] += row["count"]
+    grand = sum(totals.values())
+    merged = [
+        {"value": v, "count": c, "percentage": (c / grand * 100) if grand else 0.0}
+        for v, c in sorted(totals.items(), key=lambda x: -x[1])
+    ]
+    return merged
+
+
+def _category_rows_for_bq(
+    run_date: datetime,
+    category: str,
+    per_scope: dict[str, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for scope, rows in per_scope.items():
+        for row in rows:
+            out.append({
+                "run_date": run_date,
+                "category": category,
+                "scope": scope,
+                "value": row["value"],
+                "count": row["count"],
+                "percentage": row["percentage"],
+            })
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Main orchestration
+# ---------------------------------------------------------------------------
+
+def run(verbose: bool = False, init_tables: bool = False) -> None:
+    run_date = datetime.now(timezone.utc)
+    logger.info("opportunity-insights run starting (run_date=%s)", run_date.isoformat())
+
+    if init_tables:
+        logger.info("Ensuring output tables exist")
+        bigquery_ops.ensure_tables()
+
+    opportunities_tbl = bigquery_ops.table_id(bigquery_ops.OPPORTUNITIES_TABLE)
+    feeds_tbl = bigquery_ops.table_id(bigquery_ops.FEEDS_TABLE)
+    opportunity_ingestion_tbl = bigquery_ops.table_id(bigquery_ops.OPPORTUNITY_INGESTION_TABLE)
+
+    logger.info("Loading feed metadata")
+    df_feeds = bigquery_ops.run_query(queries.feeds_metadata(feeds_tbl))
+
+    logger.info("Loading latest ingestion status per feed")
+    df_status = bigquery_ops.run_query(queries.latest_ingestion_status(opportunity_ingestion_tbl))
+
+    logger.info("Computing per-feed base metrics")
+    df_base = bigquery_ops.run_query(queries.per_feed_base_metrics(opportunities_tbl))
+
+    logger.info("Computing per-feed categorical counts")
+    per_feed_dicts = _collect_per_feed_dicts(opportunities_tbl)
+
+    logger.info("Loading location points for spatial lookup")
+    df_points = bigquery_ops.run_query(queries.per_feed_location_points(opportunities_tbl))
+
+    logger.info("Building spatial indexes from %s", DEFAULT_GEO_DIR)
+    geolookup.load_indexes(DEFAULT_GEO_DIR)
+
+    logger.info("Resolving %d location points into region/district/trust counts", len(df_points))
+    regions_counts, districts_counts, trusts_counts = _resolve_geo_counts(df_points)
+
+    feed_rows = _build_feed_insights_rows(
+        run_date, df_feeds, df_base, df_status,
+        per_feed_dicts, regions_counts, districts_counts, trusts_counts,
+    )
+
+    # ---------- Aggregate pass ---------- #
+    # Build feed-id sets per scope from the feed_rows (so "scope" tracks what was
+    # actually analysed, not every row in the feeds table).
+    scope_feed_ids: dict[str, set[str]] = {
+        "all":     {r["feed_id"] for r in feed_rows},
+        "regular": {r["feed_id"] for r in feed_rows if r["is_regular"] is True},
+        "preview": {r["feed_id"] for r in feed_rows if r["is_regular"] is False},
+    }
+
+    def scalar_by_scope(predicate) -> dict[str, int]:
+        return {scope: sum(1 for r in feed_rows if r["feed_id"] in scope_feed_ids[scope] and predicate(r))
+                for scope in _SCOPES}
+
+    def sum_by_scope(col: str) -> dict[str, int]:
+        return {scope: sum(int(r.get(col) or 0) for r in feed_rows if r["feed_id"] in scope_feed_ids[scope])
+                for scope in _SCOPES}
+
+    num_publishers = {
+        scope: len({r.get("publisher_name") for r in feed_rows
+                    if r["feed_id"] in scope_feed_ids[scope] and r.get("publisher_name")})
+        for scope in _SCOPES
+    }
+    num_datasets = {
+        scope: len({r.get("dataset_url") for r in feed_rows
+                    if r["feed_id"] in scope_feed_ids[scope] and r.get("dataset_url")})
+        for scope in _SCOPES
+    }
+    num_feeds = {
+        scope: len(_feeds_in_scope(df_feeds, scope)) for scope in _SCOPES
+    }
+    num_feeds_with_data = {scope: len(scope_feed_ids[scope]) for scope in _SCOPES}
+    num_feeds_with_future = scalar_by_scope(lambda r: (r.get("num_future_opportunity_items") or 0) > 0)
+    total_items = sum_by_scope("num_items")
+    total_future = sum_by_scope("num_future_opportunity_items")
+    total_future_week = sum_by_scope("num_future_week_opportunity_items")
+
+    # Aggregate category counts, per scope
+    categories: dict[str, dict[str, list[dict[str, Any]]]] = {}
+
+    def agg_simple(category: str, sql: str) -> None:
+        rows = bigquery_ops.run_query(sql).to_dict("records")
+        categories[category] = _aggregate_category(rows, "feed_id", "value", "cnt", scope_feed_ids)
+
+    agg_simple("item_kind",     queries.per_feed_kind_counts(opportunities_tbl))
+    agg_simple("activity",      queries.per_feed_activity_counts(opportunities_tbl))
+    agg_simple("facility",      queries.per_feed_facility_counts(opportunities_tbl))
+    agg_simple("accessibility", queries.per_feed_accessibility_counts(opportunities_tbl))
+    agg_simple("organizer",     queries.per_feed_organizer_counts(opportunities_tbl))
+
+    # item_type: derive from feed_type (1 type per feed) × num_items.
+    item_type_by_scope: dict[str, list[dict[str, Any]]] = {}
+    for scope in _SCOPES:
+        totals: dict[str, int] = defaultdict(int)
+        for r in feed_rows:
+            if r["feed_id"] in scope_feed_ids[scope] and r.get("feed_type"):
+                totals[r["feed_type"]] += int(r.get("num_items") or 0)
+        grand = sum(totals.values())
+        item_type_by_scope[scope] = [
+            {"value": k, "count": v, "percentage": (v / grand * 100) if grand else 0.0}
+            for k, v in sorted(totals.items(), key=lambda x: -x[1])
+        ]
+    categories["item_type"] = item_type_by_scope
+
+    # activity_facility: combined
+    categories["activity_facility"] = {
+        scope: _sum_counts(categories["activity"][scope], categories["facility"][scope])
+        for scope in _SCOPES
+    }
+
+    # region / district / trust: per-feed dicts → aggregate rows.
+    for category, per_feed in (
+        ("region", regions_counts),
+        ("district", districts_counts),
+        ("trust", trusts_counts),
+    ):
+        per_scope: dict[str, list[dict[str, Any]]] = {}
+        for scope in _SCOPES:
+            totals: dict[str, int] = defaultdict(int)
+            for feed_id, values in per_feed.items():
+                if feed_id in scope_feed_ids[scope]:
+                    for v, c in values.items():
+                        totals[v] += c
+            grand = sum(totals.values())
+            per_scope[scope] = [
+                {"value": v, "count": c, "percentage": (c / grand * 100) if grand else 0.0}
+                for v, c in sorted(totals.items(), key=lambda x: -x[1])
+            ]
+        categories[category] = per_scope
+
+    # ---------- SAD matching ---------- #
+    act_fac_all = categories["activity_facility"]["all"]
+    df_act_fac_all = pd.DataFrame(act_fac_all, columns=["value", "count", "percentage"]).rename(
+        columns={"value": "activity"}
+    )
+    sad = run_sad_matching(df_act_fac_all, DEFAULT_GEO_DIR)
+
+    # ---------- Write category_counts ---------- #
+    category_rows: list[dict[str, Any]] = []
+    for cat, per_scope in categories.items():
+        category_rows.extend(_category_rows_for_bq(run_date, cat, per_scope))
+
+    # ---------- Assemble run summary ---------- #
+    total_num_items_with = {
+        cat: sum(r["count"] for r in categories[cat]["all"])
+        for cat in ("item_kind", "item_type", "organizer", "activity", "facility",
+                    "accessibility", "region", "district", "trust")
+    }
+
+    summary_row = {
+        "run_date": run_date,
+        "num_publishers":                                    num_publishers["all"],
+        "num_publishers_regular":                            num_publishers["regular"],
+        "num_publishers_preview":                            num_publishers["preview"],
+        "num_datasets":                                      num_datasets["all"],
+        "num_datasets_regular":                              num_datasets["regular"],
+        "num_datasets_preview":                              num_datasets["preview"],
+        "num_feeds":                                         num_feeds["all"],
+        "num_feeds_regular":                                 num_feeds["regular"],
+        "num_feeds_preview":                                 num_feeds["preview"],
+        "num_feeds_with_analysed_data":                      num_feeds_with_data["all"],
+        "num_feeds_with_analysed_data_regular":              num_feeds_with_data["regular"],
+        "num_feeds_with_analysed_data_preview":              num_feeds_with_data["preview"],
+        "num_feeds_with_future_opportunity_items":           num_feeds_with_future["all"],
+        "num_feeds_with_future_opportunity_items_regular":   num_feeds_with_future["regular"],
+        "num_feeds_with_future_opportunity_items_preview":   num_feeds_with_future["preview"],
+        "total_num_items":                                   total_items["all"],
+        "total_num_items_regular":                           total_items["regular"],
+        "total_num_items_preview":                           total_items["preview"],
+        "total_num_future_opportunity_items":                total_future["all"],
+        "total_num_future_opportunity_items_regular":        total_future["regular"],
+        "total_num_future_opportunity_items_preview":        total_future["preview"],
+        "total_num_future_week_opportunity_items":           total_future_week["all"],
+        "total_num_future_week_opportunity_items_regular":   total_future_week["regular"],
+        "total_num_future_week_opportunity_items_preview":   total_future_week["preview"],
+        "total_num_item_kinds":                              len(categories["item_kind"]["all"]),
+        "total_num_item_types":                              len(categories["item_type"]["all"]),
+        "total_num_organizer_names":                         len(categories["organizer"]["all"]),
+        "total_num_activities":                              len(categories["activity"]["all"]),
+        "total_num_facilities":                              len(categories["facility"]["all"]),
+        "total_num_accessibilities":                         len(categories["accessibility"]["all"]),
+        "total_num_regions":                                 len(categories["region"]["all"]),
+        "total_num_districts":                               len(categories["district"]["all"]),
+        "total_num_trusts":                                  len(categories["trust"]["all"]),
+        "total_num_items_with_kinds":                        total_num_items_with["item_kind"],
+        "total_num_items_with_types":                        total_num_items_with["item_type"],
+        "total_num_items_with_organizer_names":              total_num_items_with["organizer"],
+        "total_num_items_with_activities":                   total_num_items_with["activity"],
+        "total_num_items_with_facilities":                   total_num_items_with["facility"],
+        "total_num_items_with_accessibilities":              total_num_items_with["accessibility"],
+        "total_num_items_with_regions":                      total_num_items_with["region"],
+        "total_num_items_with_districts":                    total_num_items_with["district"],
+        "total_num_items_with_trusts":                       total_num_items_with["trust"],
+        "total_num_items_with_sad":                          sad.total_num_items_with_sad,
+        "total_num_items_without_sad":                       sad.total_num_items_without_sad,
+        "total_num_activities_with_sad":                     sad.total_num_activities_with_sad,
+        "total_num_activities_without_sad":                  sad.total_num_activities_without_sad,
+        "num_sad":                                           sad.num_sad,
+        "num_sad_matched":                                   sad.num_sad_matched,
+        "num_sad_unmatched":                                 sad.num_sad_unmatched,
+        "percentage_sad_matched":                            sad.percentage_sad_matched,
+        "percentage_sad_unmatched":                          sad.percentage_sad_unmatched,
+    }
+
+    # ---------- SAD rows ---------- #
+    sad_rows: list[dict[str, Any]] = []
+    for _, row in sad.matched.iterrows():
+        sad_rows.append({
+            "run_date": run_date,
+            "sport_and_discipline": row["sport_and_discipline"],
+            "activity": row["activity"],
+            "is_matched": True,
+            "count_items": int(row["count_items"]),
+            "count_activities": int(row["count_activities"]),
+            "percentage_items": float(row["percentage_items"]),
+            "percentage_activities": float(row["percentage_activities"]),
+        })
+    for _, row in sad.unmatched.iterrows():
+        sad_rows.append({
+            "run_date": run_date,
+            "sport_and_discipline": row["sport_and_discipline"],
+            "activity": row["activity"],
+            "is_matched": False,
+            "count_items": int(row["count_items"]),
+            "count_activities": None,
+            "percentage_items": float(row["percentage_items"]),
+            "percentage_activities": None,
+        })
+
+    master_rows: list[dict[str, Any]] = []
+    for _, row in sad.master.iterrows():
+        master_rows.append({
+            "run_date": run_date,
+            "sport": row.get("sport"),
+            "discipline": row.get("discipline"),
+            "sport_and_discipline": row.get("sport_and_discipline"),
+            "is_matched_by_any_feed": bool(row["is_matched_by_any_feed"]),
+        })
+
+    # ---------- Persist ---------- #
+    logger.info("Writing outputs to BigQuery")
+    bigquery_ops.upsert_feed_insights(feed_rows)
+    bigquery_ops.append_run_summary(summary_row)
+    bigquery_ops.append_category_counts(category_rows)
+    bigquery_ops.append_sport_discipline(sad_rows)
+    bigquery_ops.append_sport_discipline_master(master_rows)
+
+    logger.info("opportunity-insights run complete")
+
+
+@click.command()
+@click.option("--verbose", is_flag=True, default=False, help="Enable DEBUG logging.")
+@click.option("--init-tables", is_flag=True, default=False, help="Ensure output tables exist before running (idempotent).")
+def cli(verbose: bool, init_tables: bool) -> None:
+    _configure_logging(verbose)
+    run(verbose=verbose, init_tables=init_tables)
+
+
+if __name__ == "__main__":
+    cli()

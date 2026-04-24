@@ -160,6 +160,15 @@ ALTER TABLE `openactive-monitor.openactive_analytics.opportunity_ingestion`
 ADD COLUMN IF NOT EXISTS afterChangeNumber INT64;
 ```
 
+Add `is_regular` to the feeds table (for opportunity-insights):
+
+```SQL
+ALTER TABLE `openactive-monitor.openactive_analytics.feeds`
+ADD COLUMN IF NOT EXISTS is_regular BOOL;
+```
+
+After the next `ingest_feeds` run the column is populated for every feed. Prior rows remain `NULL` until they are touched again.
+
 After running these, you may still continue seeing old data in the tables due to caching. To ensure you see the latest data, you can run a simple query to refresh the cache:
 
 ```SQL

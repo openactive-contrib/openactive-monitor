@@ -1,0 +1,8 @@
+[
+  {"name": "run_date", "type": "TIMESTAMP", "mode": "REQUIRED"},
+  {"name": "category", "type": "STRING", "mode": "REQUIRED", "description": "item_kind | item_type | organizer | activity | facility | accessibility | activity_facility | region | district | trust"},
+  {"name": "scope", "type": "STRING", "mode": "REQUIRED", "description": "all | regular | preview"},
+  {"name": "value", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "count", "type": "INTEGER", "mode": "NULLABLE"},
+  {"name": "percentage", "type": "FLOAT64", "mode": "NULLABLE"}
+]
