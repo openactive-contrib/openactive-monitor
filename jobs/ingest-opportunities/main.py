@@ -28,7 +28,7 @@ from rpde import access_feed_url
 
 load_dotenv()
 
-INGEST_MAX_WORKERS = int(os.getenv("INGEST_MAX_WORKERS", "4"))
+INGEST_MAX_WORKERS = int(os.getenv("INGEST_MAX_WORKERS", "8"))
 
 # For Debugging True
 # TODO
@@ -83,7 +83,7 @@ logging.setLogRecordFactory(_record_factory)
 
 DF_COLUMNS = [
     "dataset_url", "feed_id", "id", "data_id", "kind", "modified",
-    "json_data", "inherited_data", "activity", "location", "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent"
+    "json_data", "inherited_data", "activity", "facility", "location", "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent"
 ]
 
 
@@ -174,12 +174,13 @@ def _extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[di
                 "modified":       item.get("modified"),
                 "json_data":      data,
                 "inherited_data": {},
-                "activity":         get_activity(data),
+                "activity":       get_activity(data),
+                "facility":       get_facility(data),
                 "location":       _build_location(data.get("location")),
                 "startDate":      data.get("startDate"),
                 "endDate":        data.get("endDate"),
-                "ageRange":       data.get("ageRange", {}),
-                "level":          data.get("level", {}),
+                "ageRange":       data.get("ageRange"),
+                "level":          data.get("level"),
                 "has_superEvent": data.get("superEvent") or data.get("facilityUse"),
                 "has_subEvent":     data.get("subEvent"),
             })
@@ -200,6 +201,19 @@ def get_activity(data: dict) -> list[Any]:
             return [data["activity"].get("prefLabel")]
         elif isinstance(data["activity"], list):
             return [activity.get("prefLabel") for activity in data["activity"] if activity]
+
+    return []
+
+
+def get_facility(data: dict) -> list[Any]:
+    """
+    Extract a clean facility list from an opportunity data.
+    FacilityUse may have a category instead of activity, and some older datasets may have activity nested in different ways. Try to extract activity from common locations.
+    Args:
+        data: opportunity data dict.
+    Returns:
+        list of facility names
+    """
     if data.get("facilityType"):
         facility_types = []
         if isinstance(data["facilityType"], dict):
@@ -208,13 +222,7 @@ def get_activity(data: dict) -> list[Any]:
             facility_types = data["facilityType"]
         if facility_types:
             return [ft.get("prefLabel") for ft in facility_types if ft and ft.get("prefLabel")]
-    if data.get("category"):
-        if isinstance(data["category"], dict):
-            return [data["category"]]
-        elif isinstance(data["category"], list):
-            return data["category"]
-    if data.get("name"):
-        return [data["name"]]
+
     return []
 
 
@@ -391,8 +399,10 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
     Returns:
         None. The DataFrame is modified in place.
     """
-    if get_activity(inherited_data) and (not df.at[idx, "activity"] or df.at[idx, "activity"] == {}):
+    if get_activity(inherited_data) and (not df.at[idx, "activity"] or df.at[idx, "activity"] == []):
         df.at[idx, "activity"] = get_activity(inherited_data)
+    if get_facility(inherited_data) and (not df.at[idx, "facility"] or df.at[idx, "facility"] == []):
+        df.at[idx, "facility"] = get_facility(inherited_data)
     if "location" in inherited_data and (not df.at[idx, "location"] or df.at[idx, "location"] == {}):
         df.at[idx, "location"] = _build_location(inherited_data["location"])
     if "startDate" in inherited_data and (not df.at[idx, "startDate"] or df.at[idx, "startDate"] == ""):
@@ -401,7 +411,7 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         df.at[idx, "endDate"] = inherited_data["endDate"]
     if "ageRange" in inherited_data and (not df.at[idx, "ageRange"] or df.at[idx, "ageRange"] == {}):
         df.at[idx, "ageRange"] = inherited_data["ageRange"]
-    if "level" in inherited_data and (not df.at[idx, "level"] or df.at[idx, "level"] == {}):
+    if "level" in inherited_data and (not df.at[idx, "level"] or df.at[idx, "level"] == []):
         df.at[idx, "level"] = inherited_data["level"]
 
 

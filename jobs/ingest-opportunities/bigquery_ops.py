@@ -37,6 +37,7 @@ OPPORTUNITIES_COLUMNS = [
     "json_data",
     "inherited_data",
     "activity",
+    "facility",
     "location",
     "startDate",
     "endDate",
@@ -54,6 +55,11 @@ DATA_ID_QUERY_BATCH_SIZE = 2000
 INGESTION_INSERT_RETRY_MAX_ATTEMPTS = 3
 INGESTION_INSERT_RETRY_BASE_SECONDS = 2
 INGESTION_INSERT_BATCH_SIZE = 500
+
+# opportunities staging merge retry configuration
+MERGE_RETRY_MAX_ATTEMPTS = 5
+MERGE_RETRY_BASE_SECONDS = 5
+MERGE_RETRY_MAX_SECONDS = 120
 
 # Columns used to match existing rows for MERGE upserts.
 _OPPORTUNITY_MERGE_KEYS = ("dataset_url", "feed_id", "id")
@@ -900,22 +906,58 @@ def _load_staging_table(
 
 
 def _merge_staging_to_main(
-    client: bigquery.Client,
-    table_id: str,
-    staging_table_id: str,
-    dataset_url: str,
+        client: bigquery.Client,
+        table_id: str,
+        staging_table_id: str,
+        dataset_url: str,
+        max_attempts: int = MERGE_RETRY_MAX_ATTEMPTS,
+        base_delay_seconds: int = MERGE_RETRY_BASE_SECONDS,
+        max_delay_seconds: int = MERGE_RETRY_MAX_SECONDS,
 ) -> None:
-    """Run the MERGE statement that upserts rows from the staging table into the main table."""
-    merge_query = _build_upsert_merge_query(table_id, staging_table_id)
-    merge_job = client.query(merge_query)
-    merge_job.result()
-    logger.info(
-        "Upserted %d rows into %s for dataset %s (inserted+updated)",
-        merge_job.num_dml_affected_rows or 0,
-        table_id,
-        dataset_url,
-    )
+    """Run the MERGE statement that upserts rows from the staging table into the main table.
 
+    Retries on concurrent update errors with exponential backoff.
+    """
+    merge_query = _build_upsert_merge_query(table_id, staging_table_id)
+
+    for attempt in range(max_attempts):
+        try:
+            merge_job = client.query(merge_query)
+            merge_job.result()
+            logger.info(
+                "Upserted %d rows into %s for dataset %s (inserted+updated)",
+                merge_job.num_dml_affected_rows or 0,
+                table_id,
+                dataset_url,
+            )
+            return
+        except Exception as exc:
+            if not _is_concurrent_update_error(exc):
+                raise
+
+            if attempt >= max_attempts - 1:
+                logger.error(
+                    "MERGE failed after %d attempts due to concurrent updates for dataset %s",
+                    max_attempts,
+                    dataset_url,
+                )
+                raise
+
+            delay = _retry_delay_seconds(attempt, base_delay_seconds, max_delay_seconds)
+            logger.warning(
+                "Concurrent update on MERGE attempt %d/%d for dataset %s; retrying in %d seconds",
+                attempt + 1,
+                max_attempts,
+                dataset_url,
+                delay,
+            )
+            time.sleep(delay)
+
+def _is_concurrent_update_error(exc: Exception) -> bool:
+    if not isinstance(exc, google_exceptions.BadRequest):
+        return False
+    message = str(exc).lower()
+    return "could not serialize access" in message and "concurrent update" in message
 
 def write_dataset_opportunities(dataset_url: str, dataset_df: pd.DataFrame) -> None:
     """
