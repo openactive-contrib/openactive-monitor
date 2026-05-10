@@ -39,6 +39,8 @@ OPPORTUNITIES_COLUMNS = [
     "activity",
     "facility",
     "location",
+    "district_name",
+    "region_name",
     "startDate",
     "endDate",
     "ageRange",
@@ -605,7 +607,19 @@ def _coerce_timestamp(value: Any) -> str | None:
             return None
         if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
             return f"{raw} 00:00:00+00:00"
-        return raw.replace("Z", "+00:00")
+        candidate = raw.replace("Z", "+00:00")
+        # Validate the string actually parses as a timestamp; some legacy data
+        # contains malformed values like "T00:00:00" (no date) which BigQuery
+        # rejects on load. Drop those rather than failing the whole batch.
+        try:
+            parsed = pd.to_datetime(candidate, utc=True, errors="raise")
+        except Exception:
+            logger.warning("Dropping unparseable timestamp value: %r", value)
+            return None
+        if pd.isna(parsed):
+            logger.warning("Dropping unparseable timestamp value: %r", value)
+            return None
+        return parsed.isoformat()
 
     return str(value)
 

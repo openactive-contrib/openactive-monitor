@@ -117,6 +117,8 @@ Stores denormalized opportunity data from RPDE feeds.
 | `inherited_data` | JSON | Properties inherited from superEvent/parent |
 | `activity` | JSON | Extracted activity labels |
 | `location` | JSON | Extracted geolocation (`latitude`, `longitude`, `postal_code`, etc.) |
+| `district_name` | STRING | UK Local Authority District name resolved from `location.latitude/longitude` (`LAD24NM`) |
+| `region_name` | STRING | UK Region name resolved from `location.latitude/longitude` (`eer18nm`) |
 | `startDate` | STRING | Start date |
 | `endDate` | STRING | End date |
 | `ageRange` | JSON | Age range information |

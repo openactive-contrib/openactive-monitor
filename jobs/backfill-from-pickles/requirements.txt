@@ -4,10 +4,9 @@ pyarrow
 pandas
 pandas-gbq
 python-dotenv
+click
 requests
 urllib3
-tqdm
-click
 uklookup
 geopandas
 shapely
