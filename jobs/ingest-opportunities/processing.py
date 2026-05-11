@@ -122,23 +122,41 @@ def unpack_data(data: dict) -> dict:
 
 
 def get_activity(data: dict) -> list[Any]:
-    if data.get("activity"):
-        if isinstance(data["activity"], dict):
-            return [data["activity"].get("prefLabel")]
-        elif isinstance(data["activity"], list):
-            return [activity.get("prefLabel") for activity in data["activity"] if activity]
+    """Extract activity labels from activity or activities field."""
+    # Try both singular and plural forms
+    activities_field = data.get("activity") or data.get("activities")
+    if activities_field:
+        if isinstance(activities_field, dict):
+            label = activities_field.get("prefLabel")
+            return [label] if label else []
+        elif isinstance(activities_field, list):
+            labels = [
+                item.get("prefLabel")
+                for item in activities_field
+                if isinstance(item, dict) and item.get("prefLabel")
+            ]
+            return labels
     return []
 
 
 def get_facility(data: dict) -> list[Any]:
-    if data.get("facilityType"):
-        facility_types = []
-        if isinstance(data["facilityType"], dict):
-            facility_types = [data["facilityType"]]
-        elif isinstance(data["facilityType"], list) and len(data["facilityType"]) > 0:
-            facility_types = data["facilityType"]
-        if facility_types:
-            return [ft.get("prefLabel") for ft in facility_types if ft and ft.get("prefLabel")]
+    """Extract facility labels from facilityType or facilities field."""
+    # Try both singular and plural forms
+    facility_field = data.get("facilityType") or data.get("facilities")
+    if facility_field:
+        facility_items = []
+        if isinstance(facility_field, dict):
+            facility_items = [facility_field]
+        elif isinstance(facility_field, list):
+            facility_items = facility_field
+
+        if facility_items:
+            labels = [
+                item.get("prefLabel")
+                for item in facility_items
+                if isinstance(item, dict) and item.get("prefLabel")
+            ]
+            return labels
     return []
 
 
@@ -172,7 +190,7 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[dic
                 "feed_id":        feed_id,
                 "id":             item.get("id"),
                 "data_id":        data.get("@id"),
-                "kind":           data.get("@type"),
+                "kind":           data.get("@type") or data.get("type"),
                 "modified":       item.get("modified"),
                 "json_data":      data,
                 "inherited_data": {},

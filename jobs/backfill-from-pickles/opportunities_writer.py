@@ -58,6 +58,38 @@ logger = logging.getLogger(__name__)
 # Mirrors jobs/ingest-opportunities/main.py
 FIRST_BATCH_FEED_TYPES = {"FacilityUse", "IndividualFacilityUse", "Slot"}
 
+# Filename tokens in legacy opportunities pickles map to OpenActive feed kinds.
+# Keep longer/more specific tokens first so they win over broader matches.
+_FILENAME_KIND_TOKENS: list[tuple[str, str]] = [
+    ("individual-facility-uses", "IndividualFacilityUse"),
+    ("facility-uses", "FacilityUse"),
+    ("headline-events", "HeadlineEvent"),
+    ("on-demand-events", "OnDemandEvent"),
+    ("scheduled-sessions", "ScheduledSession"),
+    ("session-series", "SessionSeries"),
+    ("course-instances", "CourseInstance"),
+    ("events", "Event"),
+    ("slots", "Slot"),
+]
+
+
+def _infer_kind_from_pickle_name(filename: str) -> str | None:
+    lower_name = filename.lower()
+    for token, kind in _FILENAME_KIND_TOKENS:
+        if token in lower_name:
+            return kind
+    return None
+
+
+def _infer_kind_from_row_payload(row: dict[str, Any]) -> str | None:
+    json_data = row.get("json_data")
+    if not isinstance(json_data, dict):
+        return None
+    kind = json_data.get("@type") or json_data.get("type")
+    if isinstance(kind, str) and kind:
+        return kind
+    return None
+
 
 # ---------------------------------------------------------------------------
 # Grouping & partitioning (parent process; no pickle decode)
@@ -169,11 +201,24 @@ def _process_batch(
 
         feed_meta = payload.get("feed", {}) if isinstance(payload, dict) else {}
         feed_id = feed_meta.get("id") or pkl.feed_id
+        inferred_kind = _infer_kind_from_pickle_name(pkl.path.name)
 
         items_dict = payload.get("items", {}) if isinstance(payload, dict) else {}
         items = list(items_dict.values()) if isinstance(items_dict, dict) else list(items_dict or [])
         rpde_result = {"items": items}
         updated, _deleted = processing.extract_rows(dataset_url, feed_id, rpde_result)
+
+        # Legacy pickles sometimes miss explicit row kind; prefer payload type,
+        # then fall back to filename-derived feed kind.
+        if inferred_kind:
+            for row in updated:
+                if not row.get("kind"):
+                    row["kind"] = _infer_kind_from_row_payload(row) or inferred_kind
+        else:
+            for row in updated:
+                if not row.get("kind"):
+                    row["kind"] = _infer_kind_from_row_payload(row)
+
         all_updated_rows.extend(updated)
 
         next_url = payload.get("next_url", "") if isinstance(payload, dict) else ""
@@ -182,7 +227,7 @@ def _process_batch(
         ingestion_records.append({
             "dataset_id":        dataset_url,
             "feed_id":           feed_id,
-            "kind":              feed_meta.get("type"),
+            "kind":              feed_meta.get("type") or inferred_kind,
             "ingestion_date":    pkl.time_finish.isoformat(),
             "afterTimestamp":    aft_ts,
             "afterId":           aft_id,
