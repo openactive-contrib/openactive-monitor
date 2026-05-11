@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -271,9 +271,11 @@ def _category_rows_for_bq(
 # Main orchestration
 # ---------------------------------------------------------------------------
 
-def run(verbose: bool = False, init_tables: bool = False) -> None:
+def run(verbose: bool = False, init_tables: bool = False, reference_date: date | None = None) -> None:
     run_date = datetime.now(timezone.utc)
+    effective_reference_date = reference_date or run_date.date()
     logger.info("opportunity-insights run starting (run_date=%s)", run_date.isoformat())
+    logger.info("Using reference date %s for future opportunity metrics", effective_reference_date.isoformat())
 
     if init_tables:
         logger.info("Ensuring output tables exist")
@@ -290,7 +292,9 @@ def run(verbose: bool = False, init_tables: bool = False) -> None:
     df_status = bigquery_ops.run_query(queries.latest_ingestion_status(opportunity_ingestion_tbl))
 
     logger.info("Computing per-feed base metrics")
-    df_base = bigquery_ops.run_query(queries.per_feed_base_metrics(opportunities_tbl))
+    df_base = bigquery_ops.run_query(
+        queries.per_feed_base_metrics(opportunities_tbl, effective_reference_date)
+    )
 
     logger.info("Computing per-feed categorical counts")
     per_feed_dicts = _collect_per_feed_dicts(opportunities_tbl)
@@ -521,9 +525,19 @@ def run(verbose: bool = False, init_tables: bool = False) -> None:
 @click.command()
 @click.option("--verbose", is_flag=True, default=False, help="Enable DEBUG logging.")
 @click.option("--init-tables", is_flag=True, default=False, help="Ensure output tables exist before running (idempotent).")
-def cli(verbose: bool, init_tables: bool) -> None:
+@click.option(
+    "--reference-date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=None,
+    help="Optional date (YYYY-MM-DD) used to calculate future opportunity metrics.",
+)
+def cli(verbose: bool, init_tables: bool, reference_date: datetime | None) -> None:
     _configure_logging(verbose)
-    run(verbose=verbose, init_tables=init_tables)
+    run(
+        verbose=verbose,
+        init_tables=init_tables,
+        reference_date=reference_date.date() if reference_date else None,
+    )
 
 
 if __name__ == "__main__":

@@ -7,8 +7,11 @@ All queries target the ``opportunities`` and ``feeds`` tables in
 
 from __future__ import annotations
 
+from datetime import date
 
-def per_feed_base_metrics(opportunities_table: str) -> str:
+
+def per_feed_base_metrics(opportunities_table: str, reference_date: date | None = None) -> str:
+    reference_date_sql = f"DATE '{reference_date.isoformat()}'" if reference_date else "CURRENT_DATE()"
     return f"""
         SELECT
           dataset_url,
@@ -17,12 +20,12 @@ def per_feed_base_metrics(opportunities_table: str) -> str:
           COUNTIF(startDate IS NOT NULL) AS num_opportunity_items,
           COUNTIF(
             startDate IS NOT NULL
-            AND startDate >= TIMESTAMP(CURRENT_DATE())
+            AND startDate >= TIMESTAMP({reference_date_sql})
           ) AS num_future_opportunity_items,
           COUNTIF(
             startDate IS NOT NULL
-            AND startDate >= TIMESTAMP(CURRENT_DATE())
-            AND startDate <  TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL 7 DAY))
+            AND startDate >= TIMESTAMP({reference_date_sql})
+            AND startDate <  TIMESTAMP(DATE_ADD({reference_date_sql}, INTERVAL 7 DAY))
           ) AS num_future_week_opportunity_items
         FROM `{opportunities_table}`
         WHERE feed_id IS NOT NULL
