@@ -208,6 +208,14 @@ def _feeds_in_scope(df_feeds: pd.DataFrame, scope: str) -> pd.DataFrame:
     raise ValueError(f"Unknown scope: {scope}")
 
 
+def _count_distinct_non_empty(df: pd.DataFrame, column: str) -> int:
+    """Count distinct non-empty values in a metadata column."""
+    if column not in df.columns:
+        return 0
+    series = df[column].dropna().astype(str).str.strip()
+    return int(series[series != ""].nunique())
+
+
 def _aggregate_category(
     rows: list[dict[str, Any]],
     feed_id_col: str,
@@ -330,14 +338,14 @@ def run(verbose: bool = False, init_tables: bool = False, reference_date: date |
         return {scope: sum(int(r.get(col) or 0) for r in feed_rows if r["feed_id"] in scope_feed_ids[scope])
                 for scope in _SCOPES}
 
+    # Publisher/dataset counts should reflect the feed catalogue snapshot,
+    # including feeds that currently have zero opportunity rows.
     num_publishers = {
-        scope: len({r.get("publisher_name") for r in feed_rows
-                    if r["feed_id"] in scope_feed_ids[scope] and r.get("publisher_name")})
+        scope: _count_distinct_non_empty(_feeds_in_scope(df_feeds, scope), "publisher_name")
         for scope in _SCOPES
     }
     num_datasets = {
-        scope: len({r.get("dataset_url") for r in feed_rows
-                    if r["feed_id"] in scope_feed_ids[scope] and r.get("dataset_url")})
+        scope: _count_distinct_non_empty(_feeds_in_scope(df_feeds, scope), "dataset_url")
         for scope in _SCOPES
     }
     num_feeds = {
