@@ -91,6 +91,7 @@ def _collect_per_feed_dicts(opportunities_tbl: str) -> dict[str, dict[str, dict[
     """Run one query per categorical dimension and pivot each into per-feed dicts."""
     return {
         "item_kinds_counts":      _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_kind_counts(opportunities_tbl))),
+        "item_types_counts":      _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_item_type_counts(opportunities_tbl))),
         "activities_counts":      _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_activity_counts(opportunities_tbl))),
         "facilities_counts":      _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_facility_counts(opportunities_tbl))),
         "accessibilities_counts": _pivot_counts_to_dicts(bigquery_ops.run_query(queries.per_feed_accessibility_counts(opportunities_tbl))),
@@ -128,11 +129,6 @@ def _build_feed_insights_rows(
         feed_type = meta.get("feed_type") if not meta.empty else None
         num_items = int(base.get("num_items") or 0)
 
-        # item_types_counts: in the new model each feed is a single type, so the per-feed
-        # types dict is simply {feed_type: num_items}. Summing across feeds gives the
-        # aggregate type distribution (matches legacy's df_total_item_types_counts).
-        item_types_counts = {feed_type: num_items} if feed_type else {}
-
         row = {
             "run_date": run_date,
             "feed_id": feed_id,
@@ -155,7 +151,7 @@ def _build_feed_insights_rows(
             "num_future_opportunity_start_dates": int(base.get("num_future_opportunity_items") or 0),
             "num_future_week_opportunity_start_dates": int(base.get("num_future_week_opportunity_items") or 0),
             "item_kinds_counts":      per_feed_dicts["item_kinds_counts"].get(feed_id, {}),
-            "item_types_counts":      item_types_counts,
+            "item_types_counts":      per_feed_dicts["item_types_counts"].get(feed_id, {}),
             "organizer_names_counts": per_feed_dicts["organizer_names_counts"].get(feed_id, {}),
             "activities_counts":      per_feed_dicts["activities_counts"].get(feed_id, {}),
             "facilities_counts":      per_feed_dicts["facilities_counts"].get(feed_id, {}),
@@ -365,24 +361,12 @@ def run(verbose: bool = False, init_tables: bool = False, reference_date: date |
         categories[category] = _aggregate_category(rows, "feed_id", "value", "cnt", scope_feed_ids)
 
     agg_simple("item_kind",     queries.per_feed_kind_counts(opportunities_tbl))
+    agg_simple("item_type",     queries.per_feed_item_type_counts(opportunities_tbl))
     agg_simple("activity",      queries.per_feed_activity_counts(opportunities_tbl))
     agg_simple("facility",      queries.per_feed_facility_counts(opportunities_tbl))
     agg_simple("accessibility", queries.per_feed_accessibility_counts(opportunities_tbl))
     agg_simple("organizer",     queries.per_feed_organizer_counts(opportunities_tbl))
 
-    # item_type: derive from feed_type (1 type per feed) × num_items.
-    item_type_by_scope: dict[str, list[dict[str, Any]]] = {}
-    for scope in _SCOPES:
-        totals: dict[str, int] = defaultdict(int)
-        for r in feed_rows:
-            if r["feed_id"] in scope_feed_ids[scope] and r.get("feed_type"):
-                totals[r["feed_type"]] += int(r.get("num_items") or 0)
-        grand = sum(totals.values())
-        item_type_by_scope[scope] = [
-            {"value": k, "count": v, "percentage": (v / grand * 100) if grand else 0.0}
-            for k, v in sorted(totals.items(), key=lambda x: -x[1])
-        ]
-    categories["item_type"] = item_type_by_scope
 
     # activity_facility: combined
     categories["activity_facility"] = {
