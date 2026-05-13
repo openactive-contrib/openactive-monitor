@@ -16,9 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Default mount path of the "volume-1" GCS bucket inside the container.
-# The Cloud Run Job is configured to mount gs://volume-1 at /mnt/volume-1
-# so geojson/CSV reference data lives at /mnt/volume-1/data-analysis.
-ENV INSIGHTS_GEO_DIR=/mnt/volume-1/data-analysis
+# The Cloud Run Job is configured to mount gs://volume-1 at /volume-1
+# so geojson/CSV reference data lives at /volume-1/data-analysis.
+ENV INSIGHTS_GEO_DIR=/volume-1/data-analysis
 
 # Run the Click CLI; flags can be appended via Cloud Run Job "args".
 ENTRYPOINT ["python", "main.py"]

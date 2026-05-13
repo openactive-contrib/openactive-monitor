@@ -12,7 +12,7 @@ runtime via a Cloud Run **Cloud Storage volume**.
 
 | File | Purpose |
 |------|---------|
-| `Dockerfile` | Builds the runtime image (Python 3.13 + geopandas/shapely). Sets `INSIGHTS_GEO_DIR=/mnt/volume-1/data-analysis`. |
+| `Dockerfile` | Builds the runtime image (Python 3.13 + geopandas/shapely). Sets `INSIGHTS_GEO_DIR=/volume-1/data-analysis`. |
 | `cloudbuild.yaml` | Cloud Build pipeline: build → push → `gcloud run jobs deploy`. |
 | `.dockerignore` / `.gcloudignore` | Excludes `virt/`, `__pycache__`, `.env`, etc. |
 | `.env.example` | Local development env vars. |
@@ -67,7 +67,7 @@ Trigger Cloud Build once with the config above, or in the Console:
     - CPU: 2
     - Task timeout: e.g. **1h**
     - Environment variables (same list as `.env.example`, plus
-      `INSIGHTS_GEO_DIR=/mnt/volume-1/data-analysis`).
+      `INSIGHTS_GEO_DIR=/volume-1/data-analysis`).
 
 ### 3. Mount the `volume-1` bucket
 
@@ -80,11 +80,11 @@ Still on the **Create / Edit job** page:
    - Read-only: ✅ (recommended)
 2. Open the **Containers → Volume mounts** tab → **Mount volume**.
    - Name: `volume-1`
-   - Mount path: `/mnt/volume-1`
+   - Mount path: `/volume-1`
 3. Click **Create / Update**.
 
 Cloud Run uses Cloud Storage FUSE under the hood; no code changes needed —
-`geopandas.read_file("/mnt/volume-1/data-analysis/...geojson")` just works.
+`geopandas.read_file("/volume-1/data-analysis/...geojson")` just works.
 
 ### 4. Service account & IAM
 

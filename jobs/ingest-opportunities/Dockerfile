@@ -16,9 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Default mount path of the "volume-1" GCS bucket inside the container.
-# The Cloud Run Job is configured to mount gs://volume-1 at /mnt/volume-1,
-# so the boundary GeoJSONs live at /mnt/volume-1/data-analysis.
-ENV INGEST_BOUNDARY_DIR=/mnt/volume-1/data-analysis
+# The Cloud Run Job is configured to mount gs://volume-1 at /volume-1,
+# so the boundary GeoJSONs live at /volume-1/data-analysis.
+ENV INGEST_BOUNDARY_DIR=/volume-1/data-analysis
 
 # CSV debug dumps are off by default; if enabled, write to a writable path.
 ENV OPPORTUNITY_CSV_OUTPUT_DIR=/tmp/opportunities/csv

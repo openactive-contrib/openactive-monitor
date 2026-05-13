@@ -33,7 +33,7 @@ steps:
       - '$_JOB_NAME'
       - '--image=gcr.io/openactive-monitor/github.com/openactive-contrib/opportunity-insights:$COMMIT_SHA'
       - '--region=$_REGION'
-      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GCP_PROJECT_ID=openactive-monitor,BQ_DATASET_ID=openactive_analytics,BQ_FEEDS_TABLE=feeds,BQ_FEED_INGESTION_TABLE=feed_ingestion,BQ_OPPORTUNITY_INGESTION_TABLE=opportunity_ingestion,BQ_OPPORTUNITIES_TABLE=opportunities,INSIGHTS_GEO_DIR=/mnt/volume-1/data-analysis'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GCP_PROJECT_ID=openactive-monitor,BQ_DATASET_ID=openactive_analytics,BQ_FEEDS_TABLE=feeds,BQ_FEED_INGESTION_TABLE=feed_ingestion,BQ_OPPORTUNITY_INGESTION_TABLE=opportunity_ingestion,BQ_OPPORTUNITIES_TABLE=opportunities,INSIGHTS_GEO_DIR=/volume-1/data-analysis'
       - '--quiet'
 
 images:

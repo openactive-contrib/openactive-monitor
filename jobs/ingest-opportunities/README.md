@@ -7,15 +7,15 @@ postcode/boundary geolocation.
 UK boundary GeoJSONs (`000-location-districts.geojson`,
 `000-location-regions.geojson`) live in the **`volume-1` GCS bucket** under
 `data-analysis/`. They are mounted into the container at runtime via a
-Cloud Run **Cloud Storage volume** at `/mnt/volume-1`. The Python code reads
+Cloud Run **Cloud Storage volume** at `/volume-1`. The Python code reads
 the path from the `INGEST_BOUNDARY_DIR` env var (set by the Dockerfile and
-cloudbuild.yaml to `/mnt/volume-1/data-analysis`).
+cloudbuild.yaml to `/volume-1/data-analysis`).
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `Dockerfile` | Python 3.13 runtime; installs `requirements.txt` and sets `INGEST_BOUNDARY_DIR=/mnt/volume-1/data-analysis`. |
+| `Dockerfile` | Python 3.13 runtime; installs `requirements.txt` and sets `INGEST_BOUNDARY_DIR=/volume-1/data-analysis`. |
 | `cloudbuild.yaml` | Cloud Build pipeline: build → push → `gcloud run jobs deploy`. |
 | `.dockerignore` / `.gcloudignore` | Excludes `virt/`, `__pycache__`, `.env`, etc. |
 | `.env.example` | Local development env vars. |
@@ -74,10 +74,10 @@ On the **Edit job** page:
    - Read-only: ✅
 2. **Containers → Volume mounts** → **Mount volume**
    - Name: `volume-1`
-   - Mount path: `/mnt/volume-1`
+   - Mount path: `/volume-1`
 3. **Update**.
 
-Cloud Storage FUSE handles the mount; `geopandas.read_file("/mnt/volume-1/data-analysis/...")` just works.
+Cloud Storage FUSE handles the mount; `geopandas.read_file("/volume-1/data-analysis/...")` just works.
 
 ### 4. Service account & IAM
 
