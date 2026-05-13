@@ -1,0 +1,47 @@
+steps:
+  # Build the image from the local folder
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t',
+      'gcr.io/openactive-monitor/github.com/openactive-contrib/ingest-opportunities:$COMMIT_SHA',
+      '-f',
+      'jobs/ingest-opportunities/Dockerfile',
+      'jobs/ingest-opportunities'
+    ]
+
+  # Push to Artifact Registry / GCR
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      'gcr.io/openactive-monitor/github.com/openactive-contrib/ingest-opportunities:$COMMIT_SHA'
+    ]
+
+  # Deploy / update the Cloud Run Job.
+  #
+  # NOTE: the GCS volume mount of bucket "volume-1" is configured once via
+  # the GCP Console (see README) – `gcloud run jobs deploy` updates only the
+  # image + env vars and preserves the existing volume mount, IAM, args,
+  # memory and timeout settings.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'jobs'
+      - 'deploy'
+      - '$_JOB_NAME'
+      - '--image=gcr.io/openactive-monitor/github.com/openactive-contrib/ingest-opportunities:$COMMIT_SHA'
+      - '--region=$_REGION'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GCP_PROJECT_ID=openactive-monitor,BQ_DATASET_ID=openactive_analytics,BQ_FEEDS_TABLE=feeds,BQ_FEED_INGESTION_TABLE=feed_ingestion,BQ_OPPORTUNITY_INGESTION_TABLE=opportunity_ingestion,BQ_OPPORTUNITIES_TABLE=opportunities,INGEST_BOUNDARY_DIR=/mnt/volume-1/data-analysis,INGEST_MAX_WORKERS=6'
+      - '--quiet'
+
+images:
+  - 'gcr.io/openactive-monitor/github.com/openactive-contrib/ingest-opportunities:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _JOB_NAME: ingest-opportunities
+  _REGION: europe-west2
+
