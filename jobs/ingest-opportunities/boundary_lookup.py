@@ -14,6 +14,7 @@ Pattern mirrors ``jobs/opportunity-insights/geolookup.py``.
 from __future__ import annotations
 
 import logging
+import os
 import threading
 from dataclasses import dataclass
 from functools import lru_cache
@@ -25,8 +26,12 @@ from shapely.geometry import Point
 
 logger = logging.getLogger(__name__)
 
-# volume-1/data-analysis/ relative to this file (jobs/ingest-opportunities/boundary_lookup.py)
-_BOUNDARY_DIR = Path(__file__).resolve().parents[2] / "volume-1" / "data-analysis"
+# Boundary GeoJSONs live under ``volume-1/data-analysis/``. In local
+# development this is a relative path inside the repo; on Cloud Run the
+# ``volume-1`` GCS bucket is mounted at ``/mnt/volume-1`` and the path is
+# overridden via the ``INGEST_BOUNDARY_DIR`` environment variable.
+_DEFAULT_BOUNDARY_DIR = Path(__file__).resolve().parents[2] / "volume-1" / "data-analysis"
+_BOUNDARY_DIR = Path(os.getenv("INGEST_BOUNDARY_DIR", str(_DEFAULT_BOUNDARY_DIR)))
 
 DISTRICTS_FILENAME = "000-location-districts.geojson"
 REGIONS_FILENAME = "000-location-regions.geojson"
