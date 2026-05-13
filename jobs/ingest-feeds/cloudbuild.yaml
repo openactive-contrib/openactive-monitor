@@ -29,7 +29,6 @@ steps:
       - '--region=$_REGION'
       - '--add-volume=name=bucket-vol,type=cloud-storage,bucket=$_BUCKET_NAME'
       - '--add-volume-mount=volume=bucket-vol,mount-path=/app/jobs/volume-1'
-      # INJECT YOUR .ENV VARIABLES HERE
       - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GCP_PROJECT_ID=openactive-monitor,BQ_DATASET_ID=openactive_analytics,BQ_FEEDS_TABLE=feeds,BQ_FEED_INGESTION_TABLE=feed_ingestion'
       - '--allow-unauthenticated',
       - '--quiet'
