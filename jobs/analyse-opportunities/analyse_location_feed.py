@@ -11,6 +11,13 @@ python analyse_location_feed.py -g ../volume-1/data-analysis/000-location-nhstru
 
 python analyse_location_feed.py -g ../volume-1/data-analysis/000-location-gps.geojson -n Name -d 16-02-2026 -o ./output9 -v
 
+python analyse_location_feed.py \
+            -g ../volume-1/data-analysis/000-location-parishes.geojson \
+            -n PARNCP25NM \
+            -o ./output7 \
+            -v
+
+python analyse_location_feed.py -g ../volume-1/data-analysis/000-location-regions.geojson -n eer18nm -o ./output7 -v
 
 """
 

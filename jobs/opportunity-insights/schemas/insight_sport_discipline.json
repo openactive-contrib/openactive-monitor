@@ -1,0 +1,10 @@
+[
+  {"name": "run_date", "type": "TIMESTAMP", "mode": "REQUIRED"},
+  {"name": "sport_and_discipline", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "activity", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "is_matched", "type": "BOOL", "mode": "REQUIRED"},
+  {"name": "count_items", "type": "INTEGER", "mode": "NULLABLE"},
+  {"name": "count_activities", "type": "INTEGER", "mode": "NULLABLE", "description": "Only set for matched rollup rows"},
+  {"name": "percentage_items", "type": "FLOAT64", "mode": "NULLABLE"},
+  {"name": "percentage_activities", "type": "FLOAT64", "mode": "NULLABLE"}
+]

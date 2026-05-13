@@ -1,0 +1,7 @@
+[
+  {"name": "run_date", "type": "TIMESTAMP", "mode": "REQUIRED"},
+  {"name": "sport", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "discipline", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "sport_and_discipline", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "is_matched_by_any_feed", "type": "BOOL", "mode": "REQUIRED"}
+]

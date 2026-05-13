@@ -1,0 +1,41 @@
+steps:
+  # Build the image from the local folder
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t',
+      'gcr.io/openactive-monitor/github.com/openactive-contrib/ingest-feeds:$COMMIT_SHA',
+      '-f',
+      'jobs/ingest-feeds/Dockerfile',
+      'jobs/ingest-feeds'
+    ]
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      'gcr.io/openactive-monitor/github.com/openactive-contrib/ingest-feeds:$COMMIT_SHA'
+    ]
+
+  # Deploy the Cloud Run Job
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'jobs'
+      - 'deploy'
+      - '$_JOB_NAME'
+      - '--image=gcr.io/openactive-monitor/github.com/openactive-contrib/ingest-feeds:$COMMIT_SHA'
+      - '--region=$_REGION'
+      - '--add-volume=name=bucket-vol,type=cloud-storage,bucket=$_BUCKET_NAME'
+      - '--add-volume-mount=volume=bucket-vol,mount-path=/app/jobs/volume-1'
+      # INJECT YOUR .ENV VARIABLES HERE
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GCP_PROJECT_ID=openactive-monitor,BQ_DATASET_ID=openactive_analytics,BQ_FEEDS_TABLE=feeds,BQ_FEED_INGESTION_TABLE=feed_ingestion'
+      - '--allow-unauthenticated',
+      - '--quiet'
+
+images:
+  - 'gcr.io/openactive-monitor/github.com/openactive-contrib/ingest-feeds:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

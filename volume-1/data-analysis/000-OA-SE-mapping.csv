@@ -1,42 +1,67 @@
 activity,sport_and_discipline
+1 Adult & 1 Child Golf Session,GOLF
+1 Adult & 2 Children Golf Session,GOLF
+1 Adult Golf Session,GOLF
 1-1 Ski,SNOWSPORT SKIING
+1/3 Pitch Casual,FOOTBALL
+1/3 Pitch Off Peak,FOOTBALL
 11-a-side,FOOTBALL
 13-17 years Safe Summer Swim,SWIMMING
+2 Adults Golf Session,GOLF
 2-1 Ski,SNOWSPORT SKIING
 20-20-20,No Match
+3 Adults Golf Session,GOLF
 3G - 5-a-side Pitch,No Match
 3G Pitch Hire,No Match
+4 Adults Golf Session,GOLF
 5 A Side,FOOTBALL
 5 A Side ATP,FOOTBALL
 5 A Side Football,FOOTBALL
+5 a side Peak Rate,5-a-side
+5 a side Pitch 1 Day Rate,FOOTBALL
+5 a side Pitch 2 Junior Rate,FOOTBALL
+5 a side Pitch 2 Peak Rate,FOOTBALL
 5-a-Side Football,FOOTBALL
 5-a-side,FOOTBALL
 50+,No Match
 50+ Badminton,BADMINTON
 50+ Classes,EXERCISE AND FITNESS
+6 a side Pitch Day Rate,FOOTBALL
+6 a side Pitch Junior Rate,FOOTBALL
+6 a side Pitch Peak Rate,FOOTBALL
 6-a-side,No Match
 7 A Side Football (Adult),FOOTBALL
 7 A Side Football (Adult-Caged),FOOTBALL
+7 a side Day Rate,7-a-side
+7 a side Pitch Day Rate,FOOTBALL
+7 a side Pitch Peak Rate,FOOTBALL
 7-a-side,FOOTBALL
 8-a-side,No Match
+9-a-side,FOOTBALL
 ABS,EXERCISE AND FITNESS
 AWP 1/3 Hire Weekday,No Match
 AWP 1/3 Hire Weekend,No Match
+AWP Full Hire,No Match
 Ability Counts,No Match
 Abs,EXERCISE AND FITNESS
+Abs & Booty Bands,EXERCISE AND FITNESS
 Abs & Core,EXERCISE AND FITNESS
 Abs Blast Express,EXERCISE AND FITNESS
 Abs/Core,EXERCISE AND FITNESS
 Abseiling,MOUNTAINEERING
 Access All Areas,No Match
+Acroyoga,EXERCISE AND FITNESS
 Acting,No Match
 Active Living Circuit - Cardiac,EXERCISE AND FITNESS
 Active Living Gym - COPD,EXERCISE AND FITNESS
 Active Living Gym - Cardiac,EXERCISE AND FITNESS
+Active Morning,EXERCISE AND FITNESS
 Active Seniors,No Match
 Activities,No Match
 Activity Holiday Camp,No Match
+Activity Holiday Campfit,Activity Holiday Camp
 Adult 5 v 5 Football Pitches,FOOTBALL
+Adult 7 v 7 Football Pitches,FOOTBALL
 Adult 7 v 7 Football Pitches ,FOOTBALL
 Adult Activities,No Match
 Adult Badminton,BADMINTON
@@ -45,6 +70,7 @@ Adult Climbing Club,MOUNTAINEERING
 Adult Grass Pitch,No Match
 Adult Gym Induction,No Match
 Adult Intermediate+ Tennis (16yrs+),TENNIS
+Adult Matchplay Tennis Coaching,TENNIS
 Adult Only Casual Swimming,SWIMMING
 Adult Pickleball,No Match
 Adult Premium 11 v 11,FOOTBALL
@@ -52,8 +78,11 @@ Adult Premium Half 11 v 11,FOOTBALL
 Adult Standard 11 v 11,FOOTBALL
 Adult Standard Half 11 v 11,FOOTBALL
 Adult Swimming Lessons,SWIMMING
+Adult Table Tennis,TABLE TENNIS
+Adult Tennis,TENNIS
 Adult Tennis ,TENNIS
 Adventure Golf,GOLF
+Adventurers Party,No Match
 Aerial,EXERCISE AND FITNESS
 Aerial Discipline,EXERCISE AND FITNESS
 Aerial Hoop,EXERCISE AND FITNESS
@@ -75,6 +104,7 @@ Aqua,EXERCISE AND FITNESS
 Aqua Aerobics,EXERCISE AND FITNESS
 Aqua Challenge - Inflatable Obstacle Course,EXERCISE AND FITNESS
 Aqua Challenge Party,EXERCISE AND FITNESS
+Aqua Circuits (16yrs+),EXERCISE AND FITNESS
 Aqua Classes,EXERCISE AND FITNESS
 Aqua Dance,EXERCISE AND FITNESS
 Aqua Express,EXERCISE AND FITNESS
@@ -83,13 +113,16 @@ Aqua Fit (Deep Water),EXERCISE AND FITNESS
 Aqua Fit (Shallow Water),EXERCISE AND FITNESS
 Aqua Fit For Ladies,EXERCISE AND FITNESS
 Aqua Fitness,EXERCISE AND FITNESS
+Aqua Health,EXERCISE AND FITNESS
 Aqua Jogging,EXERCISE AND FITNESS
 Aqua Mobility,EXERCISE AND FITNESS
 Aqua Natal,EXERCISE AND FITNESS
+Aqua Park,Aqua Park
 Aqua Stride,EXERCISE AND FITNESS
 Aqua Therapy,EXERCISE AND FITNESS
 Aqua Zumba,DANCE
 Aqua Zumba®,DANCE
+AquaHIIT,EXERCISE AND FITNESS
 Aquabike,EXERCISE AND FITNESS
 Aquacise,EXERCISE AND FITNESS
 Aquadrome,No Match
@@ -104,6 +137,7 @@ Ashtanga Yoga,YOGA
 Aspatria ParkPlay,No Match
 Astro 1/3 Pitch,No Match
 Astro 1/4 Pitch,No Match
+Astro 2/3 Pitch,FOOTBALL
 Astro 2/3 Pitch ,No Match
 Astro Drop In Session,No Match
 Astro Full Pitch,No Match
@@ -113,6 +147,7 @@ Astro Turf Half Pitch Hire,No Match
 Athletics,ATHLETICS
 Athletics Bookings,ATHLETICS
 Athletics Track,ATHLETICS TRACK AND FIELD
+Atlantis Splash,No Match
 Aycliffe ParkPlay,No Match
 BRICKFIELD PARKPLAY,No Match
 Baby & Toddler Fun Swim,SWIMMING
@@ -137,6 +172,8 @@ Badminton Adult,BADMINTON
 Badminton Class,BADMINTON
 Badminton Court,BADMINTON
 Badminton Court 55 min,BADMINTON
+Badminton Court Hall 1,Badminton
+Badminton Court Hall 2,Badminton
 Badminton Family (2 Adult 2 Children),BADMINTON
 Badminton Hall 1 1 adult 1 child £10.10,BADMINTON
 Badminton Hall 1 2 children £8.40,BADMINTON
@@ -152,8 +189,11 @@ Ballet Fitness,DANCE
 Ballroom And Latin,DANCE BALLROOM
 Ballroom and Latin Fitness,DANCE
 Band Fitness,EXERCISE AND FITNESS
+Barming Heath - Junior Pitch Hire,No Match
+Barming Heath - Senior Pitch Hire,No Match
 Barre,EXERCISE AND FITNESS
 Barre Fitness,EXERCISE AND FITNESS
+Barreconcept,Barreconcept
 Barrecore,EXERCISE AND FITNESS
 Baseball,BASEBALL
 Basketball,BASKETBALL
@@ -177,6 +217,7 @@ Beatz (13+),DANCE
 Beginners Group Cycling,CYCLING
 Beginners Yoga,YOGA
 Belly Dance,DANCE
+Bench press Workshop,EXERCISE AND FITNESS
 Bench press Workshop ,EXERCISE AND FITNESS
 Bhangra,DANCE
 Bhangra Fitness,DANCE
@@ -195,6 +236,7 @@ Body Balance,EXERCISE AND FITNESS
 Body Blast,EXERCISE AND FITNESS
 Body Blitz,EXERCISE AND FITNESS
 Body Blitz Circuits,EXERCISE AND FITNESS
+Body Boarding,Body Boarding
 Body Combat,EXERCISE AND FITNESS
 Body Combat™,EXERCISE AND FITNESS
 Body Conditioning,EXERCISE AND FITNESS
@@ -204,6 +246,7 @@ Body Mind and Soul,No Match
 Body Pump,EXERCISE AND FITNESS
 Body Sculpt,EXERCISE AND FITNESS
 Body Step,EXERCISE AND FITNESS
+Body Tone,EXERCISE AND FITNESS
 Body Weight Insanity,EXERCISE AND FITNESS
 BodyJam,DANCE
 Bodyattack,EXERCISE AND FITNESS
@@ -222,7 +265,10 @@ Books,No Match
 Boot Camp,EXERCISE AND FITNESS
 Boot Camp (gym),EXERCISE AND FITNESS
 Bootcamp,EXERCISE AND FITNESS
+Booty Band & Abs,EXERCISE AND FITNESS
+Booty Bands,EXERCISE AND FITNESS
 Born To Move,EXERCISE AND FITNESS
+Bosu®,EXERCISE AND FITNESS
 Bouldering,MOUNTAINEERING
 Boules,No Match
 Bounce,EXERCISE AND FITNESS
@@ -255,26 +301,35 @@ CH Short Tennis,TENNIS
 CH Table Tennis,TABLE TENNIS
 CHILTON PARKPLAY,No Match
 Cafe,No Match
+Calisthenics,EXERCISE AND FITNESS
 Callanetics,EXERCISE AND FITNESS
 Calm Functional Gym,EXERCISE AND FITNESS
+Camping,No Match
+Canal and River Walking,RAMBLING
 Canoe Polo,CANOEING POLO
 Canoe Sprint,CANOEING SPRINT
 Canoeing,CANOEING
 Capoeira,No Match
 Cardiac Rehab,EXERCISE AND FITNESS
 Cardio / Aerobics,EXERCISE AND FITNESS
+Cardio Blast,EXERCISE AND FITNESS
 Cardio Blast ,EXERCISE AND FITNESS
 Cardio Combat,EXERCISE AND FITNESS
+Cardio Extreme,EXERCISE AND FITNESS
+Cardio Mayhem,EXERCISE AND FITNESS
 Cardio Mix,EXERCISE AND FITNESS
 Cardio Tennis,TENNIS
 Carnival,DANCE
 Carpet Bowls,BOWLS SHORT MAT
 Castle Batch ParkPlay,No Match
+Casual Swimming,SWIMMING
+Caving,Caving
 "Caving, Bouldering & High Ropes",MOUNTAINEERING
 Cedars ParkPlay,No Match
 Chair Based Exercise,EXERCISE AND FITNESS
 Chair Based Yoga,YOGA
 Chair Yoga,YOGA
+Chakra Dance,DANCE
 Charleston,DANCE
 Chasamba®,DANCE
 Cheer Dance,DANCE
@@ -284,23 +339,27 @@ Chi Kung,CHINESE MARTIAL ARTS QIGONG
 Chi-Flow Tai Chi,CHINESE MARTIAL ARTS TAI CHI
 Chiball,No Match
 Chichester ParkPlay,No Match
+Children Seasonal Parties,No Match
 Children's Activities,No Match
 Children's Area (ST),No Match
 Chinese Movement & Dance Fitness,EXERCISE AND FITNESS
 Chorus and a Cuppa,No Match
 Circl,EXERCISE AND FITNESS
+Circl Mobility,EXERCISE AND FITNESS
 Circuit,EXERCISE AND FITNESS
 Circuit Training,EXERCISE AND FITNESS
 Circuits,EXERCISE AND FITNESS
 Circus Skills,EXERCISE AND FITNESS
 Clevedon ParkPlay,No Match
 Climbing,MOUNTAINEERING
+Climbing Beginners,MOUNTAINEERING
 Climbing Beginners ,MOUNTAINEERING
 Climbing Session,MOUNTAINEERING
 Climbing Session Home Education,No Match
-Climbing Wall,MOUNTAINEERING
+Climbing Wall,MOUNTAINEERING INDOOR CLIMBING
 Climbing Zone,MOUNTAINEERING
 Clip n Climb,MOUNTAINEERING
+Club Aerobics,EXERCISE AND FITNESS
 Club Cardio,EXERCISE AND FITNESS
 Club Perks Do Not Book,No Match
 Clubbercise,EXERCISE AND FITNESS
@@ -347,10 +406,12 @@ Curling,CURLING
 Current Member Review,No Match
 Cx Worx™,EXERCISE AND FITNESS
 Cxworx - Virtual,EXERCISE AND FITNESS
+Cycle & Circuits,Cycling
 Cycle Back to Fitness,CYCLING
 Cycling,CYCLING
 Cycling > Recreational Cycling,CYCLING
 Cycling Classes,CYCLING
+Cyclo-Cross,CYCLING CYCLO CROSS
 DDmix,DANCE
 Dance,DANCE
 Dance Aerobics,DANCE
@@ -360,8 +421,11 @@ Dance Fit - Senior,DANCE
 Dance Fit Gold (50+),DANCE
 Dance Fitness,DANCE
 Dance Moves,DANCE
+Dance through the Decades,Dance
 DanceFit,DANCE
+Dancehall,Dancehall
 Dancercise,DANCE
+Davrox,EXERCISE AND FITNESS
 Deaf Tennis,TENNIS
 Deep Aqua,EXERCISE AND FITNESS
 Deep Water Aerobics,EXERCISE AND FITNESS
@@ -375,6 +439,7 @@ Disability Sport,DISABILITY SPORT
 Disability Swimming,SWIMMING
 Disc Golf,No Match
 Disco,DANCE
+Disco Skate,ROLLER SPORTS
 Diving,SWIMMING DIVING
 Dodgeball,DODGEBALL
 Dog Walking,No Match
@@ -387,13 +452,16 @@ Elevate Classes,No Match
 Endurance Training,EXERCISE AND FITNESS
 Equestrian,EQUESTRIAN
 Equestrian > Pony Trekking,EQUESTRIAN HORSE AND PONY RIDING
+Events,No Match
 Eversley ParkPlay,No Match
 Everybody Can SEND,No Match
 Exercise Ball,EXERCISE AND FITNESS
 Exercise Class,EXERCISE AND FITNESS
 Exercise bike,EXERCISE AND FITNESS
+Exercise machine,Exercise machine
 Express Group Cycling,CYCLING
 Extend,EXERCISE AND FITNESS
+FBX,EXERCISE AND FITNESS
 FITIN,No Match
 FLexercise,EXERCISE AND FITNESS
 Fabs,EXERCISE AND FITNESS
@@ -401,14 +469,24 @@ Falls and Exercise Management,EXERCISE AND FITNESS
 Family Climb Time .,MOUNTAINEERING
 Family Fun Swim,SWIMMING
 Family Swim,SWIMMING
+Family Swim Ticketed,Swimming
+Family Ticket Golf Session,GOLF
 Family Zone Swim,SWIMMING
+Fast Lane Swim,SWIMMING
+Feldenkrais,EXERCISE AND FITNESS
 Fell Running,ATHLETICS MOUNTAIN/FELL
 Fencing,FENCING
+Field Hockey,HOCKEY
 Fight Fx,EXERCISE AND FITNESS
 Fight Klub Bag Box,BOXING
 Fight Klub Boot Camp,EXERCISE AND FITNESS
 Fight Klub Drum N Bass,DANCE
 First Touch Football (2 - 4 years),FOOTBALL
+Fit4Tap,DANCE
+FitSteps®,Fitsteps®
+FitSteps® FAB,Fitsteps®
+FitSteps® Original,Fitsteps®
+FitSteps® TONE,Fitsteps®
 Fitball,EXERCISE AND FITNESS
 Fitness Activity Plan,EXERCISE AND FITNESS
 Fitness Check In,No Match
@@ -421,16 +499,20 @@ Fitness Suite,EXERCISE AND FITNESS
 Fitness Welcome,EXERCISE AND FITNESS
 Fitness Yoga,YOGA
 Fitness for Netball,EXERCISE AND FITNESS
+Fitsteps,DANCE
 Fitsteps®,DANCE
+Five a Side,FOOTBALL
 Five a Side ,FOOTBALL
 Fives,FIVES
 Flag Football,FOOTBALL
+Flamenco,DANCE
 Flat Green Bowls,BOWLS
+Flexaware,Flexaware
 Flexibility for Climbers Workshop Beginners+,EXERCISE AND FITNESS
 Flexibility/Stretching,EXERCISE AND FITNESS
 Float Fit,EXERCISE AND FITNESS
 FloatFit,EXERCISE AND FITNESS
-Folk Dance,DANCE
+Folk Dance,DANCE FOLK DANCE
 Food and drink,No Match
 Football,FOOTBALL
 Football Pitch,FOOTBALL
@@ -438,8 +520,16 @@ Footwork Workshop Beginners+,DANCE
 Forever Fit,EXERCISE AND FITNESS
 Forrest Yoga,YOGA
 Free Swim Sessions,SWIMMING
+Free Swim Ticketed,Swimming
 Freestyle,DANCE
+Full Astro Day Rate,FOOTBALL
+Full Astro Match Day Rate,FOOTBALL
+Full Astro Match Peak Rate,FOOTBALL
+Full Astro Peak Rate,FOOTBALL
 Full Basketball Court,BASKETBALL
+Full Hall Hire Casual,No Match
+Full Pitch Casual,FOOTBALL
+Full Pitch Off Peak,FOOTBALL
 Fun 4 All,EXERCISE AND FITNESS
 Fun Keep Fitmovement To Music,DANCE
 Fun Swim with Water Walkerz,SWIMMING
@@ -453,23 +543,37 @@ Functional Fitness,EXERCISE AND FITNESS
 Funk,DANCE
 Futsal,FOOTBALL FUTSAL
 Futsal Court,FOOTBALL FUTSAL
+Futsal Full Pitch Off Peak,FOOTBALL FUTSAL
+Futsal Full Pitch Peak,FOOTBALL FUTSAL
+Futsal Half Pitch Off Peak,FOOTBALL FUTSAL
 G+ Badminton,BADMINTON
 G+ Racquets,No Match
 GP Referral Classes,No Match
 GREAT WAKERING PARKPLAY,No Match
 Gaelic Football,GAELIC GAMES FOOTBALL
 Gardening,No Match
+Gatland Lane - 9 v 9 Pitch Hire,No Match
+Gatland Lane - Junior Pitch Hire,No Match
+Gatland Lane - Senior Pitch Hire,No Match
+General,No Match
 General Fitness for Older Adults,EXERCISE AND FITNESS
 General Swim,SWIMMING
 General Use,No Match
 Get togethers,No Match
+Getting Started,No Match
+Giddyhorn Lane - 5 v 5 Pitch Hire,No Match
+Giddyhorn Lane - 7 v 7 Pitch Hire,No Match
+Giddyhorn Lane - 9 v 9 Pitch Hire,No Match
 "Glide: Bums, Tums & Thigh",EXERCISE AND FITNESS
 Gliding,AIR SPORTS GLIDING
 Gloucester ParkPlay,No Match
 Glow Beatz (13+),DANCE
+Goalball,GOALBALL
 Golf,GOLF
 Golf - 18 Holes,GOLF
 Golf - 9 Holes,GOLF
+Golf 55mins,Golf
+Golg,GOLF
 Good Boost,EXERCISE AND FITNESS
 Grass Pitch,No Match
 Grass Pitch and Changing Room,No Match
@@ -502,10 +606,15 @@ Gym and Functional,EXERCISE AND FITNESS
 Gym/Health Club,EXERCISE AND FITNESS
 Gymnasium,EXERCISE AND FITNESS
 Gymnastics,GYMNASTICS
+Gymnastics Camp,GYMNASTICS
 H.I.I.T,EXERCISE AND FITNESS
 HIIT,EXERCISE AND FITNESS
 HIIT Cardio,EXERCISE AND FITNESS
+HIIT The Gym,EXERCISE AND FITNESS
+Half Astro Pitch 1 Day Rate,FOOTBALL
+Half Astro Pitch 2 Peak Rate,FOOTBALL
 Half Hall Hire,No Match
+Half Hall Hire Casual,No Match
 Hall Hire,No Match
 Halloween Party,No Match
 Handball,HANDBALL
@@ -517,24 +626,31 @@ Health,No Match
 Health Spa Activites (ST),No Match
 Health Suite,No Match
 Health Suite Session,No Match
+Health Suite Session B,No Match
 Health Swim - Over 60's,SWIMMING
+Helping Hand,No Match
 Heysham ParkPlay,No Match
 High Ropes,EXERCISE AND FITNESS
+Hiit Cardio,EXERCISE AND FITNESS
 Hiitcircuit,EXERCISE AND FITNESS
 Hiitnride,CYCLING
 Hiitstep,EXERCISE AND FITNESS
 Hiking,MOUNTAINEERING HILL WALKING
-Hill Walking,MOUNTAINEERING
+Hill Walking,MOUNTAINEERING HILL WALKING
 Hip Hop,DANCE
 Hobbies and crafts,No Match
 Hockey,HOCKEY
 Hockey > Field Hockey,HOCKEY
+Hockey Pitch,Hockey
+Holiday Activities,No Match
 Holiday Club,No Match
 Holywell Studio Classes,EXERCISE AND FITNESS
 Hoop Dance,DANCE
 Hot Yoga,YOGA
 Hour of Power,EXERCISE AND FITNESS
+House,House
 Hula Fitness,EXERCISE AND FITNESS
+Hydro Fit,EXERCISE AND FITNESS
 Hydro Spin,EXERCISE AND FITNESS
 Hydro Therapy,EXERCISE AND FITNESS
 Hydroride,EXERCISE AND FITNESS
@@ -542,10 +658,13 @@ Hydrospin,EXERCISE AND FITNESS
 Hyperice leg compression 15 minutes,No Match
 Hyperice leg compression 30 minutes,No Match
 Hyperice leg compression 45 minutes,No Match
+Hyrox,EXERCISE AND FITNESS
+Hyrox Sessions,EXERCISE AND FITNESS
 Ice Hockey,ICE HOCKEY
 Ice Skating,ICE SKATING
 In Body Scan,No Match
 InBody Assessment,No Match
+InBody Scan,No Match
 Indoor 5 a side football,FOOTBALL
 Indoor Bowls,BOWLS
 Indoor Cricket,CRICKET
@@ -553,13 +672,16 @@ Indoor Cycling,CYCLING
 Indoor Cycling - Virtual,CYCLING
 Indoor Football,FOOTBALL FUTSAL
 Indoor Hockey,HOCKEY
+Indoor Netball,NETBALL
 Indoor Netball ,NETBALL
 Indoor Rowing,ROWING
 Indoor Tennis,TENNIS
 Indoor Tennis 90mins,TENNIS
 Indoor Volleyball,VOLLEYBALL
 Inflatable Fun,No Match
+Inflatable/Multi Sports Party,No Match
 Insanity,EXERCISE AND FITNESS
+Intermediate+ Tennis (15yrs+),TENNIS
 Interval Training,EXERCISE AND FITNESS
 Interval Training (HIIT),EXERCISE AND FITNESS
 Iyengar Yoga,YOGA
@@ -578,6 +700,7 @@ Jubilee ParkPlay,No Match
 Judo,JUDO
 Junior,No Match
 Junior 5 v 5 Football Pitches,FOOTBALL
+Junior 7 v 7 Football Pitches,FOOTBALL
 Junior 7 v 7 Football Pitches ,FOOTBALL
 Junior Activities,No Match
 Junior Badminton,BADMINTON
@@ -590,14 +713,17 @@ Junior Gym,EXERCISE AND FITNESS
 Junior Gym ST,EXERCISE AND FITNESS
 Junior Induction,No Match
 Junior Pickleball,No Match
+Junior Premium 11 v 11,FOOTBALL
 Junior Premium 11 v 11 ,FOOTBALL
 Junior Premium Half 11 v 11,FOOTBALL
 Junior Standard 11 v 11,FOOTBALL
 Junior Standard Half 11 v 11,FOOTBALL
+Junior Tennis,TENNIS
 Junior Tennis ,TENNIS
 Just Play- Cheerleading,EXERCISE AND FITNESS
 KASET - The Drop In!,No Match
 KASET Skatepark - 6+ years (mixed),SKATEBOARDING
+KETTRhythm,EXERCISE AND FITNESS
 KFA,EXERCISE AND FITNESS
 KFA Seated/Chair,EXERCISE AND FITNESS
 Karate,KARATE
@@ -620,6 +746,7 @@ Kobudo,No Match
 Konga®,DANCE
 Korfball,KORFBALL
 Krav Maga,No Match
+Krump,Krump
 Kundalini Yoga,YOGA
 Kung Fu,CHINESE MARTIAL ARTS KUNG FU
 Kurling,CURLING
@@ -638,13 +765,16 @@ Ladies Group Cycling,CYCLING
 Ladies Only Functional Gym,EXERCISE AND FITNESS
 Ladies Only Health Suite,No Match
 Ladies Only Swim,SWIMMING
+Ladies Only Swim Ticketed,Swimming
 Lagoon Swim,SWIMMING
 Lanchester ParkPlay,No Match
 Lane Hire,SWIMMING
+Lane Swim - Slow Lane,Swimming
 Lane Swimming,SWIMMING
 Lane Swimming General,SWIMMING
 Latin,DANCE LATIN
 Latin Fitness,DANCE
+Lead Climbing,Lead Climbing
 Learn to Ride,CYCLING
 Learning,No Match
 Leavesden Country Park,No Match
@@ -665,16 +795,25 @@ Les Mills DANCE,DANCE
 Les Mills GRIT Cardio,EXERCISE AND FITNESS
 Les Mills GRIT Strength,EXERCISE AND FITNESS
 Les Mills Grit™,EXERCISE AND FITNESS
+Les Mills PILATES,EXERCISE AND FITNESS
+Les Mills Pilates,EXERCISE AND FITNESS
 Les Mills RPM 45,EXERCISE AND FITNESS
+Les Mills SHAPES,No Match
 Les Mills SPRINT,CYCLING
+Les Mills THE TRIP,No Match
+Les Mills THE TRIP LIVE,No Match
 Les Mills Tone™,EXERCISE AND FITNESS
 Libraries,No Match
+Library Activties,No Match
+Lifesaving Sport,LIFE SAVING
 Lift,EXERCISE AND FITNESS
 Lift IT!,EXERCISE AND FITNESS
+Lift The Curfew - Walk,Walking
 Lifting workshop,EXERCISE AND FITNESS
 Lindy Hop,DANCE
 Line Dancing,DANCE
 Lishi,EXERCISE AND FITNESS
+Little Adventurers Party,No Match
 Little Ducks,SWIMMING
 Live Active Water Workout,EXERCISE AND FITNESS
 Live Active Workout Classes,EXERCISE AND FITNESS
@@ -684,10 +823,18 @@ Long Jump,ATHLETICS TRACK AND FIELD
 Long Ley ParkPlay,No Match
 Lounge Hire,No Match
 Low Impact Circuits,EXERCISE AND FITNESS
+Low Level Circuit,EXERCISE AND FITNESS
 Low Ropes,EXERCISE AND FITNESS
 Low-Impact Aerobics,EXERCISE AND FITNESS
 Lower Body Sculpt,EXERCISE AND FITNESS
 Lyrical,DANCE
+Male Only Circuit Training,Circuit Training
+Male Sauna & Steam,No Match
+Mallards Way - 5 v 5 Pitch Hire,No Match
+Mallards Way - 9 v 9 Pitch Hire,No Match
+Mandarin Yoga,YOGA
+Mangravet Field - 7 V 7 Pitch Hire,No Match
+Mangravet Field - 9 V 9 Pitch Hire,No Match
 Manor House Grounds,No Match
 Markhams Chase ParkPlay,No Match
 Martial Arts,No Match
@@ -695,16 +842,19 @@ Martial Arts > Taekwondo,TAEKWONDO
 Martial Arts > Tai Chi,CHINESE MARTIAL ARTS TAI CHI
 Martial Arts Fitness,No Match
 Masters Swimming,SWIMMING
+Match Booking Off Peak,FOOTBALL
 Medau,EXERCISE AND FITNESS
 Medau Movement,EXERCISE AND FITNESS MEDAU
 Meditation,No Match
 Meditation & Relaxation,No Match
 Meet & Greet,No Match
+Menopause Wellness,No Match
 Mental Training Workshop Intermediate,No Match
 Mental health,No Match
 MetaPWR,EXERCISE AND FITNESS
 Metafit,EXERCISE AND FITNESS
 Metcon,EXERCISE AND FITNESS
+Methodology X,EXERCISE AND FITNESS
 Millom ParkPlay,No Match
 Mind & Body,EXERCISE AND FITNESS
 Mind & Movement,EXERCISE AND FITNESS
@@ -713,16 +863,25 @@ Mindful Movements,EXERCISE AND FITNESS
 Mindfulness,No Match
 Mindfulness Express,No Match
 Mini Pitch,No Match
+Mini Tennis,TENNIS
 Mini Tennis (6-10yrs),TENNIS
 Mixed Martial Arts,No Match
 Mobility Flow,EXERCISE AND FITNESS
 Modern,DANCE
+Modern Jive,DANCE
 Modern Pentathlon,MODERN PENTATHLON
 Mopsies ParkPlay,No Match
 Morris Dancing,DANCE
+Mote Park - 11 v 11 Junior Pitch Hire,No Match
+Mote Park - 9 v 9 Pitch Hire,No Match
+Mote Park - Changing Rooms,No Match
+Mote Park - Junior Pitch Hire,No Match
+Mote Park - Rugby Pitch Hire,RUGBY UNION
+Mote Park - Senior Pitch Hire,No Match
+Mother and Toddler Ticketed,No Match
 Motivation,No Match
 Motor Cycling,MOTOR CYCLING
-Mountain Biking,CYCLING
+Mountain Biking,CYCLING MOUNTAIN BIKING
 Mountain Walking,MOUNTAINEERING HILL WALKING
 Move More,EXERCISE AND FITNESS
 Move it or Lose it,EXERCISE AND FITNESS
@@ -737,15 +896,18 @@ Multi Use - Netball Pitch,No Match
 Multi Use Games Area,No Match
 MultiSports,EXERCISE AND FITNESS
 Multisports,EXERCISE AND FITNESS
+Museum Activities,No Match
 Music,No Match
 Mysore Style Ashtanga Yoga,YOGA
 Myzone,EXERCISE AND FITNESS
+Myzone Cycling,CYCLING
 NIA,EXERCISE AND FITNESS
 NPLQ Staff Training,No Match
 NRASTC Staff Training,No Match
 Natural Movement,EXERCISE AND FITNESS
 Naze ParkPlay,No Match
 Netball,NETBALL
+Netball (adhoc),NETBALL
 Netball - Indoor,NETBALL
 Netball - Outdoors,NETBALL
 Netball 60 Mins,NETBALL
@@ -762,7 +924,9 @@ Obstacle Course Racing,ATHLETICS
 Old Health ParkPlay,No Match
 Omnia Class,No Match
 Open Athletics Session,ATHLETICS
-Open Water Swimming,SWIMMING
+Open Day,No Match
+Open Water Swimming,SWIMMING OPEN WATER
+Orienteering,ORIENTEERING
 Osterley ParkPlay,No Match
 Otago,EXERCISE AND FITNESS
 Other,No Match
@@ -778,6 +942,7 @@ Outdoor Track Session,ATHLETICS TRACK AND FIELD
 Over 50's - Badminton,BADMINTON
 Over 50's - Bowls,BOWLS
 Over 50's Badminton,BADMINTON
+Over 50s Resistance,EXERCISE AND FITNESS
 Overall Body,EXERCISE AND FITNESS
 P90X,EXERCISE AND FITNESS
 PT - Start Up,EXERCISE AND FITNESS
@@ -786,11 +951,20 @@ PWR-Beatz,EXERCISE AND FITNESS
 Padel Tennis,TENNIS PADEL TENNIS
 Paintball,No Match
 Para-Badminton,BADMINTON
+ParaNetball,ParaNetball
 Parent And Toddler Workout,EXERCISE AND FITNESS
+Parent and Baby Drop In Session,EXERCISE AND FITNESS
+Parent and Toddler Swim,SWIMMING
 ParkPlay,No Match
 Parkour,PARKOUR
+Parkwood - Junior Pitch Hire,No Match
+Parkwood - Rugby Pitch Hire,RUGBY UNION
+Parkwood - Senior Pitch Hire,No Match
 Party,No Match
 Party Fitness,EXERCISE AND FITNESS
+Penenden Heath - 7 v 7 Pitch Hire,No Match
+Penenden Heath - Junior Pitch Hire,No Match
+Penenden Heath - Senior Pitch Hire,No Match
 Personal Profiling,No Match
 Personal Programme,EXERCISE AND FITNESS
 Personal Results,No Match
@@ -800,27 +974,34 @@ Petanque,PETANQUE
 Phase IV,No Match
 Phase IV Cardiac Rehabilitation,EXERCISE AND FITNESS
 Physiotherapy,No Match
-Pickleball,No Match
-Pickleball (Pre Scheduled),No Match
-Pickleball 55 Minutes ,No Match
-Pickleball 60mins,No Match
-Pickleball Court,No Match
+Pickle Ball,Pickleball
+Pickleball,Pickleball
+Pickleball (Pre Scheduled),Pickleball
+Pickleball - No Strings,Pickleball
+Pickleball - Open Day,Pickleball
+Pickleball 55 Minutes,Pickleball
+Pickleball 55 Minutes ,Pickleball
+Pickleball 60mins,Pickleball
+Pickleball Court,Pickleball
 Pilates,EXERCISE AND FITNESS
 Pilates - Active Ageing,EXERCISE AND FITNESS
 Pilates/Yoga,YOGA
 Pitch & Putt,GOLF
 Pitch Hire,No Match
+Piyo®,EXERCISE AND FITNESS
 Platform Diving,SWIMMING DIVING
 Play,No Match
 Pole Dancing,DANCE
 Pole Fitness,EXERCISE AND FITNESS
 Pole Vault,ATHLETICS TRACK AND FIELD
+Pony Trekking,EQUESTRIAN HORSE AND PONY RIDING
 Pool,POOL
 Pool Disco,EXERCISE AND FITNESS
 Pool Party,No Match
 Pool Party Public Swim,SWIMMING
 Popdance Active & Able,DANCE
 Popdance Fit,DANCE
+Postural Stability Instruction,EXERCISE AND FITNESS
 Pound™,EXERCISE AND FITNESS
 Power Assisted Exercise,EXERCISE AND FITNESS
 Power Pilates,EXERCISE AND FITNESS
@@ -828,13 +1009,15 @@ Power Step,EXERCISE AND FITNESS
 Power Walking,RAMBLING
 PowerWave™,EXERCISE AND FITNESS
 Powerboating,SAILING POWERBOATING
-Powerchair Football,WHEELCHAIR BASKETBALL
+Powerchair Football,FOOTBALL
 Powerhoop,EXERCISE AND FITNESS
 Powerlifting,POWERLIFTING
 Pre / Post Natal Classes,EXERCISE AND FITNESS
 Pregnancy Pilates,EXERCISE AND FITNESS
 Pregnancy Yoga,YOGA
 Primal Bootcamp,EXERCISE AND FITNESS
+Primal Circuit,Circuit Training
+Prime Time,No Match
 Public Skate,ICE SKATING
 Public Swim Sessions,SWIMMING
 Public Swimming,SWIMMING
@@ -859,13 +1042,17 @@ Recreational Cycling,CYCLING
 Reference Class,No Match
 Reference Class Do Not Book,No Match
 Referral Physio,No Match
+Reformer Pilates,EXERCISE AND FITNESS
+Reformer360,EXERCISE AND FITNESS
 Rehab Pilates,EXERCISE AND FITNESS
 Relaxation,No Match
 Resistance Bands,EXERCISE AND FITNESS
 Resistance Training,EXERCISE AND FITNESS
+Resistance weights machines,Resistance weights machines
 Restorative Yoga,YOGA
+Rhythm & Reps,EXERCISE AND FITNESS
 Rhythmic Gymnastics,GYMNASTICS RHYTHMIC
-Road Cycling,CYCLING
+Road Cycling,CYCLING ROAD CYCLING
 Rock Climbing,MOUNTAINEERING
 Rock and Roll,DANCE
 Rockbox Fitness,EXERCISE AND FITNESS
@@ -881,11 +1068,14 @@ Rowing machine,EXERCISE AND FITNESS
 Rpm™,CYCLING
 Rugby,RUGBY UNION
 Rugby League,RUGBY LEAGUE
+Rugby Pitch,Rugby
 Rugby Sevens,RUGBY UNION SEVENS
 Rugby Union,RUGBY UNION
 Run/Bike,No Match
 Running,ATHLETICS
 Running Club,ATHLETICS ROAD
+SCLRox,No Match
+SECA,No Match
 SH Badminton,BADMINTON
 SH Basketball,BASKETBALL
 SH Casual 5 a side,FOOTBALL
@@ -894,6 +1084,7 @@ SH Table Tennis,TABLE TENNIS
 SH Volleyball,VOLLEYBALL
 SHILDON PARKPLAY,No Match
 SOUTHALL PARKPLAY,No Match
+Sailability,SAILING
 Sailing,SAILING
 "Saint Barnabas Church (Apr '24 - Mar ’25) Mon, 1.15pm (S&B L2)",No Match
 Salsa,DANCE
@@ -904,20 +1095,27 @@ Scaravelli Inspired Yoga,YOGA
 Schooling,No Match
 Scootering,No Match
 Scotsbridge,No Match
+Scottish Country Dancing,Scottish Country Dancing
 Seated Exercise,EXERCISE AND FITNESS
 Self Defence,EXERCISE AND FITNESS
+Senacre - 9 v 9 Pitch Hire,No Match
 Senior  Activities,No Match
 Senior Group Cycle,CYCLING
 Senior Keep Fit,EXERCISE AND FITNESS
 Sequence Dancing,DANCE
+Sh1ft,EXERCISE AND FITNESS
 Shapemaster,EXERCISE AND FITNESS
 Shapemaster Booking,EXERCISE AND FITNESS
+Shapes,EXERCISE AND FITNESS
 Shbam™,DANCE
 Short Form Cricket,CRICKET
 Short Mat Bowls,BOWLS SHORT MAT
 Short Tennis,TENNIS
+Short Tennis 1 adult 1 child,TENNIS
 Short Tennis 1 adult 1 child ,TENNIS
 Short Tennis 1 adult 1 child  Hall 2,TENNIS
+Short Tennis Court Hall 1,Short Tennis
+Short Tennis Court Hall 2,Short Tennis
 Short Tennis Hall 1,TENNIS
 Short Tennis hall 2,TENNIS
 Singing,No Match
@@ -928,10 +1126,11 @@ Skate Park,SKATEBOARDING
 Skate Training,SKATEBOARDING
 SkateBoarding,SKATEBOARDING
 Skateboarding,SKATEBOARDING
-Skiing,SNOWSPORT
+Skiing,SNOWSPORT SKIING
 Skillmill bootcamp,EXERCISE AND FITNESS
 Skipping,SKIPPING
 Sky Trail,No Match
+Small Group PT,EXERCISE AND FITNESS
 Small Sided Football,FOOTBALL
 Snooker,SNOOKER AND BILLIARDS
 Snorkelling,SUB AQUA
@@ -939,14 +1138,24 @@ Social,No Match
 Social Badminton,BADMINTON
 Soft Play,No Match
 Soft Play Promotional Session,No Match
+Soft Play Session 3-5 Years,No Match
+Soft Play Session Under 2's,No Match
+Somerset Road - 9 V 9 Pitch Hire,No Match
+Somerset Road - Junior Pitch Hire,No Match
 Sosa™,DANCE
+Sound Baths,No Match
 South  Oxhey Play Rangers,No Match
+South Park - 9 v 9 Pitch Hire,No Match
+South Park - Junior Pitch Hire,No Match
+South Park - Senior Pitch Hire,No Match
 Spa,No Match
 Space Hire,No Match
+Space2,No Match
 Spin,CYCLING
 Spin Xpress,CYCLING
 Spin and Weights,EXERCISE AND FITNESS
 Spinning,CYCLING
+Spirals,EXERCISE AND FITNESS
 Spivi Virtual Class,EXERCISE AND FITNESS
 Splash Aerobics,EXERCISE AND FITNESS
 Sports Hall,No Match
@@ -963,7 +1172,10 @@ Squash 40 Mins,SQUASH
 Squash 45 Mins,SQUASH
 Squash 57,SQUASH SQUASH57
 Squash 60 Mins,SQUASH
+Squash Activities,SQUASH
 Squash Adult,SQUASH
+Squash Booking,Squash
+Squash Club Members Only,SQUASH
 Squash Court,SQUASH
 Squash Court Activities (ST),SQUASH
 Squash Promotion,SQUASH
@@ -973,6 +1185,7 @@ Stand Up Paddleboarding,CANOEING SUP
 Steam Room,No Match
 Step,EXERCISE AND FITNESS
 Step Aerobics,EXERCISE AND FITNESS
+Step machine,Step machine
 Steps to Health,EXERCISE AND FITNESS
 Stones Orchard,No Match
 Street Cheer,No Match
@@ -988,6 +1201,7 @@ Strength and Core,EXERCISE AND FITNESS
 Stretch,EXERCISE AND FITNESS
 Stretch & Mobility,EXERCISE AND FITNESS
 Stretch & Tone,EXERCISE AND FITNESS
+Stretch And Relaxation,EXERCISE AND FITNESS
 Stretch And Tone,EXERCISE AND FITNESS
 Stretch Class,EXERCISE AND FITNESS
 Stretch and Relax Express,EXERCISE AND FITNESS
@@ -1026,14 +1240,18 @@ Swimming Clubs,SWIMMING
 Swimming For All,SWIMMING
 Swimming Lessons,SWIMMING
 Swimming Pool Hire,SWIMMING
+Swimming Sessions,Swimming
 Swing,DANCE
+Swiss Ball,EXERCISE AND FITNESS
 Synchronised Swimming,SWIMMING SYNCHRONISED
 Synrgy,EXERCISE AND FITNESS
+T B C X,EXERCISE AND FITNESS
 TRE,No Match
 TREVERBYN PARKPLAY,No Match
 TRX Class,EXERCISE AND FITNESS
 Tabata,EXERCISE AND FITNESS
 Tabata Strength,EXERCISE AND FITNESS
+Tabatha Box,EXERCISE AND FITNESS
 Table Ten 1 adult & child Paid hall 1,TABLE TENNIS
 Table Ten 1 adult & child Paid hall 2,TABLE TENNIS
 Table Tennis,TABLE TENNIS
@@ -1048,6 +1266,8 @@ Table Tennis - New Victory Hall Holywell,TABLE TENNIS
 Table Tennis - Squash Courts,TABLE TENNIS
 Table Tennis 60 Mins,TABLE TENNIS
 Table Tennis 60 Minutes,TABLE TENNIS
+Table Tennis Court Hall 1,Table Tennis
+Table Tennis Court Hall 2,Table Tennis
 Table Tennis Hall 1,TABLE TENNIS
 Table Tennis Hall 2,TABLE TENNIS
 Table Tennis Table,TABLE TENNIS
@@ -1055,7 +1275,10 @@ Taekwondo,TAEKWONDO
 Tag Rugby,RUGBY UNION TAG
 Tag Rugby League,RUGBY LEAGUE TOUCH
 Tag Rugby Union,RUGBY UNION TAG
+Tag X,No Match
 Tai Chi,CHINESE MARTIAL ARTS TAI CHI
+Tai Chi Qigong,CHINESE MARTIAL ARTS QIGONG
+Tai Chi Qigong Express,CHINESE MARTIAL ARTS QIGONG
 Tameside Swim Academy,SWIMMING
 Tameside Swim School,SWIMMING
 Tanita Scan,No Match
@@ -1068,7 +1291,11 @@ Techniques Workshop Beginners+,No Match
 Ten-Pin Bowling,TENPIN BOWLING
 Tennis,TENNIS
 Tennis - Indoor - Adult,TENNIS
+Tennis - Indoor - Family,TENNIS
+Tennis - Indoor - Junior,TENNIS
+Tennis - Indoor - Wheelchair,TENNIS
 Tennis - Indoor Court,TENNIS
+Tennis - Open Day,TENNIS
 Tennis - Outdoor Court,TENNIS
 Tennis 1 Adult 1 Child ,TENNIS
 Tennis 1 Adult 2 children ,TENNIS
@@ -1080,6 +1307,7 @@ Tennis Court,TENNIS
 Tennis Full Court  4 Adults ,TENNIS
 This Girl Can Classes,No Match
 Toddle Time (0-4yrs),EXERCISE AND FITNESS
+Toddler Football,Toddler Football
 Toddler Group,No Match
 Toddler Tuesdays (0-5yrs),No Match
 Toning Suite Induction,EXERCISE AND FITNESS
@@ -1094,6 +1322,7 @@ Tour & Membership Consultation,No Match
 Track Cycling,CYCLING TRACK
 Track Session,ATHLETICS TRACK AND FIELD
 Track and Field,ATHLETICS TRACK AND FIELD
+Track session,ATHLETICS
 TrackPro,ATHLETICS TRACK AND FIELD
 Trampoline Fitness,GYMNASTICS TRAMPOLINE & DMT
 Trampolining,GYMNASTICS TRAMPOLINE & DMT
@@ -1126,11 +1355,14 @@ Virtual Dance Movement,DANCE
 Virtual GRIT Cardio,EXERCISE AND FITNESS
 Virtual GRIT Strength,EXERCISE AND FITNESS
 Virtual Grit,EXERCISE AND FITNESS
+Virtual Indoor Cycle,CYCLING
 Virtual Indoor Cycle ,CYCLING
 Virtual Indoor Cycling,CYCLING
+Virtual Les Mills Classes,Virtual Class
 Virtual Online Class,EXERCISE AND FITNESS
 Virtual Wellbeing,EXERCISE AND FITNESS
 Virtual Yoga,YOGA
+Voga,EXERCISE AND FITNESS
 Voguing,DANCE
 Volleyball,VOLLEYBALL
 Volleyball Court,VOLLEYBALL
@@ -1156,12 +1388,14 @@ Weightlifting,WEIGHTLIFTING
 Wellbeing – Guided Meditation,No Match
 Wellbeing – Sound Meditation,No Match
 Wellness Consultation,No Match
+"West Drayton Community Centre (Jun '24 - Mar '25) Thu, 9.45am (S&B L2)",No Match
 Wheelchair Basketball,WHEELCHAIR BASKETBALL
 Wheelchair Dance Sport,DANCE
 Wheelchair Fencing,FENCING
 Wheelchair Rugby,WHEELCHAIR RUGBY
-Wheelchair Tennis,WHEELCHAIR BASKETBALL
+Wheelchair Tennis,TENNIS
 White Water Course,CANOEING WILD WATER RACING
+White Water Rafting,CANOEING WILD WATER RACING
 Whole Hall Hire,No Match
 Whole Hall Hire (Fearnhill),No Match
 Windsurfing,SAILING WINDSURFING
@@ -1172,9 +1406,12 @@ Wrestling,WRESTLING
 Wushu,CHINESE MARTIAL ARTS TRADITIONAL WUSHU
 X-Fit,EXERCISE AND FITNESS
 X-treme Air,No Match
+Xtreme Air,No Match
 Yin Yoga,YOGA
+Yin/Yang Yoga,Yin Yoga
 Yoga,YOGA
 Yoga & Pilates Fusion,YOGA
+Yoga Fusion,YOGA
 Yoga Nidra,YOGA
 Yogalates,YOGA
 Yogalates™,YOGA

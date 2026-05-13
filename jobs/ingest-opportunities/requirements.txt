@@ -1,0 +1,13 @@
+google-cloud-bigquery
+google-cloud-bigquery-storage
+pyarrow
+pandas
+pandas-gbq
+python-dotenv
+requests
+urllib3
+tqdm
+click
+uklookup
+geopandas
+shapely
