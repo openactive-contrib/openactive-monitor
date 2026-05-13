@@ -26,12 +26,18 @@ from shapely.geometry import Point
 
 logger = logging.getLogger(__name__)
 
-# Boundary GeoJSONs live under ``volume-1/data-analysis/``. In local
-# development this is a relative path inside the repo; on Cloud Run the
-# ``volume-1`` GCS bucket is mounted at ``/mnt/volume-1`` and the path is
-# overridden via the ``INGEST_BOUNDARY_DIR`` environment variable.
-_DEFAULT_BOUNDARY_DIR = Path(__file__).resolve().parents[2] / "volume-1" / "data-analysis"
-_BOUNDARY_DIR = Path(os.getenv("INGEST_BOUNDARY_DIR", str(_DEFAULT_BOUNDARY_DIR)))
+# Boundary GeoJSONs live under ``volume-1/data-analysis/``.
+#
+# - On Cloud Run the ``volume-1`` GCS bucket is mounted into the container
+#   and the path is provided via the ``INGEST_BOUNDARY_DIR`` env var.
+# - For local development, leave ``INGEST_BOUNDARY_DIR`` unset and the path
+#   resolves relative to this file at ``<repo>/volume-1/data-analysis``.
+_env_boundary_dir = os.getenv("INGEST_BOUNDARY_DIR")
+if _env_boundary_dir:
+    _BOUNDARY_DIR = Path(_env_boundary_dir)
+else:
+    # jobs/ingest-opportunities/boundary_lookup.py -> repo root is parents[2].
+    _BOUNDARY_DIR = Path(__file__).resolve().parents[2] / "volume-1" / "data-analysis"
 
 DISTRICTS_FILENAME = "000-location-districts.geojson"
 REGIONS_FILENAME = "000-location-regions.geojson"
