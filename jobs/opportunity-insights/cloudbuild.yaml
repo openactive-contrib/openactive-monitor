@@ -42,6 +42,7 @@ images:
 options:
   logging: CLOUD_LOGGING_ONLY
 
+
 substitutions:
   _JOB_NAME: opportunity-insights
   _REGION: europe-west2
