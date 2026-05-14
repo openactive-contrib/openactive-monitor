@@ -72,6 +72,7 @@ Denormalized opportunity data from RPDE feeds.
 | `level` | JSON | NULLABLE | Difficulty level of the opportunity |
 | `has_superEvent` | JSON | NULLABLE | SuperEvent URL or inline superEvent data |
 | `has_subEvent` | JSON | NULLABLE | SubEvent URLs or inline subEvent data |
+| `last_updated` | DATE | UTC date (day/month/year) when this row was last upserted |
 
 ---
 
