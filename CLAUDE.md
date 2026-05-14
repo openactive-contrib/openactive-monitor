@@ -125,6 +125,7 @@ Stores denormalized opportunity data from RPDE feeds.
 | `level` | STRING | Difficulty/skill level |
 | `has_superEvent` | STRING | Reference to parent event `@id` or inline dict |
 | `has_subEvent` | STRING | Reference to child event(s) |
+| `last_updated` | DATE | UTC date (day/month/year) when this row was last upserted by the `ingest-opportunities` job |
 
 **Composite primary key (MERGE key):** `(dataset_url, feed_id, id)`
 

@@ -10,7 +10,7 @@ table without re-implementing this logic.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any
 
 import pandas as pd
@@ -28,6 +28,7 @@ DF_COLUMNS = [
     "json_data", "inherited_data", "activity", "facility", "location",
     "district_name", "region_name",
     "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent",
+    "last_updated",
 ]
 
 
@@ -205,6 +206,7 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[dic
                 "level":          data.get("level"),
                 "has_superEvent": data.get("superEvent") or data.get("facilityUse"),
                 "has_subEvent":   data.get("subEvent"),
+                "last_updated":   datetime.now(timezone.utc).date(),
             })
     return updated, deleted
 
