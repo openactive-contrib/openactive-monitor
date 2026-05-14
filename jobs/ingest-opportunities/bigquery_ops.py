@@ -47,6 +47,7 @@ OPPORTUNITIES_COLUMNS = [
     "level",
     "has_superEvent",
     "has_subEvent",
+    "last_updated",
 ]
 
 DEFAULT_DELETE_RETRY_BASE_SECONDS = 10
