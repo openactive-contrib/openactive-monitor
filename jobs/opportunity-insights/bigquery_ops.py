@@ -46,6 +46,7 @@ INSIGHT_SPORT_DISCIPLINE_TABLE = os.getenv("BQ_INSIGHT_SPORT_DISCIPLINE_TABLE", 
 INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE = os.getenv(
     "BQ_INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE", "insight_sport_discipline_master"
 )
+FEED_QUALITY_TABLE = os.getenv("BQ_FEED_QUALITY_TABLE", "feed_quality")
 
 MERGE_RETRY_MAX_ATTEMPTS = 5
 MERGE_RETRY_BASE_SECONDS = 5
@@ -54,13 +55,15 @@ MERGE_RETRY_MAX_SECONDS = 120
 _SCHEMAS_DIR = Path(__file__).parent / "schemas"
 
 # Clustering and partitioning config for each output table.
-# Each entry: (schema_filename, clustering_cols)
-_TABLE_CONFIGS: dict[str, tuple[str, list[str]]] = {
-    FEED_INSIGHTS_TABLE:                   ("feed_insights.json",                  ["run_date", "dataset_url", "feed_id"]),
-    INSIGHT_RUN_SUMMARY_TABLE:             ("insight_run_summary.json",            ["run_date"]),
-    INSIGHT_CATEGORY_COUNTS_TABLE:         ("insight_category_counts.json",        ["run_date", "category", "scope"]),
-    INSIGHT_SPORT_DISCIPLINE_TABLE:        ("insight_sport_discipline.json",       ["run_date", "is_matched"]),
-    INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE: ("insight_sport_discipline_master.json", ["run_date"]),
+# Each entry: (schema_filename, clustering_cols, partition_field).
+# partition_field is None for tables that should not be time-partitioned (e.g. current-state tables).
+_TABLE_CONFIGS: dict[str, tuple[str, list[str], str | None]] = {
+    FEED_INSIGHTS_TABLE:                   ("feed_insights.json",                  ["run_date", "dataset_url", "feed_id"], "run_date"),
+    INSIGHT_RUN_SUMMARY_TABLE:             ("insight_run_summary.json",            ["run_date"],                            "run_date"),
+    INSIGHT_CATEGORY_COUNTS_TABLE:         ("insight_category_counts.json",        ["run_date", "category", "scope"],       "run_date"),
+    INSIGHT_SPORT_DISCIPLINE_TABLE:        ("insight_sport_discipline.json",       ["run_date", "is_matched"],              "run_date"),
+    INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE: ("insight_sport_discipline_master.json", ["run_date"],                            "run_date"),
+    FEED_QUALITY_TABLE:                    ("feed_quality.json",                   ["dataset_url", "feed_id", "grade"],     None),
 }
 
 _FEED_INSIGHTS_MERGE_KEYS = ("run_date", "feed_id")
@@ -92,11 +95,11 @@ def _load_schema_json(filename: str) -> list[bigquery.SchemaField]:
 def ensure_tables() -> None:
     """Create any missing output tables from the JSON schemas under ``schemas/``.
 
-    Idempotent: existing tables are left untouched. Uses ``run_date`` as the
-    time-partitioning field and the clustering list defined in ``_TABLE_CONFIGS``.
+    Idempotent: existing tables are left untouched. Uses the configured
+    ``partition_field`` (if any) and clustering list from ``_TABLE_CONFIGS``.
     """
     client = _client()
-    for name, (schema_file, clustering) in _TABLE_CONFIGS.items():
+    for name, (schema_file, clustering, partition_field) in _TABLE_CONFIGS.items():
         full_id = table_id(name)
         try:
             client.get_table(full_id)
@@ -107,13 +110,17 @@ def ensure_tables() -> None:
 
         schema = _load_schema_json(schema_file)
         table = bigquery.Table(full_id, schema=schema)
-        table.time_partitioning = bigquery.TimePartitioning(
-            type_=bigquery.TimePartitioningType.DAY,
-            field="run_date",
-        )
+        if partition_field is not None:
+            table.time_partitioning = bigquery.TimePartitioning(
+                type_=bigquery.TimePartitioningType.DAY,
+                field=partition_field,
+            )
         table.clustering_fields = clustering
         client.create_table(table)
-        logger.info("Created table: %s (clustering=%s)", full_id, clustering)
+        logger.info(
+            "Created table: %s (clustering=%s, partition=%s)",
+            full_id, clustering, partition_field,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -242,7 +249,7 @@ def _load_job(rows: list[dict[str, Any]], destination: str, schema: list[bigquer
 
 
 def _append_rows(table_name: str, rows: list[dict[str, Any]]) -> None:
-    schema_file, _ = _TABLE_CONFIGS[table_name]
+    schema_file, _, _ = _TABLE_CONFIGS[table_name]
     schema = _load_schema_json(schema_file)
     prepared = _prepare_rows(rows, schema)
     _load_job(prepared, table_id(table_name), schema, bigquery.WriteDisposition.WRITE_APPEND)
@@ -264,6 +271,18 @@ def append_sport_discipline_master(rows: list[dict[str, Any]]) -> None:
     _append_rows(INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE, rows)
 
 
+def write_feed_quality(rows: list[dict[str, Any]]) -> None:
+    """Replace the entire ``feed_quality`` table with ``rows`` (WRITE_TRUNCATE).
+
+    The quality table is a current-state view (one row per feed), so each run
+    fully overwrites the previous contents. No staging / MERGE is needed.
+    """
+    schema_file, _, _ = _TABLE_CONFIGS[FEED_QUALITY_TABLE]
+    schema = _load_schema_json(schema_file)
+    prepared = _prepare_rows(rows, schema)
+    _load_job(prepared, table_id(FEED_QUALITY_TABLE), schema, bigquery.WriteDisposition.WRITE_TRUNCATE)
+
+
 def upsert_feed_insights(rows: list[dict[str, Any]]) -> None:
     """Upsert per-feed insight rows via stage + MERGE on ``(run_date, feed_id)``.
 
@@ -273,7 +292,7 @@ def upsert_feed_insights(rows: list[dict[str, Any]]) -> None:
         logger.info("No feed_insights rows to write")
         return
 
-    schema_file, _ = _TABLE_CONFIGS[FEED_INSIGHTS_TABLE]
+    schema_file, _, _ = _TABLE_CONFIGS[FEED_INSIGHTS_TABLE]
     schema = _load_schema_json(schema_file)
     prepared = _prepare_rows(rows, schema)
 
@@ -292,7 +311,7 @@ def upsert_feed_insights(rows: list[dict[str, Any]]) -> None:
 
 
 def _merge_feed_insights(client: bigquery.Client, main_id: str, staging_id: str) -> None:
-    schema_file, _ = _TABLE_CONFIGS[FEED_INSIGHTS_TABLE]
+    schema_file, _, _ = _TABLE_CONFIGS[FEED_INSIGHTS_TABLE]
     schema = _load_schema_json(schema_file)
     all_cols = [f.name for f in schema]
     update_cols = [c for c in all_cols if c not in _FEED_INSIGHTS_MERGE_KEYS]

@@ -1,7 +1,31 @@
 # opportunity-insights — Cloud Run Job
 
 BigQuery-based analysis job that reads from `openactive_analytics.opportunities`
-and writes per-feed and aggregate metrics into the `insight_*` tables.
+and writes per-feed and aggregate metrics into the `insight_*` tables, plus a
+per-feed data-quality assessment into `feed_quality`.
+
+## Data quality assessment
+
+After the regular insight tables are written, the job assesses each feed's
+data quality and writes one row per `(dataset_url, feed_id)` to `feed_quality`
+(full overwrite per run — current state only, no history). The QA logic lives
+under `quality/` and is driven by the same `--reference-date` as the rest of
+the run.
+
+For each feed it records:
+
+| Column | Source |
+|--------|--------|
+| `status` | `OK` / `WARNING` / `ERROR`. Derived from latest `opportunity_ingestion.status`, an HTTP probe of `feed_url` for ERROR-state feeds, and presence of required fields. |
+| `warnings`, `errors` | JSON arrays of human-readable messages. |
+| `missing_required_fields` | JSON object keyed by opportunity kind (e.g. `SessionSeries`) listing required fields absent from **all** of up to 10 random `json_data` samples for that kind in the last 5 days. Required fields per kind are defined in `quality/required_fields.py` and follow the [OpenActive Modelling Opportunity Data](https://openactive.io/modelling-opportunity-data/) spec. |
+| `location_completeness`, `start_date_completeness`, `end_date_completeness`, `activities_completeness`, `facilities_completeness` | Percentage (0–100) of opportunities updated in the last 5 days where each top-level column is populated and non-empty. |
+| `num_future_opportunity_items` | Carried over from the in-memory `feed_insights` row built earlier in the same run. |
+| `grade` | `Gold` / `Silver` / `Bronze` / `None` per the rules in `quality/assess.py` — driven by future-event volume, completeness thresholds, and missing-required-fields. |
+
+To skip the QA step (e.g. when iterating on the analytic queries), pass
+`--skip-quality`. To create the `feed_quality` table on first run, pass
+`--init-tables` (existing behaviour).
 
 This job needs read access to a few static reference files (UK boundary
 GeoJSONs and the Sport-England mapping CSVs) that live in the **`volume-1`
