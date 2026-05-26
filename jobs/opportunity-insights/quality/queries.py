@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from quality.required_fields import QUALITY_WINDOW_DAYS
-
+SAMPLES_PER_KIND = 100
+QUALITY_WINDOW_DAYS = 5
 
 def per_feed_completeness(opportunities_table: str, reference_date: date) -> str:
     """Per-feed completeness percentages for the last ``QUALITY_WINDOW_DAYS`` days.
@@ -68,7 +68,7 @@ def per_feed_completeness(opportunities_table: str, reference_date: date) -> str
 def sampled_opportunities_by_feed_and_kind(
     opportunities_table: str,
     reference_date: date,
-    samples_per_kind: int,
+    samples_per_kind: int = SAMPLES_PER_KIND,
 ) -> str:
     """Up to ``samples_per_kind`` random ``json_data`` payloads per ``(dataset_url, feed_id, kind)``.
 

@@ -16,5 +16,7 @@
   {"name": "facilities_completeness",      "type": "FLOAT",     "mode": "NULLABLE"},
   {"name": "num_future_opportunity_items", "type": "INTEGER",   "mode": "NULLABLE"},
   {"name": "grade",                        "type": "STRING",    "mode": "NULLABLE", "description": "None | Bronze | Silver | Gold"},
+  {"name": "feed_version",                 "type": "STRING",    "mode": "NULLABLE", "description": "Detected OpenActive spec version (e.g. V0.x, V1.1, V2.0, V2.1)"},
+  {"name": "score",                        "type": "FLOAT",     "mode": "NULLABLE", "description": "Normalised quality score 0-100 based on required/recommended/optional property presence"},
   {"name": "last_assessed",                "type": "TIMESTAMP", "mode": "REQUIRED"}
 ]

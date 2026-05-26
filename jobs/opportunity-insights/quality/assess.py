@@ -21,9 +21,12 @@ import pandas as pd
 import bigquery_ops
 from quality import queries as quality_queries
 from quality.health_check import ProbeResult, probe_feeds
-from quality.required_fields import (
-    REQUIRED_FIELDS_BY_KIND,
-    SAMPLES_PER_KIND,
+from quality.version_compliance import (
+    FEED_TYPE_TO_SPEC_CATEGORY,
+    VERSION_ORDER,
+    VERSION_SPECS,
+    compute_feed_score,
+    get_alternatives,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,7 +65,7 @@ def assess_feed_quality(
     }
 
     completeness_by_key = _fetch_completeness(opportunities_tbl, reference_date)
-    missing_by_key = _fetch_missing_required_fields(opportunities_tbl, reference_date)
+    samples_by_key, samples_by_kind_key = _fetch_samples(opportunities_tbl, reference_date)
 
     # Probe any feed whose latest ingestion was ERROR / WARNING, or where the
     # in-memory feed_insights row reports zero future opportunities. The probe
@@ -87,9 +90,24 @@ def assess_feed_quality(
         key = (dataset_url, feed_id)
 
         completeness = completeness_by_key.get(key, {})
-        missing_by_kind = missing_by_key.get(key, {})
         ingestion_status = status_by_feed.get(feed_id)
         future_count = future_count_by_feed.get(feed_id, 0)
+
+        # Version detection and scoring from sampled json_data payloads
+        feed_type = feed.get("feed_type") or ""
+        feed_samples = samples_by_key.get(key, [])
+        version_result = compute_feed_score(feed_samples, feed_type_str=feed_type)
+
+        # Detect missing required fields per kind, based on the detected version's spec
+        kind_samples = {
+            kind: payloads
+            for (du, fid, kind), payloads in samples_by_kind_key.items()
+            if du == dataset_url and fid == feed_id
+        }
+        missing_by_kind = _missing_required_by_kind(
+            kind_samples,
+            detected_version=version_result["version"],
+        )
 
         status, warnings, errors = _classify(
             ingestion_status=ingestion_status,
@@ -105,11 +123,12 @@ def assess_feed_quality(
             missing_by_kind=missing_by_kind,
         )
 
+
         rows.append({
             "dataset_url":             dataset_url,
             "dataset_name":            feed.get("dataset_name"),
             "feed_id":                 feed_id,
-            "feed_type":               feed.get("feed_type"),
+            "feed_type":               feed_type,
             "feed_url":                feed.get("feed_url"),
             "is_regular":              _coerce_bool(feed.get("is_regular")),
             "status":                  status,
@@ -123,6 +142,8 @@ def assess_feed_quality(
             "facilities_completeness": _round(completeness.get("facilities_completeness")),
             "num_future_opportunity_items": future_count,
             "grade":                   grade,
+            "feed_version":            version_result["version"],
+            "score":                   version_result["score"],
             "last_assessed":           run_date,
         })
 
@@ -156,18 +177,27 @@ def _fetch_completeness(
     return out
 
 
-def _fetch_missing_required_fields(
+def _fetch_samples(
     opportunities_tbl: str,
     reference_date: date,
-) -> dict[tuple[str | None, str], dict[str, list[str]]]:
+) -> tuple[
+    dict[tuple[str | None, str], list[dict[str, Any]]],
+    dict[tuple[str | None, str, str], list[dict[str, Any]]],
+]:
+    """Fetch sampled json_data payloads per feed and per (feed, kind).
+
+    Returns:
+      - samples_by_key: {(dataset_url, feed_id): [payload_dict, ...]}
+      - samples_by_kind_key: {(dataset_url, feed_id, kind): [payload_dict, ...]}
+    """
     df = bigquery_ops.run_query(
         quality_queries.sampled_opportunities_by_feed_and_kind(
-            opportunities_tbl, reference_date, SAMPLES_PER_KIND
+            opportunities_tbl, reference_date
         )
     )
 
-    # Bucket samples per (dataset_url, feed_id, kind).
-    samples: dict[tuple[str | None, str, str], list[dict[str, Any]]] = {}
+    samples_by_kind_key: dict[tuple[str | None, str, str], list[dict[str, Any]]] = {}
+    samples_by_key: dict[tuple[str | None, str], list[dict[str, Any]]] = {}
     for _, row in df.iterrows():
         feed_id = row.get("feed_id")
         kind = row.get("kind")
@@ -176,20 +206,58 @@ def _fetch_missing_required_fields(
         payload = _coerce_json_payload(row.get("json_data"))
         if payload is None:
             continue
-        samples.setdefault((row.get("dataset_url"), feed_id, kind), []).append(payload)
+        samples_by_kind_key.setdefault((row.get("dataset_url"), feed_id, kind), []).append(payload)
+        samples_by_key.setdefault((row.get("dataset_url"), feed_id), []).append(payload)
 
-    out: dict[tuple[str | None, str], dict[str, list[str]]] = {}
-    for (dataset_url, feed_id, kind), payloads in samples.items():
-        required = REQUIRED_FIELDS_BY_KIND.get(kind)
-        if not required:
+    return samples_by_key, samples_by_kind_key
+
+
+def _missing_required_by_kind(
+    kind_samples: dict[str, list[dict[str, Any]]],
+    detected_version: str,
+) -> dict[str, list[str]]:
+    """For each kind in a feed, return required fields that are missing in all sampled payloads.
+
+    Uses ``VERSION_SPECS`` for the kind's spec category at the feed's detected version
+    (falling back to the highest version available for that spec category if the
+    detected version is not defined for it).
+    """
+    out: dict[str, list[str]] = {}
+    if detected_version in (None, "Unknown"):
+        return out
+
+    for kind, payloads in kind_samples.items():
+        if not payloads:
             continue
-        missing = [
-            field for field in required
-            if not any(_is_field_present(payload, field) for payload in payloads)
-        ]
-        if not missing:
+        spec_category = FEED_TYPE_TO_SPEC_CATEGORY.get(kind.strip(), "Event")
+        version_specs = VERSION_SPECS.get(spec_category)
+        if not version_specs:
             continue
-        out.setdefault((dataset_url, feed_id), {})[kind] = missing
+
+        # Pick the spec for the detected version, or fall back to the highest
+        # version available for this category if the detected version is missing
+        # (e.g. detected V1.1 but kind is FacilityUse which is V2.0+ only).
+        spec = version_specs.get(detected_version)
+        if spec is None:
+            fallback = max(version_specs.keys(), key=lambda v: VERSION_ORDER.get(v, 0))
+            spec = version_specs[fallback]
+
+        required_fields = [p for p, status in spec.items() if status == "required"]
+        if not required_fields:
+            continue
+
+        missing = []
+        for field in required_fields:
+            alts = get_alternatives(spec_category, field)
+            if not any(
+                _is_field_present(payload, field)
+                or any(_is_field_present(payload, alt) for alt in alts)
+                for payload in payloads
+            ):
+                missing.append(field)
+
+        if missing:
+            out[kind] = missing
 
     return out
 

@@ -19,6 +19,7 @@ COPY . .
 # The Cloud Run Job is configured to mount gs://volume-1 at /volume-1
 # so geojson/CSV reference data lives at /volume-1/data-analysis.
 ENV INSIGHTS_GEO_DIR=/volume-1/data-analysis
+ENV INSIGHTS_PUBLIC_DIR=/volume-1/public
 
 # Run the Click CLI; flags can be appended via Cloud Run Job "args".
 ENTRYPOINT ["python", "main.py"]

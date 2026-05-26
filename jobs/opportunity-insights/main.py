@@ -30,6 +30,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 DEFAULT_GEO_DIR = Path(os.getenv("INSIGHTS_GEO_DIR", "../../volume-1/data-analysis")).resolve()
+DEFAULT_PUBLIC_DIR = Path(os.getenv("INSIGHTS_PUBLIC_DIR", "../../volume-1/public")).resolve()
 
 
 # ---------------------------------------------------------------------------
@@ -612,11 +613,25 @@ def _run_quality_assessment(
     bigquery_ops.write_feed_quality(quality_rows)
 
 
+def _run_homepage_export(
+    opportunities_tbl: str,
+    feeds_tbl: str,
+    insight_run_summary_tbl: str,
+    output_dir: Path,
+) -> None:
+    from homepage_export import build_homepage_metrics, write_homepage_metrics
+
+    logger.info("Exporting homepage metrics to %s", output_dir)
+    metrics = build_homepage_metrics(opportunities_tbl, feeds_tbl, insight_run_summary_tbl)
+    write_homepage_metrics(metrics, output_dir)
+
+
 def run(
     verbose: bool = False,
     init_tables: bool = False,
     reference_date: date | None = None,
     skip_quality: bool = False,
+    skip_export: bool = False,
 ) -> None:
     run_date = datetime.now(timezone.utc)
     effective_reference_date = reference_date or run_date.date()
@@ -656,7 +671,7 @@ def run(
 
     # ---------- Persist ---------- #
     # TODO disabled for debugging
-    _persist_outputs(feed_rows, summary_row, category_rows, sad_rows, master_rows)
+    # _persist_outputs(feed_rows, summary_row, category_rows, sad_rows, master_rows)
 
     # ---------- Data quality assessment ---------- #
     if not skip_quality:
@@ -665,6 +680,15 @@ def run(
         )
     else:
         logger.info("Skipping data-quality assessment (--skip-quality)")
+
+    # ---------- Homepage metrics export ---------- #
+    if not skip_export:
+        insight_run_summary_tbl = bigquery_ops.table_id(bigquery_ops.INSIGHT_RUN_SUMMARY_TABLE)
+        _run_homepage_export(
+            opportunities_tbl, feeds_tbl, insight_run_summary_tbl, DEFAULT_PUBLIC_DIR,
+        )
+    else:
+        logger.info("Skipping homepage metrics export (--skip-export)")
 
     logger.info("opportunity-insights run complete")
 
@@ -684,13 +708,26 @@ def run(
     default=False,
     help="Skip the per-feed data-quality assessment step (feed_quality table is not updated).",
 )
-def cli(verbose: bool, init_tables: bool, reference_date: datetime | None, skip_quality: bool) -> None:
+@click.option(
+    "--skip-export",
+    is_flag=True,
+    default=False,
+    help="Skip the homepage metrics JSON export step (homepage_metrics.json is not written).",
+)
+def cli(
+    verbose: bool,
+    init_tables: bool,
+    reference_date: datetime | None,
+    skip_quality: bool,
+    skip_export: bool,
+) -> None:
     _configure_logging(verbose)
     run(
         verbose=verbose,
         init_tables=init_tables,
         reference_date=reference_date.date() if reference_date else None,
         skip_quality=skip_quality,
+        skip_export=skip_export,
     )
 
 
