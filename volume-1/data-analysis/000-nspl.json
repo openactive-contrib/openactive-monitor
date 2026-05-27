@@ -1,0 +1,2529 @@
+{
+  "E06000001": {
+    "LAD25NM": "Hartlepool",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000002": {
+    "LAD25NM": "Middlesbrough",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000003": {
+    "LAD25NM": "Redcar and Cleveland",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000004": {
+    "LAD25NM": "Stockton-on-Tees",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000005": {
+    "LAD25NM": "Darlington",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000006": {
+    "LAD25NM": "Halton",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000007": {
+    "LAD25NM": "Warrington",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000008": {
+    "LAD25NM": "Blackburn with Darwen",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000009": {
+    "LAD25NM": "Blackpool",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000010": {
+    "LAD25NM": "Kingston upon Hull, City of",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000011": {
+    "LAD25NM": "East Riding of Yorkshire",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000012": {
+    "LAD25NM": "North East Lincolnshire",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000013": {
+    "LAD25NM": "North Lincolnshire",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000014": {
+    "LAD25NM": "York",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000015": {
+    "LAD25NM": "Derby",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000016": {
+    "LAD25NM": "Leicester",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000017": {
+    "LAD25NM": "Rutland",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000018": {
+    "LAD25NM": "Nottingham",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000019": {
+    "LAD25NM": "Herefordshire, County of",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000020": {
+    "LAD25NM": "Telford and Wrekin",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000021": {
+    "LAD25NM": "Stoke-on-Trent",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000022": {
+    "LAD25NM": "Bath and North East Somerset",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000023": {
+    "LAD25NM": "Bristol, City of",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000024": {
+    "LAD25NM": "North Somerset",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000025": {
+    "LAD25NM": "South Gloucestershire",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000026": {
+    "LAD25NM": "Plymouth",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000027": {
+    "LAD25NM": "Torbay",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000030": {
+    "LAD25NM": "Swindon",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000031": {
+    "LAD25NM": "Peterborough",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000032": {
+    "LAD25NM": "Luton",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000033": {
+    "LAD25NM": "Southend-on-Sea",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000034": {
+    "LAD25NM": "Thurrock",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000035": {
+    "LAD25NM": "Medway",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000036": {
+    "LAD25NM": "Bracknell Forest",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000037": {
+    "LAD25NM": "West Berkshire",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000038": {
+    "LAD25NM": "Reading",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000039": {
+    "LAD25NM": "Slough",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000040": {
+    "LAD25NM": "Windsor and Maidenhead",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000041": {
+    "LAD25NM": "Wokingham",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000042": {
+    "LAD25NM": "Milton Keynes",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000043": {
+    "LAD25NM": "Brighton and Hove",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000044": {
+    "LAD25NM": "Portsmouth",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000045": {
+    "LAD25NM": "Southampton",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000046": {
+    "LAD25NM": "Isle of Wight",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000047": {
+    "LAD25NM": "County Durham",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000049": {
+    "LAD25NM": "Cheshire East",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000050": {
+    "LAD25NM": "Cheshire West and Chester",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000051": {
+    "LAD25NM": "Shropshire",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000052": {
+    "LAD25NM": "Cornwall",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000053": {
+    "LAD25NM": "Isles of Scilly",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000054": {
+    "LAD25NM": "Wiltshire",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000055": {
+    "LAD25NM": "Bedford",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000056": {
+    "LAD25NM": "Central Bedfordshire",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000057": {
+    "LAD25NM": "Northumberland",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000058": {
+    "LAD25NM": "Bournemouth, Christchurch and Poole",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000059": {
+    "LAD25NM": "Dorset",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000060": {
+    "LAD25NM": "Buckinghamshire",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000061": {
+    "LAD25NM": "North Northamptonshire",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000062": {
+    "LAD25NM": "West Northamptonshire",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000063": {
+    "LAD25NM": "Cumberland",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000064": {
+    "LAD25NM": "Westmorland and Furness",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000065": {
+    "LAD25NM": "North Yorkshire",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E06000066": {
+    "LAD25NM": "Somerset",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000008": {
+    "LAD25NM": "Cambridge",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000009": {
+    "LAD25NM": "East Cambridgeshire",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000010": {
+    "LAD25NM": "Fenland",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000011": {
+    "LAD25NM": "Huntingdonshire",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000012": {
+    "LAD25NM": "South Cambridgeshire",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000032": {
+    "LAD25NM": "Amber Valley",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000033": {
+    "LAD25NM": "Bolsover",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000034": {
+    "LAD25NM": "Chesterfield",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000035": {
+    "LAD25NM": "Derbyshire Dales",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000036": {
+    "LAD25NM": "Erewash",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000037": {
+    "LAD25NM": "High Peak",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000038": {
+    "LAD25NM": "North East Derbyshire",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000039": {
+    "LAD25NM": "South Derbyshire",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000040": {
+    "LAD25NM": "East Devon",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000041": {
+    "LAD25NM": "Exeter",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000042": {
+    "LAD25NM": "Mid Devon",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000043": {
+    "LAD25NM": "North Devon",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000044": {
+    "LAD25NM": "South Hams",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000045": {
+    "LAD25NM": "Teignbridge",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000046": {
+    "LAD25NM": "Torridge",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000047": {
+    "LAD25NM": "West Devon",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000061": {
+    "LAD25NM": "Eastbourne",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000062": {
+    "LAD25NM": "Hastings",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000063": {
+    "LAD25NM": "Lewes",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000064": {
+    "LAD25NM": "Rother",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000065": {
+    "LAD25NM": "Wealden",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000066": {
+    "LAD25NM": "Basildon",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000067": {
+    "LAD25NM": "Braintree",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000068": {
+    "LAD25NM": "Brentwood",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000069": {
+    "LAD25NM": "Castle Point",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000070": {
+    "LAD25NM": "Chelmsford",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000071": {
+    "LAD25NM": "Colchester",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000072": {
+    "LAD25NM": "Epping Forest",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000073": {
+    "LAD25NM": "Harlow",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000074": {
+    "LAD25NM": "Maldon",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000075": {
+    "LAD25NM": "Rochford",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000076": {
+    "LAD25NM": "Tendring",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000077": {
+    "LAD25NM": "Uttlesford",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000078": {
+    "LAD25NM": "Cheltenham",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000079": {
+    "LAD25NM": "Cotswold",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000080": {
+    "LAD25NM": "Forest of Dean",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000223": {
+    "LAD25NM": "Adur",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000224": {
+    "LAD25NM": "Arun",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000225": {
+    "LAD25NM": "Chichester",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000226": {
+    "LAD25NM": "Crawley",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000227": {
+    "LAD25NM": "Horsham",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000228": {
+    "LAD25NM": "Mid Sussex",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000229": {
+    "LAD25NM": "Worthing",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000234": {
+    "LAD25NM": "Bromsgrove",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000235": {
+    "LAD25NM": "Malvern Hills",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000236": {
+    "LAD25NM": "Redditch",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000237": {
+    "LAD25NM": "Worcester",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000238": {
+    "LAD25NM": "Wychavon",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000239": {
+    "LAD25NM": "Wyre Forest",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000240": {
+    "LAD25NM": "St Albans",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000241": {
+    "LAD25NM": "Welwyn Hatfield",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000242": {
+    "LAD25NM": "East Hertfordshire",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000243": {
+    "LAD25NM": "Stevenage",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000244": {
+    "LAD25NM": "East Suffolk",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000245": {
+    "LAD25NM": "West Suffolk",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000001": {
+    "LAD25NM": "Bolton",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000002": {
+    "LAD25NM": "Bury",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000003": {
+    "LAD25NM": "Manchester",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000004": {
+    "LAD25NM": "Oldham",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000005": {
+    "LAD25NM": "Rochdale",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000006": {
+    "LAD25NM": "Salford",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000007": {
+    "LAD25NM": "Stockport",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000008": {
+    "LAD25NM": "Tameside",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000009": {
+    "LAD25NM": "Trafford",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000010": {
+    "LAD25NM": "Wigan",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000011": {
+    "LAD25NM": "Knowsley",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000012": {
+    "LAD25NM": "Liverpool",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000013": {
+    "LAD25NM": "St. Helens",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000014": {
+    "LAD25NM": "Sefton",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000015": {
+    "LAD25NM": "Wirral",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000017": {
+    "LAD25NM": "Doncaster",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000018": {
+    "LAD25NM": "Rotherham",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000021": {
+    "LAD25NM": "Newcastle upon Tyne",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000022": {
+    "LAD25NM": "North Tyneside",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000023": {
+    "LAD25NM": "South Tyneside",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000024": {
+    "LAD25NM": "Sunderland",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000025": {
+    "LAD25NM": "Birmingham",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000026": {
+    "LAD25NM": "Coventry",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000027": {
+    "LAD25NM": "Dudley",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000028": {
+    "LAD25NM": "Sandwell",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000029": {
+    "LAD25NM": "Solihull",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000030": {
+    "LAD25NM": "Walsall",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000031": {
+    "LAD25NM": "Wolverhampton",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000032": {
+    "LAD25NM": "Bradford",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000033": {
+    "LAD25NM": "Calderdale",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000034": {
+    "LAD25NM": "Kirklees",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000035": {
+    "LAD25NM": "Leeds",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000036": {
+    "LAD25NM": "Wakefield",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000037": {
+    "LAD25NM": "Gateshead",
+    "RGN25CD": "E12000001",
+    "RGN25NM": "North East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000038": {
+    "LAD25NM": "Barnsley",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E08000039": {
+    "LAD25NM": "Sheffield",
+    "RGN25CD": "E12000003",
+    "RGN25NM": "Yorkshire and The Humber",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000001": {
+    "LAD25NM": "City of London",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000002": {
+    "LAD25NM": "Barking and Dagenham",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000003": {
+    "LAD25NM": "Barnet",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000004": {
+    "LAD25NM": "Bexley",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000005": {
+    "LAD25NM": "Brent",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000006": {
+    "LAD25NM": "Bromley",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000007": {
+    "LAD25NM": "Camden",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000008": {
+    "LAD25NM": "Croydon",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000009": {
+    "LAD25NM": "Ealing",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000010": {
+    "LAD25NM": "Enfield",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000011": {
+    "LAD25NM": "Greenwich",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000012": {
+    "LAD25NM": "Hackney",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000013": {
+    "LAD25NM": "Hammersmith and Fulham",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000014": {
+    "LAD25NM": "Haringey",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000015": {
+    "LAD25NM": "Harrow",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000016": {
+    "LAD25NM": "Havering",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000017": {
+    "LAD25NM": "Hillingdon",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000018": {
+    "LAD25NM": "Hounslow",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000019": {
+    "LAD25NM": "Islington",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000020": {
+    "LAD25NM": "Kensington and Chelsea",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000021": {
+    "LAD25NM": "Kingston upon Thames",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000022": {
+    "LAD25NM": "Lambeth",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000023": {
+    "LAD25NM": "Lewisham",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000024": {
+    "LAD25NM": "Merton",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000025": {
+    "LAD25NM": "Newham",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000026": {
+    "LAD25NM": "Redbridge",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000027": {
+    "LAD25NM": "Richmond upon Thames",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000028": {
+    "LAD25NM": "Southwark",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000029": {
+    "LAD25NM": "Sutton",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000030": {
+    "LAD25NM": "Tower Hamlets",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000031": {
+    "LAD25NM": "Waltham Forest",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000032": {
+    "LAD25NM": "Wandsworth",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E09000033": {
+    "LAD25NM": "Westminster",
+    "RGN25CD": "E12000007",
+    "RGN25NM": "London",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "N09000001": {
+    "LAD25NM": "Antrim and Newtownabbey",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000002": {
+    "LAD25NM": "Armagh City, Banbridge and Craigavon",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000003": {
+    "LAD25NM": "Belfast",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000004": {
+    "LAD25NM": "Causeway Coast and Glens",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000005": {
+    "LAD25NM": "Derry City and Strabane",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000006": {
+    "LAD25NM": "Fermanagh and Omagh",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000007": {
+    "LAD25NM": "Lisburn and Castlereagh",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000008": {
+    "LAD25NM": "Mid and East Antrim",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000009": {
+    "LAD25NM": "Mid Ulster",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000010": {
+    "LAD25NM": "Newry, Mourne and Down",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "N09000011": {
+    "LAD25NM": "Ards and North Down",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "N92000002",
+    "CTRY25NM": "Northern Ireland"
+  },
+  "S12000005": {
+    "LAD25NM": "Clackmannanshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000006": {
+    "LAD25NM": "Dumfries and Galloway",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000008": {
+    "LAD25NM": "East Ayrshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000010": {
+    "LAD25NM": "East Lothian",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000011": {
+    "LAD25NM": "East Renfrewshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000013": {
+    "LAD25NM": "Na h-Eileanan Siar",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000014": {
+    "LAD25NM": "Falkirk",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000017": {
+    "LAD25NM": "Highland",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000018": {
+    "LAD25NM": "Inverclyde",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000019": {
+    "LAD25NM": "Midlothian",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000020": {
+    "LAD25NM": "Moray",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000021": {
+    "LAD25NM": "North Ayrshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000023": {
+    "LAD25NM": "Orkney Islands",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000026": {
+    "LAD25NM": "Scottish Borders",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000027": {
+    "LAD25NM": "Shetland Islands",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000028": {
+    "LAD25NM": "South Ayrshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000029": {
+    "LAD25NM": "South Lanarkshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000030": {
+    "LAD25NM": "Stirling",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000033": {
+    "LAD25NM": "Aberdeen City",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000034": {
+    "LAD25NM": "Aberdeenshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000035": {
+    "LAD25NM": "Argyll and Bute",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000036": {
+    "LAD25NM": "City of Edinburgh",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000038": {
+    "LAD25NM": "Renfrewshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000039": {
+    "LAD25NM": "West Dunbartonshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000040": {
+    "LAD25NM": "West Lothian",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000041": {
+    "LAD25NM": "Angus",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000042": {
+    "LAD25NM": "Dundee City",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000045": {
+    "LAD25NM": "East Dunbartonshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000047": {
+    "LAD25NM": "Fife",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000048": {
+    "LAD25NM": "Perth and Kinross",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000049": {
+    "LAD25NM": "Glasgow City",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "S12000050": {
+    "LAD25NM": "North Lanarkshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "S92000003",
+    "CTRY25NM": "Scotland"
+  },
+  "W06000001": {
+    "LAD25NM": "Isle of Anglesey",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000002": {
+    "LAD25NM": "Gwynedd",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000003": {
+    "LAD25NM": "Conwy",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000004": {
+    "LAD25NM": "Denbighshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000005": {
+    "LAD25NM": "Flintshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000006": {
+    "LAD25NM": "Wrexham",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000008": {
+    "LAD25NM": "Ceredigion",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000009": {
+    "LAD25NM": "Pembrokeshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000010": {
+    "LAD25NM": "Carmarthenshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000011": {
+    "LAD25NM": "Swansea",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000012": {
+    "LAD25NM": "Neath Port Talbot",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000013": {
+    "LAD25NM": "Bridgend",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000014": {
+    "LAD25NM": "Vale of Glamorgan",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000015": {
+    "LAD25NM": "Cardiff",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000016": {
+    "LAD25NM": "Rhondda Cynon Taf",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000018": {
+    "LAD25NM": "Caerphilly",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000019": {
+    "LAD25NM": "Blaenau Gwent",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000020": {
+    "LAD25NM": "Torfaen",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000021": {
+    "LAD25NM": "Monmouthshire",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000022": {
+    "LAD25NM": "Newport",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000023": {
+    "LAD25NM": "Powys",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "W06000024": {
+    "LAD25NM": "Merthyr Tydfil",
+    "RGN25CD": null,
+    "RGN25NM": null,
+    "CTRY25CD": "W92000004",
+    "CTRY25NM": "Wales"
+  },
+  "E07000137": {
+    "LAD25NM": "East Lindsey",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000138": {
+    "LAD25NM": "Lincoln",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000139": {
+    "LAD25NM": "North Kesteven",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000140": {
+    "LAD25NM": "South Holland",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000141": {
+    "LAD25NM": "South Kesteven",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000142": {
+    "LAD25NM": "West Lindsey",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000143": {
+    "LAD25NM": "Breckland",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000144": {
+    "LAD25NM": "Broadland",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000145": {
+    "LAD25NM": "Great Yarmouth",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000146": {
+    "LAD25NM": "King's Lynn and West Norfolk",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000147": {
+    "LAD25NM": "North Norfolk",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000148": {
+    "LAD25NM": "Norwich",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000149": {
+    "LAD25NM": "South Norfolk",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000170": {
+    "LAD25NM": "Ashfield",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000171": {
+    "LAD25NM": "Bassetlaw",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000172": {
+    "LAD25NM": "Broxtowe",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000173": {
+    "LAD25NM": "Gedling",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000174": {
+    "LAD25NM": "Mansfield",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000175": {
+    "LAD25NM": "Newark and Sherwood",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000176": {
+    "LAD25NM": "Rushcliffe",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000177": {
+    "LAD25NM": "Cherwell",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000178": {
+    "LAD25NM": "Oxford",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000179": {
+    "LAD25NM": "South Oxfordshire",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000180": {
+    "LAD25NM": "Vale of White Horse",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000181": {
+    "LAD25NM": "West Oxfordshire",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000192": {
+    "LAD25NM": "Cannock Chase",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000193": {
+    "LAD25NM": "East Staffordshire",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000194": {
+    "LAD25NM": "Lichfield",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000195": {
+    "LAD25NM": "Newcastle-under-Lyme",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000196": {
+    "LAD25NM": "South Staffordshire",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000197": {
+    "LAD25NM": "Stafford",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000198": {
+    "LAD25NM": "Staffordshire Moorlands",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000199": {
+    "LAD25NM": "Tamworth",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000200": {
+    "LAD25NM": "Babergh",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000202": {
+    "LAD25NM": "Ipswich",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000203": {
+    "LAD25NM": "Mid Suffolk",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000207": {
+    "LAD25NM": "Elmbridge",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000208": {
+    "LAD25NM": "Epsom and Ewell",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000209": {
+    "LAD25NM": "Guildford",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000210": {
+    "LAD25NM": "Mole Valley",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000211": {
+    "LAD25NM": "Reigate and Banstead",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000212": {
+    "LAD25NM": "Runnymede",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000213": {
+    "LAD25NM": "Spelthorne",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000214": {
+    "LAD25NM": "Surrey Heath",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000215": {
+    "LAD25NM": "Tandridge",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000216": {
+    "LAD25NM": "Waverley",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000217": {
+    "LAD25NM": "Woking",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000218": {
+    "LAD25NM": "North Warwickshire",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000219": {
+    "LAD25NM": "Nuneaton and Bedworth",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000220": {
+    "LAD25NM": "Rugby",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000221": {
+    "LAD25NM": "Stratford-on-Avon",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000222": {
+    "LAD25NM": "Warwick",
+    "RGN25CD": "E12000005",
+    "RGN25NM": "West Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000081": {
+    "LAD25NM": "Gloucester",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000082": {
+    "LAD25NM": "Stroud",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000083": {
+    "LAD25NM": "North Gloucestershire",
+    "RGN25CD": "E12000009",
+    "RGN25NM": "South West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000084": {
+    "LAD25NM": "Basingstoke and Deane",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000085": {
+    "LAD25NM": "East Hampshire",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000086": {
+    "LAD25NM": "Eastleigh",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000087": {
+    "LAD25NM": "Fareham",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000088": {
+    "LAD25NM": "Gosport",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000089": {
+    "LAD25NM": "Hart",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000090": {
+    "LAD25NM": "Havant",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000091": {
+    "LAD25NM": "New Forest",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000092": {
+    "LAD25NM": "Rushmoor",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000093": {
+    "LAD25NM": "Test Valley",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000094": {
+    "LAD25NM": "Winchester",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000095": {
+    "LAD25NM": "Broxbourne",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000096": {
+    "LAD25NM": "Dacorum",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000098": {
+    "LAD25NM": "Hertsmere",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000099": {
+    "LAD25NM": "North Hertfordshire",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000102": {
+    "LAD25NM": "Three Rivers",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000103": {
+    "LAD25NM": "Watford",
+    "RGN25CD": "E12000006",
+    "RGN25NM": "East of England",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000105": {
+    "LAD25NM": "Ashford",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000106": {
+    "LAD25NM": "Canterbury",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000107": {
+    "LAD25NM": "Dartford",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000108": {
+    "LAD25NM": "Dover",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000109": {
+    "LAD25NM": "Gravesham",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000110": {
+    "LAD25NM": "Maidstone",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000111": {
+    "LAD25NM": "Sevenoaks",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000112": {
+    "LAD25NM": "Folkestone and Hythe",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000113": {
+    "LAD25NM": "Swale",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000114": {
+    "LAD25NM": "Thanet",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000115": {
+    "LAD25NM": "Tonbridge and Malling",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000116": {
+    "LAD25NM": "Tunbridge Wells",
+    "RGN25CD": "E12000008",
+    "RGN25NM": "South East",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000117": {
+    "LAD25NM": "Burnley",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000118": {
+    "LAD25NM": "Chorley",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000119": {
+    "LAD25NM": "Fylde",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000120": {
+    "LAD25NM": "Hyndburn",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000121": {
+    "LAD25NM": "Lancaster",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000122": {
+    "LAD25NM": "Pendle",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000123": {
+    "LAD25NM": "Preston",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000124": {
+    "LAD25NM": "Ribble Valley",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000125": {
+    "LAD25NM": "Rossendale",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000126": {
+    "LAD25NM": "South Ribble",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000127": {
+    "LAD25NM": "West Lancashire",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000128": {
+    "LAD25NM": "Wyre",
+    "RGN25CD": "E12000002",
+    "RGN25NM": "North West",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000129": {
+    "LAD25NM": "Blaby",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000130": {
+    "LAD25NM": "Charnwood",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000131": {
+    "LAD25NM": "Harborough",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000132": {
+    "LAD25NM": "Hinckley and Bosworth",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000133": {
+    "LAD25NM": "Melton",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000134": {
+    "LAD25NM": "North West Leicestershire",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000135": {
+    "LAD25NM": "Oadby and Wigston",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  },
+  "E07000136": {
+    "LAD25NM": "Boston",
+    "RGN25CD": "E12000004",
+    "RGN25NM": "East Midlands",
+    "CTRY25CD": "E92000001",
+    "CTRY25NM": "England"
+  }
+}

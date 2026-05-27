@@ -8,6 +8,7 @@ overall metric definitions.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
@@ -613,17 +614,65 @@ def _run_quality_assessment(
     bigquery_ops.write_feed_quality(quality_rows)
 
 
-def _run_homepage_export(
+DISTRICT_LOOKUP_FILENAME = "000-district-region-country.json"
+
+
+def _load_district_lookup(geo_dir: Path) -> dict[str, dict[str, Any]]:
+    """Load the district -> region/country lookup keyed by district name (LAD24NM).
+
+    Produced by ``district_region_country.py``. Returns an empty dict (so the
+    enrichment columns stay NULL) if the file is missing.
+    """
+    path = geo_dir / DISTRICT_LOOKUP_FILENAME
+    if not path.exists():
+        logger.warning(
+            "District lookup %s not found; region/country columns will be NULL", path
+        )
+        return {}
+    with path.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _run_api_tables_export(
     opportunities_tbl: str,
     feeds_tbl: str,
-    insight_run_summary_tbl: str,
-    output_dir: Path,
+    reference_date: date,
+    geo_dir: Path = DEFAULT_GEO_DIR,
 ) -> None:
-    from homepage_export import build_homepage_metrics, write_homepage_metrics
+    """Build the ``active_opportunities_summary2`` table.
 
-    logger.info("Exporting homepage metrics to %s", output_dir)
-    metrics = build_homepage_metrics(opportunities_tbl, feeds_tbl, insight_run_summary_tbl)
-    write_homepage_metrics(metrics, output_dir)
+    One row per (district, publisher, provider, activity_or_facility) for active
+    (future) opportunities, enriched with district/region/country codes and names
+    from ``000-district-region-country.json``.
+    """
+    logger.info("Building active_opportunities_summary2 (reference_date=%s)", reference_date)
+    df = bigquery_ops.run_query(
+        queries.active_opportunities_summary(opportunities_tbl, feeds_tbl, reference_date)
+    )
+    lookup = _load_district_lookup(geo_dir)
+
+    rows: list[dict[str, Any]] = []
+    for rec in df.to_dict("records"):
+        district_name = rec.get("district_name")
+        info = lookup.get(district_name) if district_name else None
+        info = info or {}
+        rows.append({
+            "district_name": district_name,
+            "publisher": rec.get("publisher"),
+            "provider": rec.get("provider"),
+            "opportunity_count": int(rec.get("opportunity_count") or 0),
+            "is_activity": rec.get("is_activity"),
+            # JSON array string from TO_JSON_STRING(...) -> stored as JSON column.
+            "activity_or_facility": rec.get("activity_or_facility"),
+            "district_code": info.get("district_code"),
+            "region_code": info.get("region_code"),
+            "region_name": info.get("region_name"),
+            "country_code": info.get("country_code"),
+            "country_name": info.get("country_name"),
+        })
+
+    bigquery_ops.write_active_opportunities_summary(rows)
+    logger.info("Wrote %d rows to active_opportunities_summary2", len(rows))
 
 
 def run(
@@ -681,14 +730,13 @@ def run(
     else:
         logger.info("Skipping data-quality assessment (--skip-quality)")
 
-    # ---------- Homepage metrics export ---------- #
+    # ---------- API tables export ---------- #
     if not skip_export:
-        insight_run_summary_tbl = bigquery_ops.table_id(bigquery_ops.INSIGHT_RUN_SUMMARY_TABLE)
-        _run_homepage_export(
-            opportunities_tbl, feeds_tbl, insight_run_summary_tbl, DEFAULT_PUBLIC_DIR,
+        _run_api_tables_export(
+            opportunities_tbl, feeds_tbl, effective_reference_date, DEFAULT_GEO_DIR,
         )
     else:
-        logger.info("Skipping homepage metrics export (--skip-export)")
+        logger.info("Skipping API tables export (--skip-export)")
 
     logger.info("opportunity-insights run complete")
 
@@ -712,7 +760,7 @@ def run(
     "--skip-export",
     is_flag=True,
     default=False,
-    help="Skip the homepage metrics JSON export step (homepage_metrics.json is not written).",
+    help="Skip the API tables export step (active_opportunities_summary2 is not written).",
 )
 def cli(
     verbose: bool,

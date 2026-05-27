@@ -331,6 +331,69 @@ def per_feed_location_points(opportunities_table: str) -> str:
     """
 
 
+def active_opportunities_summary(
+    opportunities_table: str,
+    feeds_table: str,
+    reference_date: date | None = None,
+) -> str:
+    """Active (future) opportunity counts per district / publisher / provider / activity_or_facility.
+
+    ``activity_or_facility`` is the opportunity's facility list for facility-kind
+    items (``FacilityUse`` / ``IndividualFacilityUse`` / ``Slot``) and its activity
+    list otherwise, serialised as a JSON array string (e.g. ``["Football","Yoga"]``)
+    so it can be both grouped on and stored in a JSON column. ``is_activity`` is
+    ``TRUE`` when the value is an activity list and ``FALSE`` for facility-kind items.
+
+    Feeds are de-duplicated to one row per ``dataset_url`` (publisher / provider are
+    dataset-level attributes) to avoid fan-out inflating ``opportunity_count``.
+
+    Rows without a (non-empty) ``district_name`` or ``publisher_name`` are excluded.
+    """
+    reference_date_sql = (
+        f"DATE '{reference_date.isoformat()}'" if reference_date else "CURRENT_DATE()"
+    )
+    return f"""
+        WITH feeds_dedup AS (
+          SELECT dataset_url, publisher_name, provider
+          FROM `{feeds_table}`
+          QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY dataset_url ORDER BY last_access DESC
+          ) = 1
+        ),
+        base AS (
+          SELECT
+            o.district_name,
+            fd.publisher_name AS publisher,
+            fd.provider,
+            NOT COALESCE(
+              o.kind IN ('FacilityUse', 'IndividualFacilityUse', 'Slot'), FALSE
+            ) AS is_activity,
+            CASE
+              WHEN o.kind IN ('FacilityUse', 'IndividualFacilityUse', 'Slot')
+                THEN JSON_VALUE_ARRAY(o.facility)
+              ELSE JSON_VALUE_ARRAY(o.activity)
+            END AS activity_or_facility_arr
+          FROM `{opportunities_table}` AS o
+          LEFT JOIN feeds_dedup AS fd
+            ON o.dataset_url = fd.dataset_url
+          WHERE o.startDate >= TIMESTAMP({reference_date_sql})
+            AND o.district_name IS NOT NULL
+            AND TRIM(o.district_name) != ''
+            AND fd.publisher_name IS NOT NULL
+            AND TRIM(fd.publisher_name) != ''
+        )
+        SELECT
+          district_name,
+          publisher,
+          provider,
+          is_activity,
+          TO_JSON_STRING(activity_or_facility_arr) AS activity_or_facility,
+          COUNT(*) AS opportunity_count
+        FROM base
+        GROUP BY district_name, publisher, provider, is_activity, activity_or_facility
+    """
+
+
 def latest_ingestion_status(opportunity_ingestion_table: str) -> str:
     """Latest ingestion status per feed (for the `status` column in feed_insights)."""
     return f"""

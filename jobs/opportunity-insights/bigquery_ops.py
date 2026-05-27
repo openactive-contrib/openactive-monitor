@@ -47,6 +47,9 @@ INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE = os.getenv(
     "BQ_INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE", "insight_sport_discipline_master"
 )
 FEED_QUALITY_TABLE = os.getenv("BQ_FEED_QUALITY_TABLE", "feed_quality")
+ACTIVE_OPPORTUNITIES_SUMMARY_TABLE = os.getenv(
+    "BQ_ACTIVE_OPPORTUNITIES_SUMMARY_TABLE", "active_opportunities_summary2"
+)
 
 MERGE_RETRY_MAX_ATTEMPTS = 5
 MERGE_RETRY_BASE_SECONDS = 5
@@ -64,6 +67,7 @@ _TABLE_CONFIGS: dict[str, tuple[str, list[str], str | None]] = {
     INSIGHT_SPORT_DISCIPLINE_TABLE:        ("insight_sport_discipline.json",       ["run_date", "is_matched"],              "run_date"),
     INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE: ("insight_sport_discipline_master.json", ["run_date"],                            "run_date"),
     FEED_QUALITY_TABLE:                    ("feed_quality.json",                   ["dataset_url", "feed_id", "grade"],     None),
+    ACTIVE_OPPORTUNITIES_SUMMARY_TABLE:    ("active_opportunities_summary2.json",  ["district_name", "provider"],           None),
 }
 
 _FEED_INSIGHTS_MERGE_KEYS = ("run_date", "feed_id")
@@ -281,6 +285,23 @@ def write_feed_quality(rows: list[dict[str, Any]]) -> None:
     schema = _load_schema_json(schema_file)
     prepared = _prepare_rows(rows, schema)
     _load_job(prepared, table_id(FEED_QUALITY_TABLE), schema, bigquery.WriteDisposition.WRITE_TRUNCATE)
+
+
+def write_active_opportunities_summary(rows: list[dict[str, Any]]) -> None:
+    """Replace the entire ``active_opportunities_summary2`` table with ``rows``.
+
+    Current-state table (one row per district/publisher/provider/activity_or_facility),
+    regenerated each run, so WRITE_TRUNCATE fully overwrites the previous contents.
+    """
+    schema_file, _, _ = _TABLE_CONFIGS[ACTIVE_OPPORTUNITIES_SUMMARY_TABLE]
+    schema = _load_schema_json(schema_file)
+    prepared = _prepare_rows(rows, schema)
+    _load_job(
+        prepared,
+        table_id(ACTIVE_OPPORTUNITIES_SUMMARY_TABLE),
+        schema,
+        bigquery.WriteDisposition.WRITE_TRUNCATE,
+    )
 
 
 def upsert_feed_insights(rows: list[dict[str, Any]]) -> None:
