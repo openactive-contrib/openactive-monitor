@@ -1,0 +1,2529 @@
+{
+  "Hartlepool": {
+    "district_code": "E06000001",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Middlesbrough": {
+    "district_code": "E06000002",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Redcar and Cleveland": {
+    "district_code": "E06000003",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Stockton-on-Tees": {
+    "district_code": "E06000004",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Darlington": {
+    "district_code": "E06000005",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Halton": {
+    "district_code": "E06000006",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Warrington": {
+    "district_code": "E06000007",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Blackburn with Darwen": {
+    "district_code": "E06000008",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Blackpool": {
+    "district_code": "E06000009",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Kingston upon Hull, City of": {
+    "district_code": "E06000010",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "East Riding of Yorkshire": {
+    "district_code": "E06000011",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North East Lincolnshire": {
+    "district_code": "E06000012",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Lincolnshire": {
+    "district_code": "E06000013",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "York": {
+    "district_code": "E06000014",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Derby": {
+    "district_code": "E06000015",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Leicester": {
+    "district_code": "E06000016",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Rutland": {
+    "district_code": "E06000017",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Nottingham": {
+    "district_code": "E06000018",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Herefordshire, County of": {
+    "district_code": "E06000019",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Telford and Wrekin": {
+    "district_code": "E06000020",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Stoke-on-Trent": {
+    "district_code": "E06000021",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bath and North East Somerset": {
+    "district_code": "E06000022",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bristol, City of": {
+    "district_code": "E06000023",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Somerset": {
+    "district_code": "E06000024",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Gloucestershire": {
+    "district_code": "E06000025",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Plymouth": {
+    "district_code": "E06000026",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Torbay": {
+    "district_code": "E06000027",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Swindon": {
+    "district_code": "E06000030",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Peterborough": {
+    "district_code": "E06000031",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Luton": {
+    "district_code": "E06000032",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Southend-on-Sea": {
+    "district_code": "E06000033",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Thurrock": {
+    "district_code": "E06000034",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Medway": {
+    "district_code": "E06000035",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bracknell Forest": {
+    "district_code": "E06000036",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "West Berkshire": {
+    "district_code": "E06000037",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Reading": {
+    "district_code": "E06000038",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Slough": {
+    "district_code": "E06000039",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Windsor and Maidenhead": {
+    "district_code": "E06000040",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wokingham": {
+    "district_code": "E06000041",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Milton Keynes": {
+    "district_code": "E06000042",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Brighton and Hove": {
+    "district_code": "E06000043",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Portsmouth": {
+    "district_code": "E06000044",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Southampton": {
+    "district_code": "E06000045",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Isle of Wight": {
+    "district_code": "E06000046",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "County Durham": {
+    "district_code": "E06000047",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Cheshire East": {
+    "district_code": "E06000049",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Cheshire West and Chester": {
+    "district_code": "E06000050",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Shropshire": {
+    "district_code": "E06000051",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Cornwall": {
+    "district_code": "E06000052",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Isles of Scilly": {
+    "district_code": "E06000053",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wiltshire": {
+    "district_code": "E06000054",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bedford": {
+    "district_code": "E06000055",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Central Bedfordshire": {
+    "district_code": "E06000056",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Northumberland": {
+    "district_code": "E06000057",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bournemouth, Christchurch and Poole": {
+    "district_code": "E06000058",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Dorset": {
+    "district_code": "E06000059",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Buckinghamshire": {
+    "district_code": "E06000060",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Northamptonshire": {
+    "district_code": "E06000061",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "West Northamptonshire": {
+    "district_code": "E06000062",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Cumberland": {
+    "district_code": "E06000063",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Westmorland and Furness": {
+    "district_code": "E06000064",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Yorkshire": {
+    "district_code": "E06000065",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Somerset": {
+    "district_code": "E06000066",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Cambridge": {
+    "district_code": "E07000008",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "East Cambridgeshire": {
+    "district_code": "E07000009",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Fenland": {
+    "district_code": "E07000010",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Huntingdonshire": {
+    "district_code": "E07000011",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Cambridgeshire": {
+    "district_code": "E07000012",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Amber Valley": {
+    "district_code": "E07000032",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bolsover": {
+    "district_code": "E07000033",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Chesterfield": {
+    "district_code": "E07000034",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Derbyshire Dales": {
+    "district_code": "E07000035",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Erewash": {
+    "district_code": "E07000036",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "High Peak": {
+    "district_code": "E07000037",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North East Derbyshire": {
+    "district_code": "E07000038",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Derbyshire": {
+    "district_code": "E07000039",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "East Devon": {
+    "district_code": "E07000040",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Exeter": {
+    "district_code": "E07000041",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Mid Devon": {
+    "district_code": "E07000042",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Devon": {
+    "district_code": "E07000043",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Hams": {
+    "district_code": "E07000044",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Teignbridge": {
+    "district_code": "E07000045",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Torridge": {
+    "district_code": "E07000046",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "West Devon": {
+    "district_code": "E07000047",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Eastbourne": {
+    "district_code": "E07000061",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Hastings": {
+    "district_code": "E07000062",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Lewes": {
+    "district_code": "E07000063",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Rother": {
+    "district_code": "E07000064",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wealden": {
+    "district_code": "E07000065",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Basildon": {
+    "district_code": "E07000066",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Braintree": {
+    "district_code": "E07000067",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Brentwood": {
+    "district_code": "E07000068",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Castle Point": {
+    "district_code": "E07000069",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Chelmsford": {
+    "district_code": "E07000070",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Colchester": {
+    "district_code": "E07000071",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Epping Forest": {
+    "district_code": "E07000072",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Harlow": {
+    "district_code": "E07000073",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Maldon": {
+    "district_code": "E07000074",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Rochford": {
+    "district_code": "E07000075",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Tendring": {
+    "district_code": "E07000076",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Uttlesford": {
+    "district_code": "E07000077",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Cheltenham": {
+    "district_code": "E07000078",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Cotswold": {
+    "district_code": "E07000079",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Forest of Dean": {
+    "district_code": "E07000080",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Gloucester": {
+    "district_code": "E07000081",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Stroud": {
+    "district_code": "E07000082",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Tewkesbury": {
+    "district_code": "E07000083",
+    "region_code": "E12000009",
+    "region_name": "South West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Basingstoke and Deane": {
+    "district_code": "E07000084",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "East Hampshire": {
+    "district_code": "E07000085",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Eastleigh": {
+    "district_code": "E07000086",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Fareham": {
+    "district_code": "E07000087",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Gosport": {
+    "district_code": "E07000088",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Hart": {
+    "district_code": "E07000089",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Havant": {
+    "district_code": "E07000090",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "New Forest": {
+    "district_code": "E07000091",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Rushmoor": {
+    "district_code": "E07000092",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Test Valley": {
+    "district_code": "E07000093",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Winchester": {
+    "district_code": "E07000094",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Broxbourne": {
+    "district_code": "E07000095",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Dacorum": {
+    "district_code": "E07000096",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Hertsmere": {
+    "district_code": "E07000098",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Hertfordshire": {
+    "district_code": "E07000099",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Three Rivers": {
+    "district_code": "E07000102",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Watford": {
+    "district_code": "E07000103",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Ashford": {
+    "district_code": "E07000105",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Canterbury": {
+    "district_code": "E07000106",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Dartford": {
+    "district_code": "E07000107",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Dover": {
+    "district_code": "E07000108",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Gravesham": {
+    "district_code": "E07000109",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Maidstone": {
+    "district_code": "E07000110",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Sevenoaks": {
+    "district_code": "E07000111",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Folkestone and Hythe": {
+    "district_code": "E07000112",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Swale": {
+    "district_code": "E07000113",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Thanet": {
+    "district_code": "E07000114",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Tonbridge and Malling": {
+    "district_code": "E07000115",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Tunbridge Wells": {
+    "district_code": "E07000116",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Burnley": {
+    "district_code": "E07000117",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Chorley": {
+    "district_code": "E07000118",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Fylde": {
+    "district_code": "E07000119",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Hyndburn": {
+    "district_code": "E07000120",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Lancaster": {
+    "district_code": "E07000121",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Pendle": {
+    "district_code": "E07000122",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Preston": {
+    "district_code": "E07000123",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Ribble Valley": {
+    "district_code": "E07000124",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Rossendale": {
+    "district_code": "E07000125",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Ribble": {
+    "district_code": "E07000126",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "West Lancashire": {
+    "district_code": "E07000127",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wyre": {
+    "district_code": "E07000128",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Blaby": {
+    "district_code": "E07000129",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Charnwood": {
+    "district_code": "E07000130",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Harborough": {
+    "district_code": "E07000131",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Hinckley and Bosworth": {
+    "district_code": "E07000132",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Melton": {
+    "district_code": "E07000133",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North West Leicestershire": {
+    "district_code": "E07000134",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Oadby and Wigston": {
+    "district_code": "E07000135",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Boston": {
+    "district_code": "E07000136",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "East Lindsey": {
+    "district_code": "E07000137",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Lincoln": {
+    "district_code": "E07000138",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Kesteven": {
+    "district_code": "E07000139",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Holland": {
+    "district_code": "E07000140",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Kesteven": {
+    "district_code": "E07000141",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "West Lindsey": {
+    "district_code": "E07000142",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Breckland": {
+    "district_code": "E07000143",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Broadland": {
+    "district_code": "E07000144",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Great Yarmouth": {
+    "district_code": "E07000145",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "King's Lynn and West Norfolk": {
+    "district_code": "E07000146",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Norfolk": {
+    "district_code": "E07000147",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Norwich": {
+    "district_code": "E07000148",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Norfolk": {
+    "district_code": "E07000149",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Ashfield": {
+    "district_code": "E07000170",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bassetlaw": {
+    "district_code": "E07000171",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Broxtowe": {
+    "district_code": "E07000172",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Gedling": {
+    "district_code": "E07000173",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Mansfield": {
+    "district_code": "E07000174",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Newark and Sherwood": {
+    "district_code": "E07000175",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Rushcliffe": {
+    "district_code": "E07000176",
+    "region_code": "E12000004",
+    "region_name": "East Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Cherwell": {
+    "district_code": "E07000177",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Oxford": {
+    "district_code": "E07000178",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Oxfordshire": {
+    "district_code": "E07000179",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Vale of White Horse": {
+    "district_code": "E07000180",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "West Oxfordshire": {
+    "district_code": "E07000181",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Cannock Chase": {
+    "district_code": "E07000192",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "East Staffordshire": {
+    "district_code": "E07000193",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Lichfield": {
+    "district_code": "E07000194",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Newcastle-under-Lyme": {
+    "district_code": "E07000195",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Staffordshire": {
+    "district_code": "E07000196",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Stafford": {
+    "district_code": "E07000197",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Staffordshire Moorlands": {
+    "district_code": "E07000198",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Tamworth": {
+    "district_code": "E07000199",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Babergh": {
+    "district_code": "E07000200",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Ipswich": {
+    "district_code": "E07000202",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Mid Suffolk": {
+    "district_code": "E07000203",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Elmbridge": {
+    "district_code": "E07000207",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Epsom and Ewell": {
+    "district_code": "E07000208",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Guildford": {
+    "district_code": "E07000209",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Mole Valley": {
+    "district_code": "E07000210",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Reigate and Banstead": {
+    "district_code": "E07000211",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Runnymede": {
+    "district_code": "E07000212",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Spelthorne": {
+    "district_code": "E07000213",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Surrey Heath": {
+    "district_code": "E07000214",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Tandridge": {
+    "district_code": "E07000215",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Waverley": {
+    "district_code": "E07000216",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Woking": {
+    "district_code": "E07000217",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Warwickshire": {
+    "district_code": "E07000218",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Nuneaton and Bedworth": {
+    "district_code": "E07000219",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Rugby": {
+    "district_code": "E07000220",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Stratford-on-Avon": {
+    "district_code": "E07000221",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Warwick": {
+    "district_code": "E07000222",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Adur": {
+    "district_code": "E07000223",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Arun": {
+    "district_code": "E07000224",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Chichester": {
+    "district_code": "E07000225",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Crawley": {
+    "district_code": "E07000226",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Horsham": {
+    "district_code": "E07000227",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Mid Sussex": {
+    "district_code": "E07000228",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Worthing": {
+    "district_code": "E07000229",
+    "region_code": "E12000008",
+    "region_name": "South East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bromsgrove": {
+    "district_code": "E07000234",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Malvern Hills": {
+    "district_code": "E07000235",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Redditch": {
+    "district_code": "E07000236",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Worcester": {
+    "district_code": "E07000237",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wychavon": {
+    "district_code": "E07000238",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wyre Forest": {
+    "district_code": "E07000239",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "St Albans": {
+    "district_code": "E07000240",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Welwyn Hatfield": {
+    "district_code": "E07000241",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "East Hertfordshire": {
+    "district_code": "E07000242",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Stevenage": {
+    "district_code": "E07000243",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "East Suffolk": {
+    "district_code": "E07000244",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "West Suffolk": {
+    "district_code": "E07000245",
+    "region_code": "E12000006",
+    "region_name": "East of England",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bolton": {
+    "district_code": "E08000001",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bury": {
+    "district_code": "E08000002",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Manchester": {
+    "district_code": "E08000003",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Oldham": {
+    "district_code": "E08000004",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Rochdale": {
+    "district_code": "E08000005",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Salford": {
+    "district_code": "E08000006",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Stockport": {
+    "district_code": "E08000007",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Tameside": {
+    "district_code": "E08000008",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Trafford": {
+    "district_code": "E08000009",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wigan": {
+    "district_code": "E08000010",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Knowsley": {
+    "district_code": "E08000011",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Liverpool": {
+    "district_code": "E08000012",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "St. Helens": {
+    "district_code": "E08000013",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Sefton": {
+    "district_code": "E08000014",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wirral": {
+    "district_code": "E08000015",
+    "region_code": "E12000002",
+    "region_name": "North West",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Barnsley": {
+    "district_code": "E08000016",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Doncaster": {
+    "district_code": "E08000017",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Rotherham": {
+    "district_code": "E08000018",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Sheffield": {
+    "district_code": "E08000019",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Newcastle upon Tyne": {
+    "district_code": "E08000021",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "North Tyneside": {
+    "district_code": "E08000022",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "South Tyneside": {
+    "district_code": "E08000023",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Sunderland": {
+    "district_code": "E08000024",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Birmingham": {
+    "district_code": "E08000025",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Coventry": {
+    "district_code": "E08000026",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Dudley": {
+    "district_code": "E08000027",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Sandwell": {
+    "district_code": "E08000028",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Solihull": {
+    "district_code": "E08000029",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Walsall": {
+    "district_code": "E08000030",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wolverhampton": {
+    "district_code": "E08000031",
+    "region_code": "E12000005",
+    "region_name": "West Midlands",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bradford": {
+    "district_code": "E08000032",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Calderdale": {
+    "district_code": "E08000033",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Kirklees": {
+    "district_code": "E08000034",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Leeds": {
+    "district_code": "E08000035",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wakefield": {
+    "district_code": "E08000036",
+    "region_code": "E12000003",
+    "region_name": "Yorkshire and The Humber",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Gateshead": {
+    "district_code": "E08000037",
+    "region_code": "E12000001",
+    "region_name": "North East",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "City of London": {
+    "district_code": "E09000001",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Barking and Dagenham": {
+    "district_code": "E09000002",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Barnet": {
+    "district_code": "E09000003",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bexley": {
+    "district_code": "E09000004",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Brent": {
+    "district_code": "E09000005",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Bromley": {
+    "district_code": "E09000006",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Camden": {
+    "district_code": "E09000007",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Croydon": {
+    "district_code": "E09000008",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Ealing": {
+    "district_code": "E09000009",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Enfield": {
+    "district_code": "E09000010",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Greenwich": {
+    "district_code": "E09000011",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Hackney": {
+    "district_code": "E09000012",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Hammersmith and Fulham": {
+    "district_code": "E09000013",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Haringey": {
+    "district_code": "E09000014",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Harrow": {
+    "district_code": "E09000015",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Havering": {
+    "district_code": "E09000016",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Hillingdon": {
+    "district_code": "E09000017",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Hounslow": {
+    "district_code": "E09000018",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Islington": {
+    "district_code": "E09000019",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Kensington and Chelsea": {
+    "district_code": "E09000020",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Kingston upon Thames": {
+    "district_code": "E09000021",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Lambeth": {
+    "district_code": "E09000022",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Lewisham": {
+    "district_code": "E09000023",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Merton": {
+    "district_code": "E09000024",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Newham": {
+    "district_code": "E09000025",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Redbridge": {
+    "district_code": "E09000026",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Richmond upon Thames": {
+    "district_code": "E09000027",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Southwark": {
+    "district_code": "E09000028",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Sutton": {
+    "district_code": "E09000029",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Tower Hamlets": {
+    "district_code": "E09000030",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Waltham Forest": {
+    "district_code": "E09000031",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Wandsworth": {
+    "district_code": "E09000032",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Westminster": {
+    "district_code": "E09000033",
+    "region_code": "E12000007",
+    "region_name": "London",
+    "country_code": "E92000001",
+    "country_name": "England"
+  },
+  "Antrim and Newtownabbey": {
+    "district_code": "N09000001",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Armagh City, Banbridge and Craigavon": {
+    "district_code": "N09000002",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Belfast": {
+    "district_code": "N09000003",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Causeway Coast and Glens": {
+    "district_code": "N09000004",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Derry City and Strabane": {
+    "district_code": "N09000005",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Fermanagh and Omagh": {
+    "district_code": "N09000006",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Lisburn and Castlereagh": {
+    "district_code": "N09000007",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Mid and East Antrim": {
+    "district_code": "N09000008",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Mid Ulster": {
+    "district_code": "N09000009",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Newry, Mourne and Down": {
+    "district_code": "N09000010",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Ards and North Down": {
+    "district_code": "N09000011",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "N92000002",
+    "country_name": "Northern Ireland"
+  },
+  "Clackmannanshire": {
+    "district_code": "S12000005",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Dumfries and Galloway": {
+    "district_code": "S12000006",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "East Ayrshire": {
+    "district_code": "S12000008",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "East Lothian": {
+    "district_code": "S12000010",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "East Renfrewshire": {
+    "district_code": "S12000011",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Na h-Eileanan Siar": {
+    "district_code": "S12000013",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Falkirk": {
+    "district_code": "S12000014",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Highland": {
+    "district_code": "S12000017",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Inverclyde": {
+    "district_code": "S12000018",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Midlothian": {
+    "district_code": "S12000019",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Moray": {
+    "district_code": "S12000020",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "North Ayrshire": {
+    "district_code": "S12000021",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Orkney Islands": {
+    "district_code": "S12000023",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Scottish Borders": {
+    "district_code": "S12000026",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Shetland Islands": {
+    "district_code": "S12000027",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "South Ayrshire": {
+    "district_code": "S12000028",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "South Lanarkshire": {
+    "district_code": "S12000029",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Stirling": {
+    "district_code": "S12000030",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Aberdeen City": {
+    "district_code": "S12000033",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Aberdeenshire": {
+    "district_code": "S12000034",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Argyll and Bute": {
+    "district_code": "S12000035",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "City of Edinburgh": {
+    "district_code": "S12000036",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Renfrewshire": {
+    "district_code": "S12000038",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "West Dunbartonshire": {
+    "district_code": "S12000039",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "West Lothian": {
+    "district_code": "S12000040",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Angus": {
+    "district_code": "S12000041",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Dundee City": {
+    "district_code": "S12000042",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "East Dunbartonshire": {
+    "district_code": "S12000045",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Fife": {
+    "district_code": "S12000047",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Perth and Kinross": {
+    "district_code": "S12000048",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Glasgow City": {
+    "district_code": "S12000049",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "North Lanarkshire": {
+    "district_code": "S12000050",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "S92000003",
+    "country_name": "Scotland"
+  },
+  "Isle of Anglesey": {
+    "district_code": "W06000001",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Gwynedd": {
+    "district_code": "W06000002",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Conwy": {
+    "district_code": "W06000003",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Denbighshire": {
+    "district_code": "W06000004",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Flintshire": {
+    "district_code": "W06000005",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Wrexham": {
+    "district_code": "W06000006",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Ceredigion": {
+    "district_code": "W06000008",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Pembrokeshire": {
+    "district_code": "W06000009",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Carmarthenshire": {
+    "district_code": "W06000010",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Swansea": {
+    "district_code": "W06000011",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Neath Port Talbot": {
+    "district_code": "W06000012",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Bridgend": {
+    "district_code": "W06000013",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Vale of Glamorgan": {
+    "district_code": "W06000014",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Cardiff": {
+    "district_code": "W06000015",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Rhondda Cynon Taf": {
+    "district_code": "W06000016",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Caerphilly": {
+    "district_code": "W06000018",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Blaenau Gwent": {
+    "district_code": "W06000019",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Torfaen": {
+    "district_code": "W06000020",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Monmouthshire": {
+    "district_code": "W06000021",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Newport": {
+    "district_code": "W06000022",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Powys": {
+    "district_code": "W06000023",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  },
+  "Merthyr Tydfil": {
+    "district_code": "W06000024",
+    "region_code": null,
+    "region_name": null,
+    "country_code": "W92000004",
+    "country_name": "Wales"
+  }
+}

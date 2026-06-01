@@ -1,0 +1,22 @@
+[
+  {"name": "dataset_url",                  "type": "STRING",    "mode": "REQUIRED"},
+  {"name": "dataset_name",                 "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "feed_id",                      "type": "STRING",    "mode": "REQUIRED"},
+  {"name": "feed_type",                    "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "feed_url",                     "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "is_regular",                   "type": "BOOL",      "mode": "NULLABLE"},
+  {"name": "status",                       "type": "STRING",    "mode": "NULLABLE", "description": "OK | WARNING | ERROR"},
+  {"name": "warnings",                     "type": "JSON",      "mode": "NULLABLE"},
+  {"name": "errors",                       "type": "JSON",      "mode": "NULLABLE"},
+  {"name": "missing_required_fields",      "type": "JSON",      "mode": "NULLABLE", "description": "Object keyed by opportunity kind, value is array of missing required field names"},
+  {"name": "location_completeness",        "type": "FLOAT",     "mode": "NULLABLE"},
+  {"name": "start_date_completeness",      "type": "FLOAT",     "mode": "NULLABLE"},
+  {"name": "end_date_completeness",        "type": "FLOAT",     "mode": "NULLABLE"},
+  {"name": "activities_completeness",      "type": "FLOAT",     "mode": "NULLABLE"},
+  {"name": "facilities_completeness",      "type": "FLOAT",     "mode": "NULLABLE"},
+  {"name": "num_future_opportunity_items", "type": "INTEGER",   "mode": "NULLABLE"},
+  {"name": "grade",                        "type": "STRING",    "mode": "NULLABLE", "description": "None | Bronze | Silver | Gold"},
+  {"name": "feed_version",                 "type": "STRING",    "mode": "NULLABLE", "description": "Detected OpenActive spec version (e.g. V0.x, V1.1, V2.0, V2.1)"},
+  {"name": "score",                        "type": "FLOAT",     "mode": "NULLABLE", "description": "Normalised quality score 0-100 based on required/recommended/optional property presence"},
+  {"name": "last_assessed",                "type": "TIMESTAMP", "mode": "REQUIRED"}
+]

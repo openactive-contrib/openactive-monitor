@@ -152,7 +152,8 @@ def _collect_dataset_feed_rows(
         if result is None:
             raise RuntimeError(f"RPDE returned no result for feed {feed_id}")
 
-        updates, deletes = extract_rows(dataset_url, feed_id, result)
+        publisher_name = dataset_feed.get("publisher_name")
+        updates, deletes = extract_rows(dataset_url, feed_id, result, publisher_name=publisher_name)
         dataset_updates.extend(updates)
         dataset_deletes.extend(deletes)
         logger.info("Collected %d items from feed %s", len(updates), feed_id)

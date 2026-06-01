@@ -1,7 +1,53 @@
 # opportunity-insights — Cloud Run Job
 
 BigQuery-based analysis job that reads from `openactive_analytics.opportunities`
-and writes per-feed and aggregate metrics into the `insight_*` tables.
+and writes per-feed and aggregate metrics into the `insight_*` tables, plus a
+per-feed data-quality assessment into `feed_quality`.
+
+## Data quality assessment
+
+After the regular insight tables are written, the job assesses each feed's
+data quality and writes one row per `(dataset_url, feed_id)` to `feed_quality`
+(full overwrite per run — current state only, no history). The QA logic lives
+under `quality/` and is driven by the same `--reference-date` as the rest of
+the run.
+
+For each feed it records:
+
+| Column | Source |
+|--------|--------|
+| `status` | `OK` / `WARNING` / `ERROR`. Derived from latest `opportunity_ingestion.status`, an HTTP probe of `feed_url` for ERROR-state feeds, and presence of required fields. |
+| `warnings`, `errors` | JSON arrays of human-readable messages. |
+| `missing_required_fields` | JSON object keyed by opportunity kind (e.g. `SessionSeries`) listing required fields absent from **all** of up to 10 random `json_data` samples for that kind in the last 5 days. Required fields per kind are defined in `quality/required_fields.py` and follow the [OpenActive Modelling Opportunity Data](https://openactive.io/modelling-opportunity-data/) spec. |
+| `location_completeness`, `start_date_completeness`, `end_date_completeness`, `activities_completeness`, `facilities_completeness` | Percentage (0–100) of opportunities updated in the last 5 days where each top-level column is populated and non-empty. |
+| `num_future_opportunity_items` | Carried over from the in-memory `feed_insights` row built earlier in the same run. |
+| `grade` | `Gold` / `Silver` / `Bronze` / `None` per the rules in `quality/assess.py` — driven by future-event volume, completeness thresholds, and missing-required-fields. |
+
+To skip the QA step (e.g. when iterating on the analytic queries), pass
+`--skip-quality`. To create the `feed_quality` table on first run, pass
+`--init-tables` (existing behaviour).
+
+## Homepage metrics export
+
+After the data-quality step, the job writes a small JSON file
+`homepage_metrics.json` to the directory pointed to by `INSIGHTS_PUBLIC_DIR`
+(default `/volume-1/public` in Cloud Run). The file is intended for frontend
+applications that need a few headline figures without a BigQuery client.
+
+Fields:
+
+| Key | Source |
+|-----|--------|
+| `number_of_opportunities` | Latest `insight_run_summary.total_num_future_opportunity_items` (most recent `run_date`). |
+| `number_of_publishers` | `COUNT(DISTINCT dataset_url)` across **all** rows of `feeds` (regular + preview). |
+| `number_of_activities` | `COUNT(DISTINCT JSON_VALUE(a))` over the root-level `opportunities.activity` JSON array. |
+| `percentage_of_local_authorities` | Hard-coded placeholder (`74`). |
+| `number_of_activity_providers` | Hard-coded placeholder (`4885`). |
+
+Pass `--skip-export` to bypass this step (useful when iterating locally or
+when the volume isn't writable). The Cloud Run volume mount for `volume-1`
+must be configured **read-write** for this step to succeed — see the
+"Mount the `volume-1` bucket" section below.
 
 This job needs read access to a few static reference files (UK boundary
 GeoJSONs and the Sport-England mapping CSVs) that live in the **`volume-1`
@@ -77,7 +123,10 @@ Still on the **Create / Edit job** page:
    - Volume type: **Cloud Storage bucket**
    - Volume name: `volume-1`
    - Bucket: `volume-1`
-   - Read-only: ✅ (recommended)
+   - Read-only: ❌ (must be **read-write** so the homepage metrics export step
+     can write `homepage_metrics.json` under `public/`). The geo-reference
+     files under `data-analysis/` are still read-only in practice — the job
+     never writes to that subdirectory.
 2. Open the **Containers → Volume mounts** tab → **Mount volume**.
    - Name: `volume-1`
    - Mount path: `/volume-1`
@@ -94,7 +143,7 @@ another). Grant it:
 
 | Resource | Role | Why |
 |----------|------|-----|
-| Bucket `volume-1` | **Storage Object Viewer** (`roles/storage.objectViewer`) | Read GeoJSON / CSV reference data |
+| Bucket `volume-1` | **Storage Object User** (`roles/storage.objectUser`) | Read GeoJSON / CSV reference data **and** write `public/homepage_metrics.json` |
 | Project `openactive-monitor` | **BigQuery Data Editor** (`roles/bigquery.dataEditor`) on dataset `openactive_analytics` | Read `opportunities`, write `insight_*` tables |
 | Project `openactive-monitor` | **BigQuery Job User** (`roles/bigquery.jobUser`) | Run query jobs |
 

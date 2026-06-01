@@ -21,12 +21,12 @@ The project runs on **Google Cloud Platform** and consists of several **Cloud Ru
 │     pickle files       pickle files          pickle files        │
 │                                                                  │
 │  NEW PIPELINE (BigQuery based, under development):              │
-│  ┌──────────────┐  ┌──────────────────┐                         │
-│  │ ingest_feeds │→ │ingest-opportunities│                       │
-│  │ (Cloud Job)  │  │   (Cloud Job)     │                        │
-│  └──────────────┘  └──────────────────┘                         │
-│         ↓                   ↓                                    │
-│       BigQuery           BigQuery                                │
+│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────┐  │
+│  │ ingest_feeds │→ │ingest-opportunities│→ │opportunity-insigths│ │
+│  │ (Cloud Job)  │  │   (Cloud Job)     │  │   (Cloud Job)     │  │
+│  └──────────────┘  └──────────────────┘  └───────────────────┘  │
+│         ↓                   ↓                     ↓             │
+│       BigQuery           BigQuery              BigQuery          │
 │                                                                  │
 │  ┌────────────────────────┐                                     │
 │  │  openactive-monitor    │  (Streamlit dashboard)              │
@@ -119,8 +119,8 @@ Stores denormalized opportunity data from RPDE feeds.
 | `location` | JSON | Extracted geolocation (`latitude`, `longitude`, `postal_code`, etc.) |
 | `district_name` | STRING | UK Local Authority District name resolved from `location.latitude/longitude` (`LAD24NM`) |
 | `region_name` | STRING | UK Region name resolved from `location.latitude/longitude` (`eer18nm`) |
-| `startDate` | STRING | Start date |
-| `endDate` | STRING | End date |
+| `startDate` | TIMESTAMP | Start date |
+| `endDate` | TIMESTAMP | End date |
 | `ageRange` | JSON | Age range information |
 | `level` | STRING | Difficulty/skill level |
 | `has_superEvent` | STRING | Reference to parent event `@id` or inline dict |

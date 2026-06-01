@@ -8,6 +8,7 @@ overall metric definitions.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
@@ -30,6 +31,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 DEFAULT_GEO_DIR = Path(os.getenv("INSIGHTS_GEO_DIR", "../../volume-1/data-analysis")).resolve()
+DEFAULT_PUBLIC_DIR = Path(os.getenv("INSIGHTS_PUBLIC_DIR", "../../volume-1/public")).resolve()
 
 
 # ---------------------------------------------------------------------------
@@ -275,20 +277,33 @@ def _category_rows_for_bq(
 # Main orchestration
 # ---------------------------------------------------------------------------
 
-def run(verbose: bool = False, init_tables: bool = False, reference_date: date | None = None) -> None:
-    run_date = datetime.now(timezone.utc)
-    effective_reference_date = reference_date or run_date.date()
-    logger.info("opportunity-insights run starting (run_date=%s)", run_date.isoformat())
-    logger.info("Using reference date %s for future opportunity metrics", effective_reference_date.isoformat())
+class _SourceData:
+    """Bundle of raw inputs loaded from BigQuery + spatial counts."""
 
-    if init_tables:
-        logger.info("Ensuring output tables exist")
-        bigquery_ops.ensure_tables()
+    def __init__(
+        self,
+        df_feeds: pd.DataFrame,
+        df_status: pd.DataFrame,
+        df_base: pd.DataFrame,
+        df_points: pd.DataFrame,
+        per_feed_dicts: dict[str, dict[str, dict[str, int]]],
+        regions_counts: dict[str, dict[str, int]],
+        districts_counts: dict[str, dict[str, int]],
+        trusts_counts: dict[str, dict[str, int]],
+    ) -> None:
+        self.df_feeds = df_feeds
+        self.df_status = df_status
+        self.df_base = df_base
+        self.df_points = df_points
+        self.per_feed_dicts = per_feed_dicts
+        self.regions_counts = regions_counts
+        self.districts_counts = districts_counts
+        self.trusts_counts = trusts_counts
 
-    opportunities_tbl = bigquery_ops.table_id(bigquery_ops.OPPORTUNITIES_TABLE)
-    feeds_tbl = bigquery_ops.table_id(bigquery_ops.FEEDS_TABLE)
-    opportunity_ingestion_tbl = bigquery_ops.table_id(bigquery_ops.OPPORTUNITY_INGESTION_TABLE)
 
+def _load_source_data(opportunities_tbl: str, feeds_tbl: str,
+                      opportunity_ingestion_tbl: str, reference_date: date) -> _SourceData:
+    """Load all raw BigQuery inputs and resolve geolocation counts."""
     logger.info("Loading feed metadata")
     df_feeds = bigquery_ops.run_query(queries.feeds_metadata(feeds_tbl))
 
@@ -297,7 +312,7 @@ def run(verbose: bool = False, init_tables: bool = False, reference_date: date |
 
     logger.info("Computing per-feed base metrics")
     df_base = bigquery_ops.run_query(
-        queries.per_feed_base_metrics(opportunities_tbl, effective_reference_date)
+        queries.per_feed_base_metrics(opportunities_tbl, reference_date)
     )
 
     logger.info("Computing per-feed categorical counts")
@@ -312,48 +327,53 @@ def run(verbose: bool = False, init_tables: bool = False, reference_date: date |
     logger.info("Resolving %d location points into region/district/trust counts", len(df_points))
     regions_counts, districts_counts, trusts_counts = _resolve_geo_counts(df_points)
 
-    feed_rows = _build_feed_insights_rows(
-        run_date, df_feeds, df_base, df_status,
-        per_feed_dicts, regions_counts, districts_counts, trusts_counts,
+    return _SourceData(
+        df_feeds=df_feeds,
+        df_status=df_status,
+        df_base=df_base,
+        df_points=df_points,
+        per_feed_dicts=per_feed_dicts,
+        regions_counts=regions_counts,
+        districts_counts=districts_counts,
+        trusts_counts=trusts_counts,
     )
 
-    # ---------- Aggregate pass ---------- #
-    # Build feed-id sets per scope from the feed_rows (so "scope" tracks what was
-    # actually analysed, not every row in the feeds table).
-    scope_feed_ids: dict[str, set[str]] = {
+
+def _build_scope_feed_ids(feed_rows: list[dict[str, Any]]) -> dict[str, set[str]]:
+    """Build feed-id sets per scope from the analysed feed rows."""
+    return {
         "all":     {r["feed_id"] for r in feed_rows},
         "regular": {r["feed_id"] for r in feed_rows if r["is_regular"] is True},
         "preview": {r["feed_id"] for r in feed_rows if r["is_regular"] is False},
     }
 
-    def scalar_by_scope(predicate) -> dict[str, int]:
-        return {scope: sum(1 for r in feed_rows if r["feed_id"] in scope_feed_ids[scope] and predicate(r))
-                for scope in _SCOPES}
 
-    def sum_by_scope(col: str) -> dict[str, int]:
-        return {scope: sum(int(r.get(col) or 0) for r in feed_rows if r["feed_id"] in scope_feed_ids[scope])
-                for scope in _SCOPES}
+def _aggregate_geo_category(
+    per_feed: dict[str, dict[str, int]],
+    scope_feed_ids: dict[str, set[str]],
+) -> dict[str, list[dict[str, Any]]]:
+    """Roll a per-feed geo-count dict up into the standard per-scope aggregate format."""
+    per_scope: dict[str, list[dict[str, Any]]] = {}
+    for scope in _SCOPES:
+        totals: dict[str, int] = defaultdict(int)
+        for feed_id, values in per_feed.items():
+            if feed_id in scope_feed_ids[scope]:
+                for v, c in values.items():
+                    totals[v] += c
+        grand = sum(totals.values())
+        per_scope[scope] = [
+            {"value": v, "count": c, "percentage": (c / grand * 100) if grand else 0.0}
+            for v, c in sorted(totals.items(), key=lambda x: -x[1])
+        ]
+    return per_scope
 
-    # Publisher/dataset counts should reflect the feed catalogue snapshot,
-    # including feeds that currently have zero opportunity rows.
-    num_publishers = {
-        scope: _count_distinct_non_empty(_feeds_in_scope(df_feeds, scope), "publisher_name")
-        for scope in _SCOPES
-    }
-    num_datasets = {
-        scope: _count_distinct_non_empty(_feeds_in_scope(df_feeds, scope), "dataset_url")
-        for scope in _SCOPES
-    }
-    num_feeds = {
-        scope: len(_feeds_in_scope(df_feeds, scope)) for scope in _SCOPES
-    }
-    num_feeds_with_data = {scope: len(scope_feed_ids[scope]) for scope in _SCOPES}
-    num_feeds_with_future = scalar_by_scope(lambda r: (r.get("num_future_opportunity_items") or 0) > 0)
-    total_items = sum_by_scope("num_items")
-    total_future = sum_by_scope("num_future_opportunity_items")
-    total_future_week = sum_by_scope("num_future_week_opportunity_items")
 
-    # Aggregate category counts, per scope
+def _aggregate_all_categories(
+    opportunities_tbl: str,
+    source: _SourceData,
+    scope_feed_ids: dict[str, set[str]],
+) -> dict[str, dict[str, list[dict[str, Any]]]]:
+    """Compute every aggregate category (categorical + geo + activity_facility)."""
     categories: dict[str, dict[str, list[dict[str, Any]]]] = {}
 
     def agg_simple(category: str, sql: str) -> None:
@@ -367,53 +387,91 @@ def run(verbose: bool = False, init_tables: bool = False, reference_date: date |
     agg_simple("accessibility", queries.per_feed_accessibility_counts(opportunities_tbl))
     agg_simple("organizer",     queries.per_feed_organizer_counts(opportunities_tbl))
 
-
-    # activity_facility: combined
     categories["activity_facility"] = {
         scope: _sum_counts(categories["activity"][scope], categories["facility"][scope])
         for scope in _SCOPES
     }
 
-    # region / district / trust: per-feed dicts → aggregate rows.
     for category, per_feed in (
-        ("region", regions_counts),
-        ("district", districts_counts),
-        ("trust", trusts_counts),
+        ("region", source.regions_counts),
+        ("district", source.districts_counts),
+        ("trust", source.trusts_counts),
     ):
-        per_scope: dict[str, list[dict[str, Any]]] = {}
-        for scope in _SCOPES:
-            totals: dict[str, int] = defaultdict(int)
-            for feed_id, values in per_feed.items():
-                if feed_id in scope_feed_ids[scope]:
-                    for v, c in values.items():
-                        totals[v] += c
-            grand = sum(totals.values())
-            per_scope[scope] = [
-                {"value": v, "count": c, "percentage": (c / grand * 100) if grand else 0.0}
-                for v, c in sorted(totals.items(), key=lambda x: -x[1])
-            ]
-        categories[category] = per_scope
+        categories[category] = _aggregate_geo_category(per_feed, scope_feed_ids)
 
-    # ---------- SAD matching ---------- #
+    return categories
+
+
+def _compute_scope_totals(
+    df_feeds: pd.DataFrame,
+    feed_rows: list[dict[str, Any]],
+    scope_feed_ids: dict[str, set[str]],
+) -> dict[str, dict[str, int]]:
+    """Compute per-scope scalar totals used in the run summary row."""
+    def scalar_by_scope(predicate) -> dict[str, int]:
+        return {scope: sum(1 for r in feed_rows
+                           if r["feed_id"] in scope_feed_ids[scope] and predicate(r))
+                for scope in _SCOPES}
+
+    def sum_by_scope(col: str) -> dict[str, int]:
+        return {scope: sum(int(r.get(col) or 0) for r in feed_rows
+                           if r["feed_id"] in scope_feed_ids[scope])
+                for scope in _SCOPES}
+
+    return {
+        # Publisher/dataset counts reflect the full feed catalogue snapshot
+        # (including feeds with zero opportunity rows).
+        "num_publishers": {
+            scope: _count_distinct_non_empty(_feeds_in_scope(df_feeds, scope), "publisher_name")
+            for scope in _SCOPES
+        },
+        "num_datasets": {
+            scope: _count_distinct_non_empty(_feeds_in_scope(df_feeds, scope), "dataset_url")
+            for scope in _SCOPES
+        },
+        "num_feeds": {scope: len(_feeds_in_scope(df_feeds, scope)) for scope in _SCOPES},
+        "num_feeds_with_data": {scope: len(scope_feed_ids[scope]) for scope in _SCOPES},
+        "num_feeds_with_future": scalar_by_scope(
+            lambda r: (r.get("num_future_opportunity_items") or 0) > 0
+        ),
+        "total_items": sum_by_scope("num_items"),
+        "total_future": sum_by_scope("num_future_opportunity_items"),
+        "total_future_week": sum_by_scope("num_future_week_opportunity_items"),
+    }
+
+
+def _run_sad(categories: dict[str, dict[str, list[dict[str, Any]]]]):
+    """Build the SAD (sport & discipline) input frame and run matching."""
     act_fac_all = categories["activity_facility"]["all"]
     df_act_fac_all = pd.DataFrame(act_fac_all, columns=["value", "count", "percentage"]).rename(
         columns={"value": "activity"}
     )
-    sad = run_sad_matching(df_act_fac_all, DEFAULT_GEO_DIR)
+    return run_sad_matching(df_act_fac_all, DEFAULT_GEO_DIR)
 
-    # ---------- Write category_counts ---------- #
-    category_rows: list[dict[str, Any]] = []
-    for cat, per_scope in categories.items():
-        category_rows.extend(_category_rows_for_bq(run_date, cat, per_scope))
 
-    # ---------- Assemble run summary ---------- #
+def _build_summary_row(
+    run_date: datetime,
+    totals: dict[str, dict[str, int]],
+    categories: dict[str, dict[str, list[dict[str, Any]]]],
+    sad,
+) -> dict[str, Any]:
+    """Assemble the single run-summary row."""
     total_num_items_with = {
         cat: sum(r["count"] for r in categories[cat]["all"])
         for cat in ("item_kind", "item_type", "organizer", "activity", "facility",
                     "accessibility", "region", "district", "trust")
     }
 
-    summary_row = {
+    num_publishers = totals["num_publishers"]
+    num_datasets = totals["num_datasets"]
+    num_feeds = totals["num_feeds"]
+    num_feeds_with_data = totals["num_feeds_with_data"]
+    num_feeds_with_future = totals["num_feeds_with_future"]
+    total_items = totals["total_items"]
+    total_future = totals["total_future"]
+    total_future_week = totals["total_future_week"]
+
+    return {
         "run_date": run_date,
         "num_publishers":                                    num_publishers["all"],
         "num_publishers_regular":                            num_publishers["regular"],
@@ -468,10 +526,21 @@ def run(verbose: bool = False, init_tables: bool = False, reference_date: date |
         "percentage_sad_unmatched":                          sad.percentage_sad_unmatched,
     }
 
-    # ---------- SAD rows ---------- #
-    sad_rows: list[dict[str, Any]] = []
+
+def _build_category_rows(
+    run_date: datetime,
+    categories: dict[str, dict[str, list[dict[str, Any]]]],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for cat, per_scope in categories.items():
+        rows.extend(_category_rows_for_bq(run_date, cat, per_scope))
+    return rows
+
+
+def _build_sad_rows(run_date: datetime, sad) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     for _, row in sad.matched.iterrows():
-        sad_rows.append({
+        rows.append({
             "run_date": run_date,
             "sport_and_discipline": row["sport_and_discipline"],
             "activity": row["activity"],
@@ -482,7 +551,7 @@ def run(verbose: bool = False, init_tables: bool = False, reference_date: date |
             "percentage_activities": float(row["percentage_activities"]),
         })
     for _, row in sad.unmatched.iterrows():
-        sad_rows.append({
+        rows.append({
             "run_date": run_date,
             "sport_and_discipline": row["sport_and_discipline"],
             "activity": row["activity"],
@@ -492,24 +561,182 @@ def run(verbose: bool = False, init_tables: bool = False, reference_date: date |
             "percentage_items": float(row["percentage_items"]),
             "percentage_activities": None,
         })
+    return rows
 
-    master_rows: list[dict[str, Any]] = []
-    for _, row in sad.master.iterrows():
-        master_rows.append({
+
+def _build_sad_master_rows(run_date: datetime, sad) -> list[dict[str, Any]]:
+    return [
+        {
             "run_date": run_date,
             "sport": row.get("sport"),
             "discipline": row.get("discipline"),
             "sport_and_discipline": row.get("sport_and_discipline"),
             "is_matched_by_any_feed": bool(row["is_matched_by_any_feed"]),
-        })
+        }
+        for _, row in sad.master.iterrows()
+    ]
 
-    # ---------- Persist ---------- #
+
+def _persist_outputs(
+    feed_rows: list[dict[str, Any]],
+    summary_row: dict[str, Any],
+    category_rows: list[dict[str, Any]],
+    sad_rows: list[dict[str, Any]],
+    master_rows: list[dict[str, Any]],
+) -> None:
     logger.info("Writing outputs to BigQuery")
     bigquery_ops.upsert_feed_insights(feed_rows)
     bigquery_ops.append_run_summary(summary_row)
     bigquery_ops.append_category_counts(category_rows)
     bigquery_ops.append_sport_discipline(sad_rows)
     bigquery_ops.append_sport_discipline_master(master_rows)
+
+
+def _run_quality_assessment(
+    run_date: datetime,
+    source: _SourceData,
+    feed_rows: list[dict[str, Any]],
+    opportunities_tbl: str,
+    reference_date: date,
+) -> None:
+    from quality.assess import assess_feed_quality
+
+    logger.info("Running per-feed data-quality assessment")
+    quality_rows = assess_feed_quality(
+        run_date=run_date,
+        df_feeds=source.df_feeds,
+        df_status=source.df_status,
+        feed_rows=feed_rows,
+        opportunities_tbl=opportunities_tbl,
+        reference_date=reference_date,
+        max_workers=int(os.getenv("INGEST_MAX_WORKERS", "4")),
+    )
+    bigquery_ops.write_feed_quality(quality_rows)
+
+
+DISTRICT_LOOKUP_FILENAME = "000-district-region-country.json"
+
+
+def _load_district_lookup(geo_dir: Path) -> dict[str, dict[str, Any]]:
+    """Load the district -> region/country lookup keyed by district name (LAD24NM).
+
+    Produced by ``district_region_country.py``. Returns an empty dict (so the
+    enrichment columns stay NULL) if the file is missing.
+    """
+    path = geo_dir / DISTRICT_LOOKUP_FILENAME
+    if not path.exists():
+        logger.warning(
+            "District lookup %s not found; region/country columns will be NULL", path
+        )
+        return {}
+    with path.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _run_api_tables_export(
+    opportunities_tbl: str,
+    feeds_tbl: str,
+    reference_date: date,
+    geo_dir: Path = DEFAULT_GEO_DIR,
+) -> None:
+    """Build the ``active_opportunities_summary2`` table.
+
+    One row per (district, publisher, provider, activity_or_facility) for active
+    (future) opportunities, enriched with district/region/country codes and names
+    from ``000-district-region-country.json``.
+    """
+    logger.info("Building active_opportunities_summary2 (reference_date=%s)", reference_date)
+    df = bigquery_ops.run_query(
+        queries.active_opportunities_summary(opportunities_tbl, feeds_tbl, reference_date)
+    )
+    lookup = _load_district_lookup(geo_dir)
+
+    rows: list[dict[str, Any]] = []
+    for rec in df.to_dict("records"):
+        district_name = rec.get("district_name")
+        info = lookup.get(district_name) if district_name else None
+        info = info or {}
+        rows.append({
+            "district_name": district_name,
+            "publisher": rec.get("publisher"),
+            "provider": rec.get("provider"),
+            "opportunity_count": int(rec.get("opportunity_count") or 0),
+            "is_activity": rec.get("is_activity"),
+            # JSON array string from TO_JSON_STRING(...) -> stored as JSON column.
+            "activity_or_facility": rec.get("activity_or_facility"),
+            "district_code": info.get("district_code"),
+            "region_code": info.get("region_code"),
+            "region_name": info.get("region_name"),
+            "country_code": info.get("country_code"),
+            "country_name": info.get("country_name"),
+        })
+
+    bigquery_ops.write_active_opportunities_summary(rows)
+    logger.info("Wrote %d rows to active_opportunities_summary2", len(rows))
+
+
+def run(
+    verbose: bool = False,
+    init_tables: bool = False,
+    reference_date: date | None = None,
+    skip_quality: bool = False,
+    skip_export: bool = False,
+) -> None:
+    run_date = datetime.now(timezone.utc)
+    effective_reference_date = reference_date or run_date.date()
+    logger.info("opportunity-insights run starting (run_date=%s)", run_date.isoformat())
+    logger.info("Using reference date %s for future opportunity metrics", effective_reference_date.isoformat())
+
+    if init_tables:
+        logger.info("Ensuring output tables exist")
+        bigquery_ops.ensure_tables()
+
+    opportunities_tbl = bigquery_ops.table_id(bigquery_ops.OPPORTUNITIES_TABLE)
+    feeds_tbl = bigquery_ops.table_id(bigquery_ops.FEEDS_TABLE)
+    opportunity_ingestion_tbl = bigquery_ops.table_id(bigquery_ops.OPPORTUNITY_INGESTION_TABLE)
+
+    # ---------- Load + per-feed assembly ---------- #
+    source = _load_source_data(
+        opportunities_tbl, feeds_tbl, opportunity_ingestion_tbl, effective_reference_date
+    )
+
+    feed_rows = _build_feed_insights_rows(
+        run_date, source.df_feeds, source.df_base, source.df_status,
+        source.per_feed_dicts,
+        source.regions_counts, source.districts_counts, source.trusts_counts,
+    )
+
+    # ---------- Aggregate pass ---------- #
+    scope_feed_ids = _build_scope_feed_ids(feed_rows)
+    categories = _aggregate_all_categories(opportunities_tbl, source, scope_feed_ids)
+    totals = _compute_scope_totals(source.df_feeds, feed_rows, scope_feed_ids)
+
+    # ---------- SAD matching + output assembly ---------- #
+    sad = _run_sad(categories)
+    summary_row = _build_summary_row(run_date, totals, categories, sad)
+    category_rows = _build_category_rows(run_date, categories)
+    sad_rows = _build_sad_rows(run_date, sad)
+    master_rows = _build_sad_master_rows(run_date, sad)
+
+    # ---------- Persist ---------- #
+    # TODO disabled for debugging
+    _persist_outputs(feed_rows, summary_row, category_rows, sad_rows, master_rows)
+
+    # ---------- Data quality assessment ---------- #
+    if not skip_quality:
+        _run_quality_assessment(
+            run_date, source, feed_rows, opportunities_tbl, effective_reference_date,
+        )
+    else:
+        logger.info("Skipping data-quality assessment (--skip-quality)")
+
+    # ---------- API tables export ---------- #
+    if not skip_export:
+        _run_api_tables_export(
+            opportunities_tbl, feeds_tbl, effective_reference_date, DEFAULT_GEO_DIR,
+        )
+    else:
+        logger.info("Skipping API tables export (--skip-export)")
 
     logger.info("opportunity-insights run complete")
 
@@ -523,12 +750,32 @@ def run(verbose: bool = False, init_tables: bool = False, reference_date: date |
     default=None,
     help="Optional date (YYYY-MM-DD) used to calculate future opportunity metrics.",
 )
-def cli(verbose: bool, init_tables: bool, reference_date: datetime | None) -> None:
+@click.option(
+    "--skip-quality",
+    is_flag=True,
+    default=False,
+    help="Skip the per-feed data-quality assessment step (feed_quality table is not updated).",
+)
+@click.option(
+    "--skip-export",
+    is_flag=True,
+    default=False,
+    help="Skip the API tables export step (active_opportunities_summary2 is not written).",
+)
+def cli(
+    verbose: bool,
+    init_tables: bool,
+    reference_date: datetime | None,
+    skip_quality: bool,
+    skip_export: bool,
+) -> None:
     _configure_logging(verbose)
     run(
         verbose=verbose,
         init_tables=init_tables,
         reference_date=reference_date.date() if reference_date else None,
+        skip_quality=skip_quality,
+        skip_export=skip_export,
     )
 
 
