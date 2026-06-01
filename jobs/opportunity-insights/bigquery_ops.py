@@ -48,7 +48,7 @@ INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE = os.getenv(
 )
 FEED_QUALITY_TABLE = os.getenv("BQ_FEED_QUALITY_TABLE", "feed_quality")
 ACTIVE_OPPORTUNITIES_SUMMARY_TABLE = os.getenv(
-    "BQ_ACTIVE_OPPORTUNITIES_SUMMARY_TABLE", "active_opportunities_summary2"
+    "BQ_ACTIVE_OPPORTUNITIES_SUMMARY_TABLE", "active_opportunities_summary"
 )
 
 MERGE_RETRY_MAX_ATTEMPTS = 5
@@ -288,7 +288,7 @@ def write_feed_quality(rows: list[dict[str, Any]]) -> None:
 
 
 def write_active_opportunities_summary(rows: list[dict[str, Any]]) -> None:
-    """Replace the entire ``active_opportunities_summary2`` table with ``rows``.
+    """Replace the entire ``active_opportunities_summary`` table with ``rows``.
 
     Current-state table (one row per district/publisher/provider/activity_or_facility),
     regenerated each run, so WRITE_TRUNCATE fully overwrites the previous contents.
