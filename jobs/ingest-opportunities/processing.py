@@ -16,7 +16,7 @@ from typing import Any
 import pandas as pd
 from pandas import DataFrame
 
-from boundary_lookup import lookup_boundaries
+from boundary_lookup import enrich_from_district_lookup, lookup_boundaries
 from geolocation import _build_location
 
 logger = logging.getLogger(__name__)
@@ -27,9 +27,11 @@ DF_COLUMNS = [
     "dataset_url", "feed_id", "id", "data_id", "kind", "modified",
     "json_data", "inherited_data", "activity", "facility", "location",
     "district_name", "region_name",
+    "publisher_name", "district_code", "region_code", "country_code", "country_name",
     "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent",
     "last_updated",
 ]
+
 
 
 def _resolve_boundaries(location: dict[str, Any]) -> tuple[str | None, str | None]:
@@ -161,7 +163,7 @@ def get_facility(data: dict) -> list[Any]:
     return []
 
 
-def extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[dict], list[dict]]:
+def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: str | None = None) -> tuple[list[dict], list[dict]]:
     """Flatten RPDE ``items`` into row dicts ready for a DataFrame.
 
     ``result`` is the dict returned by ``rpde.access_feed_url`` (or any
@@ -186,6 +188,7 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[dic
             data = unpack_data(data)
             location = _build_location(data.get("location"))
             district_name, region_name = _resolve_boundaries(location)
+            enriched = enrich_from_district_lookup(district_name)
             updated.append({
                 "dataset_url":    dataset_url,
                 "feed_id":        feed_id,
@@ -200,6 +203,11 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict) -> tuple[list[dic
                 "location":       location,
                 "district_name":  district_name,
                 "region_name":    region_name,
+                "publisher_name": publisher_name,
+                "district_code":  enriched["district_code"],
+                "region_code":    enriched["region_code"],
+                "country_code":   enriched["country_code"],
+                "country_name":   enriched["country_name"],
                 "startDate":      _normalize_timestamp(data.get("startDate") or data.get("date_start")),
                 "endDate":        _normalize_timestamp(data.get("endDate") or data.get("date_end")),
                 "ageRange":       data.get("ageRange"),
@@ -340,6 +348,11 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         district_name, region_name = _resolve_boundaries(new_location)
         df.at[idx, "district_name"] = district_name
         df.at[idx, "region_name"] = region_name
+        enriched = enrich_from_district_lookup(district_name)
+        df.at[idx, "district_code"] = enriched["district_code"]
+        df.at[idx, "region_code"] = enriched["region_code"]
+        df.at[idx, "country_code"] = enriched["country_code"]
+        df.at[idx, "country_name"] = enriched["country_name"]
     if "startDate" in inherited_data and (not df.at[idx, "startDate"] or df.at[idx, "startDate"] == ""):
         df.at[idx, "startDate"] = _normalize_timestamp(inherited_data["startDate"])
     if "endDate" in inherited_data and (not df.at[idx, "endDate"] or df.at[idx, "endDate"] == ""):

@@ -5,6 +5,10 @@ from ``volume-1/data-analysis/`` (reprojected to WGS84) and resolves a
 coordinate to ``(district_name, region_name)`` via shapely STRtree spatial
 indexes.
 
+Also provides a JSON-based district enrichment lookup that maps district_name
+to district_code, region_code, country_code, and country_name from the
+``000-district-region-country.json`` file.
+
 Lookups are cached with ``lru_cache`` because many opportunities share a
 venue, so the same coordinate is queried repeatedly during a run.
 
@@ -13,12 +17,14 @@ Pattern mirrors ``jobs/opportunity-insights/geolookup.py``.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 import geopandas as gpd
 from shapely import STRtree
@@ -41,6 +47,7 @@ else:
 
 DISTRICTS_FILENAME = "000-location-districts.geojson"
 REGIONS_FILENAME = "000-location-regions.geojson"
+DISTRICT_LOOKUP_FILENAME = "000-district-region-country.json"
 
 DISTRICTS_NAME_COLUMN = "LAD24NM"
 REGIONS_NAME_COLUMN = "eer18nm"
@@ -103,6 +110,67 @@ def _lookup_in_index(point: Point, index: _SpatialIndex) -> str | None:
         except Exception:
             continue
     return None
+
+
+# ---------------------------------------------------------------------------
+# District -> region/country JSON lookup (loaded once, thread-safe)
+# ---------------------------------------------------------------------------
+
+_district_lookup: dict[str, dict[str, Any]] | None = None
+_district_lookup_lock = threading.Lock()
+_district_lookup_loaded = False
+
+
+def _ensure_district_lookup_loaded() -> dict[str, dict[str, Any]]:
+    """Load the district -> region/country lookup JSON once."""
+    global _district_lookup, _district_lookup_loaded
+
+    if _district_lookup_loaded:
+        return _district_lookup or {}
+
+    with _district_lookup_lock:
+        if _district_lookup_loaded:
+            return _district_lookup or {}
+
+        path = _BOUNDARY_DIR / DISTRICT_LOOKUP_FILENAME
+        if not path.exists():
+            logger.warning(
+                "District lookup %s not found; district_code/region_code/country columns will be NULL",
+                path,
+            )
+            _district_lookup = {}
+        else:
+            with path.open(encoding="utf-8") as handle:
+                _district_lookup = json.load(handle)
+            logger.info("Loaded district lookup with %d entries from %s", len(_district_lookup), path)
+
+        _district_lookup_loaded = True
+        return _district_lookup or {}
+
+
+def enrich_from_district_lookup(district_name: str | None) -> dict[str, str | None]:
+    """Return enrichment fields from district_name using the JSON lookup.
+
+    Keys returned: ``district_code``, ``region_code``, ``country_code``, ``country_name``.
+    All values are ``None`` if district_name is missing or not found.
+    """
+    result: dict[str, str | None] = {
+        "district_code": None,
+        "region_code": None,
+        "country_code": None,
+        "country_name": None,
+    }
+    if not district_name:
+        return result
+
+    lookup = _ensure_district_lookup_loaded()
+    info = lookup.get(district_name)
+    if info:
+        result["district_code"] = info.get("district_code")
+        result["region_code"] = info.get("region_code")
+        result["country_code"] = info.get("country_code")
+        result["country_name"] = info.get("country_name")
+    return result
 
 
 @lru_cache(maxsize=100_000)

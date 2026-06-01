@@ -41,6 +41,11 @@ OPPORTUNITIES_COLUMNS = [
     "location",
     "district_name",
     "region_name",
+    "publisher_name",
+    "district_code",
+    "region_code",
+    "country_code",
+    "country_name",
     "startDate",
     "endDate",
     "ageRange",
@@ -140,7 +145,7 @@ def get_feeds(datasets: list[str] | None = None) -> dict[str, list[dict]]:
     table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{FEEDS_TABLE}"
 
     query = f"""
-        SELECT id, url, type, dataset_name, dataset_url
+        SELECT id, url, type, dataset_name, dataset_url, publisher_name
         FROM `{table_id}`
         WHERE DATE(last_access) = @target_date
         ORDER BY id
@@ -167,6 +172,7 @@ def get_feeds(datasets: list[str] | None = None) -> dict[str, list[dict]]:
                     "url": row["url"],
                     "type": row["type"],
                     "dataset_name": row["dataset_name"],
+                    "publisher_name": row["publisher_name"],
                 }
             )
     return feeds
