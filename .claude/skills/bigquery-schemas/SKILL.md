@@ -66,6 +66,13 @@ Denormalized opportunity data from RPDE feeds.
 | `activity` | JSON | NULLABLE | Activity labels associated with the opportunity |
 | `facility` | JSON | NULLABLE | Facility label associated with the opportunity |
 | `location` | JSON | NULLABLE | Geographical location (`latitude`, `longitude`, `postal_code`, …) |
+| `district_name` | STRING | NULLABLE | UK Local Authority District name resolved from location (`LAD24NM`) |
+| `region_name` | STRING | NULLABLE | UK region name resolved from location (`eer18nm`) |
+| `publisher_name` | STRING | NULLABLE | Publisher name copied from `feeds.publisher_name` via `dataset_url` |
+| `district_code` | STRING | NULLABLE | UK Local Authority District code resolved from `district_name` (`LAD24CD`) |
+| `region_code` | STRING | NULLABLE | UK region code resolved from `district_name` |
+| `country_code` | STRING | NULLABLE | UK country code resolved from `district_name` |
+| `country_name` | STRING | NULLABLE | UK country name resolved from `district_name` |
 | `startDate` | TIMESTAMP | NULLABLE | Opportunity start date and time |
 | `endDate` | TIMESTAMP | NULLABLE | Opportunity end date and time |
 | `ageRange` | JSON | NULLABLE | Age range for the opportunity |
@@ -152,4 +159,3 @@ Append-only log of insight/analysis run outputs — high-level aggregate statist
 | `num_sad_unmatched` | INTEGER | NULLABLE | SAD entries with no match |
 | `percentage_sad_matched` | FLOAT | NULLABLE | % of SAD entries matched |
 | `percentage_sad_unmatched` | FLOAT | NULLABLE | % of SAD entries unmatched |
-

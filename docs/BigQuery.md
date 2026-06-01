@@ -107,6 +107,55 @@ Opportunities table schema:
     "fields": []
   },
   {
+    "name": "district_name",
+    "mode": "NULLABLE",
+    "type": "STRING",
+    "description": "UK Local Authority District name resolved from coordinates (LAD24NM)",
+    "fields": []
+  },
+  {
+    "name": "region_name",
+    "mode": "NULLABLE",
+    "type": "STRING",
+    "description": "UK Region name resolved from coordinates (eer18nm)",
+    "fields": []
+  },
+  {
+    "name": "publisher_name",
+    "mode": "NULLABLE",
+    "type": "STRING",
+    "description": "Publisher name copied from feeds via dataset_url",
+    "fields": []
+  },
+  {
+    "name": "district_code",
+    "mode": "NULLABLE",
+    "type": "STRING",
+    "description": "UK Local Authority District code resolved from district_name (LAD24CD)",
+    "fields": []
+  },
+  {
+    "name": "region_code",
+    "mode": "NULLABLE",
+    "type": "STRING",
+    "description": "UK Region code resolved from district_name",
+    "fields": []
+  },
+  {
+    "name": "country_code",
+    "mode": "NULLABLE",
+    "type": "STRING",
+    "description": "UK country code resolved from district_name",
+    "fields": []
+  },
+  {
+    "name": "country_name",
+    "mode": "NULLABLE",
+    "type": "STRING",
+    "description": "UK country name resolved from district_name",
+    "fields": []
+  },
+  {
     "name": "startDate",
     "mode": "NULLABLE",
     "type": "TIMESTAMP",
@@ -146,6 +195,13 @@ Opportunities table schema:
     "mode": "NULLABLE",
     "type": "JSON",
     "description": "SubEvent URLs or inplace subEvent data for the opportunity",
+    "fields": []
+  },
+  {
+    "name": "last_updated",
+    "mode": "NULLABLE",
+    "type": "DATE",
+    "description": "UTC date when the row was last upserted",
     "fields": []
   }
 ]
