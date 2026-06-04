@@ -67,7 +67,7 @@ _TABLE_CONFIGS: dict[str, tuple[str, list[str], str | None]] = {
     INSIGHT_SPORT_DISCIPLINE_TABLE:        ("insight_sport_discipline.json",       ["run_date", "is_matched"],              "run_date"),
     INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE: ("insight_sport_discipline_master.json", ["run_date"],                            "run_date"),
     FEED_QUALITY_TABLE:                    ("feed_quality.json",                   ["dataset_url", "feed_id", "grade"],     None),
-    ACTIVE_OPPORTUNITIES_SUMMARY_TABLE:    ("active_opportunities_summary2.json",  ["district_name", "provider"],           None),
+    ACTIVE_OPPORTUNITIES_SUMMARY_TABLE:    ("active_opportunities_summary.json",  ["district_name", "provider"],           None),
 }
 
 _FEED_INSIGHTS_MERGE_KEYS = ("run_date", "feed_id")
