@@ -340,7 +340,7 @@ def _normalize_required_data_ids(required_data_ids: list[str] | None) -> list[st
     for item in required_data_ids:
         if not isinstance(item, str):
             continue
-        value = item.strip()
+        value = item.strip("\"").strip("'").strip()
         if not value or value in seen:
             continue
         seen.add(value)

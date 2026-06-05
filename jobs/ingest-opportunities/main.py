@@ -277,14 +277,14 @@ def _extract_denormalization_reference_ids(dataset_new_df: pd.DataFrame) -> list
 
     reference_ids: list[str] = []
     seen: set[str] = set()
-    existing_data_ids: set[str] = {
-        data_id
-        for data_id in dataset_new_df["data_id"].tolist()
-        if isinstance(data_id, str) and data_id
-    }
+    existing_data_ids: set[str] = set()
+    for data_id in dataset_new_df["data_id"].tolist():
+        if isinstance(data_id, str) and data_id:
+            existing_data_ids.add(data_id)
 
     def add_reference(value: Any) -> None:
         if isinstance(value, str):
+            value = value.replace("\"", "").strip()
             if value and value not in existing_data_ids and value not in seen:
                 seen.add(value)
                 reference_ids.append(value)
@@ -298,6 +298,7 @@ def _extract_denormalization_reference_ids(dataset_new_df: pd.DataFrame) -> list
                     and item not in existing_data_ids
                     and item not in seen
                 ):
+                    item = item.replace("\"", "").strip()
                     seen.add(item)
                     reference_ids.append(item)
 
