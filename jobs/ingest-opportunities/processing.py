@@ -41,6 +41,22 @@ def _resolve_boundaries(location: dict[str, Any]) -> tuple[str | None, str | Non
     return lookup_boundaries(location.get("latitude"), location.get("longitude"))
 
 
+def _strip_quotes(value: Any) -> Any:
+    """Strip surrounding double-quote characters from a string value."""
+    if isinstance(value, str):
+        return value.strip('"')
+    return value
+
+
+def _strip_quotes_list(value: Any) -> Any:
+    """Strip surrounding double-quote characters from string items in a list."""
+    if isinstance(value, list):
+        return [item.strip('"') if isinstance(item, str) else item for item in value]
+    if isinstance(value, str):
+        return value.strip('"')
+    return value
+
+
 # ---------------------------------------------------------------------------
 # Item flattening
 # ---------------------------------------------------------------------------
@@ -212,8 +228,8 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
                 "endDate":        _normalize_timestamp(data.get("endDate") or data.get("date_end")),
                 "ageRange":       data.get("ageRange"),
                 "level":          data.get("level"),
-                "has_superEvent": data.get("superEvent") or data.get("facilityUse"),
-                "has_subEvent":   data.get("subEvent"),
+                "has_superEvent": _strip_quotes(data.get("superEvent") or data.get("facilityUse")),
+                "has_subEvent":   _strip_quotes_list(data.get("subEvent")),
                 "last_updated":   datetime.now(timezone.utc).date(),
             })
     return updated, deleted
@@ -315,7 +331,7 @@ def handle_super_events(
         if isinstance(super_event_ref, dict):
             super_event_data = super_event_ref
         elif isinstance(super_event_ref, str):
-            super_event_id = super_event_ref
+            super_event_id = super_event_ref.strip('"')
             row_data_id = df.at[idx, "data_id"]
             if isinstance(row_data_id, str) and super_event_id == row_data_id:
                 logger.warning("Skipping self-referential superEvent for data_id=%s", row_data_id)
@@ -375,7 +391,7 @@ def handle_sub_events(df: pd.DataFrame, sub_event_indices_by_data_id: dict[str, 
                 if isinstance(sub_event_ref, dict):
                     continue
                 elif isinstance(sub_event_ref, str):
-                    sub_event_id = sub_event_ref
+                    sub_event_id = sub_event_ref.strip('"')
                     sub_event_indices = sub_event_indices_by_data_id.get(sub_event_id, [])
                     if sub_event_indices:
                         parent_json = df.at[idx, "json_data"] if isinstance(df.at[idx, "json_data"], dict) else {}

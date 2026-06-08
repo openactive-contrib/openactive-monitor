@@ -639,13 +639,13 @@ def _run_api_tables_export(
     reference_date: date,
     geo_dir: Path = DEFAULT_GEO_DIR,
 ) -> None:
-    """Build the ``active_opportunities_summary2`` table.
+    """Build the ``active_opportunities_summary`` table.
 
     One row per (district, publisher, provider, activity_or_facility) for active
     (future) opportunities, enriched with district/region/country codes and names
     from ``000-district-region-country.json``.
     """
-    logger.info("Building active_opportunities_summary2 (reference_date=%s)", reference_date)
+    logger.info("Building active_opportunities_summary (reference_date=%s)", reference_date)
     df = bigquery_ops.run_query(
         queries.active_opportunities_summary(opportunities_tbl, feeds_tbl, reference_date)
     )
@@ -672,7 +672,7 @@ def _run_api_tables_export(
         })
 
     bigquery_ops.write_active_opportunities_summary(rows)
-    logger.info("Wrote %d rows to active_opportunities_summary2", len(rows))
+    logger.info("Wrote %d rows to active_opportunities_summary", len(rows))
 
 
 def run(
@@ -760,7 +760,7 @@ def run(
     "--skip-export",
     is_flag=True,
     default=False,
-    help="Skip the API tables export step (active_opportunities_summary2 is not written).",
+    help="Skip the API tables export step (active_opportunities_summary is not written).",
 )
 def cli(
     verbose: bool,

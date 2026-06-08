@@ -251,14 +251,14 @@ def _persist_dataset_results(
     )
 
     phase_start = perf_counter()
-    dataset_old_df = get_dataset_opportunities(dataset_url, required_data_ids=denormalization_reference_ids)
-    logger.info("Persist phase get_dataset_opportunities completed in %.2fs (rows=%d)", perf_counter() - phase_start, len(dataset_old_df))
+    dataset_referred_df = get_dataset_opportunities(dataset_url, required_data_ids=denormalization_reference_ids)
+    logger.info("Persist phase get_dataset_opportunities completed in %.2fs (rows=%d)", perf_counter() - phase_start, len(dataset_referred_df))
 
     phase_start = perf_counter()
-    denormalize_dataset(dataset_new_df, dataset_old_df)
+    denormalize_dataset(dataset_new_df, dataset_referred_df)
     logger.info("Persist phase denormalize_dataset completed in %.2fs", perf_counter() - phase_start)
 
-    del dataset_old_df
+    del dataset_referred_df
     gc.collect()
 
     if PERSIST_CSV:
@@ -277,14 +277,14 @@ def _extract_denormalization_reference_ids(dataset_new_df: pd.DataFrame) -> list
 
     reference_ids: list[str] = []
     seen: set[str] = set()
-    existing_data_ids: set[str] = {
-        data_id
-        for data_id in dataset_new_df["data_id"].tolist()
-        if isinstance(data_id, str) and data_id
-    }
+    existing_data_ids: set[str] = set()
+    for data_id in dataset_new_df["data_id"].tolist():
+        if isinstance(data_id, str) and data_id:
+            existing_data_ids.add(data_id)
 
     def add_reference(value: Any) -> None:
         if isinstance(value, str):
+            value = value.replace("\"", "").strip()
             if value and value not in existing_data_ids and value not in seen:
                 seen.add(value)
                 reference_ids.append(value)
@@ -298,6 +298,7 @@ def _extract_denormalization_reference_ids(dataset_new_df: pd.DataFrame) -> list
                     and item not in existing_data_ids
                     and item not in seen
                 ):
+                    item = item.replace("\"", "").strip()
                     seen.add(item)
                     reference_ids.append(item)
 

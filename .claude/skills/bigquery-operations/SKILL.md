@@ -53,4 +53,3 @@ Always fetch the live schema with `client.get_table(table_id).schema` rather tha
 GCP_PROJECT_ID, BQ_DATASET_ID, BQ_FEEDS_TABLE, BQ_FEED_INGESTION_TABLE,
 BQ_OPPORTUNITY_INGESTION_TABLE, BQ_OPPORTUNITIES_TABLE
 ```
-

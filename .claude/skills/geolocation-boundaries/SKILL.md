@@ -17,6 +17,7 @@ All files are located in `volume-1/data-analysis/`.
 | `000-location-districts.geojson` | UK Local Authority Districts | EPSG:27700 | ~300 | Primary boundary for most analyses |
 | `000-location-parishes.geojson` | UK Civil Parishes | EPSG:27700 | ~10,000 | Fine-grained analysis |
 | `000-location-regions.geojson` | UK Regions | EPSG:27700 | ~12 | High-level regional analysis |
+| `000-district-region-country.json` | District -> region/country lookup | n/a | ~300 | Fast name-based enrichment for BigQuery columns |
 
 ## ⚠️ Coordinate reference system
 
@@ -79,3 +80,4 @@ joined = gpd.sjoin(points, districts[["LAD24CD", "LAD24NM", "geometry"]], how="l
 - **Regions** — use when you need high-level England/Wales/Scotland breakdowns (~12 areas).
 - **Parishes** — use only when very fine-grained local detail is required; ~10,000 areas, slower joins.
 
+keeps RPDE ingestion fast.

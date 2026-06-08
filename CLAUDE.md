@@ -119,6 +119,11 @@ Stores denormalized opportunity data from RPDE feeds.
 | `location` | JSON | Extracted geolocation (`latitude`, `longitude`, `postal_code`, etc.) |
 | `district_name` | STRING | UK Local Authority District name resolved from `location.latitude/longitude` (`LAD24NM`) |
 | `region_name` | STRING | UK Region name resolved from `location.latitude/longitude` (`eer18nm`) |
+| `publisher_name` | STRING | Publisher name copied from `feeds.publisher_name` using `opportunities.dataset_url = feeds.dataset_url` |
+| `district_code` | STRING | UK Local Authority District code resolved from `district_name` (`LAD24CD`) via `000-district-region-country.json` |
+| `region_code` | STRING | UK Region code resolved from `district_name` via `000-district-region-country.json` |
+| `country_code` | STRING | UK country code resolved from `district_name` via `000-district-region-country.json` |
+| `country_name` | STRING | UK country name resolved from `district_name` via `000-district-region-country.json` |
 | `startDate` | TIMESTAMP | Start date |
 | `endDate` | TIMESTAMP | End date |
 | `ageRange` | JSON | Age range information |

@@ -5,7 +5,8 @@ with incremental cursor tracking, superEvent/subEvent denormalization, and UK
 postcode/boundary geolocation.
 
 UK boundary GeoJSONs (`000-location-districts.geojson`,
-`000-location-regions.geojson`) live in the **`volume-1` GCS bucket** under
+`000-location-regions.geojson`) and district enrichment lookup
+(`000-district-region-country.json`) live in the **`volume-1` GCS bucket** under
 `data-analysis/`. They are mounted into the container at runtime via a
 Cloud Run **Cloud Storage volume** at `/volume-1`. The Python code reads
 the path from the `INGEST_BOUNDARY_DIR` env var (set by the Dockerfile and
@@ -46,6 +47,7 @@ and contains:
 ```
 data-analysis/000-location-districts.geojson
 data-analysis/000-location-regions.geojson
+data-analysis/000-district-region-country.json
 ```
 
 Region `europe-west2` (or multi-region `eu`) is preferred.
@@ -110,4 +112,3 @@ Every push that triggers `jobs/ingest-opportunities/cloudbuild.yaml`:
 3. `gcloud run jobs deploy ingest-opportunities --image=...` — only the
    image + env vars are updated; volume mount, IAM, args, memory and
    timeout configured in the Console are preserved.
-
