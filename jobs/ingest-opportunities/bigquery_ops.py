@@ -55,6 +55,43 @@ OPPORTUNITIES_COLUMNS = [
     "last_updated",
 ]
 
+# Columns typed JSON in the opportunities BigQuery table.  ``to_dataframe()``
+# returns these as raw JSON strings; downstream processing (especially
+# ``processing.denormalize_dataset``) expects real Python dicts/lists, so the
+# read helpers below parse them on the way in.
+OPPORTUNITIES_JSON_COLUMNS = frozenset({
+    "json_data",
+    "inherited_data",
+    "activity",
+    "facility",
+    "location",
+    "ageRange",
+    "level",
+    "has_superEvent",
+    "has_subEvent",
+})
+
+
+def _safe_json_load(value: Any) -> Any:
+    if value is None or not isinstance(value, str):
+        return value
+    try:
+        return json.loads(value)
+    except (TypeError, ValueError):
+        return value
+
+
+def parse_opportunities_json_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """In-place: turn raw JSON-string columns into Python objects.
+
+    Reusable wrapper so callers that don't go through ``get_dataset_opportunities``
+    (e.g. one-off migration scripts) get the same parsing semantics.
+    """
+    for col in df.columns:
+        if col in OPPORTUNITIES_JSON_COLUMNS:
+            df[col] = df[col].apply(_safe_json_load)
+    return df
+
 DEFAULT_DELETE_RETRY_BASE_SECONDS = 10
 DEFAULT_DELETE_RETRY_MAX_SECONDS = 15 * 60
 DATA_ID_QUERY_BATCH_SIZE = 2000
@@ -314,6 +351,9 @@ def get_dataset_opportunities(
             )
         return pd.DataFrame(columns=OPPORTUNITIES_COLUMNS)
 
+    # BigQuery JSON columns arrive as raw JSON strings from ``to_dataframe()``;
+    # parse them so callers (denormalize_dataset etc.) see real Python objects.
+    parse_opportunities_json_columns(dataset_df)
     normalized_df = dataset_df.reindex(columns=OPPORTUNITIES_COLUMNS)
     if target_ids is None:
         logger.debug(
