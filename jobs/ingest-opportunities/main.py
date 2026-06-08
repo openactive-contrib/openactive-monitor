@@ -251,14 +251,14 @@ def _persist_dataset_results(
     )
 
     phase_start = perf_counter()
-    dataset_old_df = get_dataset_opportunities(dataset_url, required_data_ids=denormalization_reference_ids)
-    logger.info("Persist phase get_dataset_opportunities completed in %.2fs (rows=%d)", perf_counter() - phase_start, len(dataset_old_df))
+    dataset_referred_df = get_dataset_opportunities(dataset_url, required_data_ids=denormalization_reference_ids)
+    logger.info("Persist phase get_dataset_opportunities completed in %.2fs (rows=%d)", perf_counter() - phase_start, len(dataset_referred_df))
 
     phase_start = perf_counter()
-    denormalize_dataset(dataset_new_df, dataset_old_df)
+    denormalize_dataset(dataset_new_df, dataset_referred_df)
     logger.info("Persist phase denormalize_dataset completed in %.2fs", perf_counter() - phase_start)
 
-    del dataset_old_df
+    del dataset_referred_df
     gc.collect()
 
     if PERSIST_CSV:
