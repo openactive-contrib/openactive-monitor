@@ -32,6 +32,19 @@ DF_COLUMNS = [
     "last_updated",
 ]
 
+# Boundary columns derived from ``location``.  Inherited from a super event
+# either indirectly (when the super event's raw ``location`` is inherited and
+# its boundaries are recomputed) or directly (when the super event has the
+# boundary columns set but no usable ``location``).
+_BOUNDARY_COLUMNS: tuple[str, ...] = (
+    "district_name",
+    "region_name",
+    "district_code",
+    "region_code",
+    "country_code",
+    "country_name",
+)
+
 
 
 def _resolve_boundaries(location: dict[str, Any]) -> tuple[str | None, str | None]:
@@ -282,7 +295,14 @@ def _merge_inherited_data(
 
 
 def _build_super_event_payload_by_data_id(df, df_bigquery):
-    """Build data_id -> payload lookup from old then new frame; new frame overrides duplicates."""
+    """Build data_id -> payload lookup from old then new frame; new frame overrides duplicates.
+
+    The payload combines the parent's ``inherited_data`` and ``json_data`` so
+    that ``apply_inherited_data`` can read raw OpenActive fields (location,
+    activity, etc.).  We also surface the parent's pre-computed boundary
+    columns (district/region/country names + codes) on the payload so children
+    can inherit them directly when the parent's raw ``location`` is missing.
+    """
     payload_by_data_id = {}
     for frame in (df_bigquery, df):
         if frame.empty or "data_id" not in frame.columns:
@@ -295,7 +315,12 @@ def _build_super_event_payload_by_data_id(df, df_bigquery):
             row_inherited = getattr(row, "inherited_data", None)
             json_data = row_json if isinstance(row_json, dict) else {}
             inherited = row_inherited if isinstance(row_inherited, dict) else {}
-            payload_by_data_id[row_data_id] = {**inherited, **json_data}
+            payload = {**inherited, **json_data}
+            for col in _BOUNDARY_COLUMNS:
+                val = getattr(row, col, None)
+                if isinstance(val, str) and val:
+                    payload[col] = val
+            payload_by_data_id[row_data_id] = payload
     return payload_by_data_id
 
 
@@ -352,8 +377,32 @@ def handle_super_events(
             apply_inherited_data(df, idx, updated_inherited)
 
 
+def _is_slot_empty(value: Any) -> bool:
+    """True if a DataFrame cell should be treated as 'missing' for inheritance."""
+    if value is None:
+        return True
+    if isinstance(value, (list, dict)):
+        return len(value) == 0
+    if isinstance(value, str):
+        return value.strip() == ""
+    return False
+
+
+def _set_if_empty(df: DataFrame, idx, col: str, value: Any) -> None:
+    """Assign ``value`` to ``df.at[idx, col]`` only when the current cell is empty
+    and ``value`` is non-empty. Keeps the 'fill only, never overwrite' policy."""
+    if _is_slot_empty(value):
+        return
+    if _is_slot_empty(df.at[idx, col]):
+        df.at[idx, col] = value
+
+
 def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
-    """Fill missing fields on a row from its parent's inherited data."""
+    """Fill missing fields on a row from its parent's inherited data.
+
+    Every assignment is guarded so that an already-populated cell is never
+    overwritten — the only side effect is filling in cells that were empty.
+    """
     if get_activity(inherited_data) and (not df.at[idx, "activity"] or df.at[idx, "activity"] == []):
         df.at[idx, "activity"] = get_activity(inherited_data)
     if get_facility(inherited_data) and (not df.at[idx, "facility"] or df.at[idx, "facility"] == []):
@@ -362,13 +411,19 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         new_location = _build_location(inherited_data["location"])
         df.at[idx, "location"] = new_location
         district_name, region_name = _resolve_boundaries(new_location)
-        df.at[idx, "district_name"] = district_name
-        df.at[idx, "region_name"] = region_name
         enriched = enrich_from_district_lookup(district_name)
-        df.at[idx, "district_code"] = enriched["district_code"]
-        df.at[idx, "region_code"] = enriched["region_code"]
-        df.at[idx, "country_code"] = enriched["country_code"]
-        df.at[idx, "country_name"] = enriched["country_name"]
+        # Fill only-when-empty so an existing boundary value isn't overwritten.
+        _set_if_empty(df, idx, "district_name", district_name)
+        _set_if_empty(df, idx, "region_name", region_name)
+        _set_if_empty(df, idx, "district_code", enriched["district_code"])
+        _set_if_empty(df, idx, "region_code", enriched["region_code"])
+        _set_if_empty(df, idx, "country_code", enriched["country_code"])
+        _set_if_empty(df, idx, "country_name", enriched["country_name"])
+    # Direct inheritance of boundary columns from the super event row — covers
+    # the case where the parent has these populated but no usable raw
+    # ``location`` (e.g. it inherited them from its own super event).
+    for col in _BOUNDARY_COLUMNS:
+        _set_if_empty(df, idx, col, inherited_data.get(col))
     if "startDate" in inherited_data and (not df.at[idx, "startDate"] or df.at[idx, "startDate"] == ""):
         df.at[idx, "startDate"] = _normalize_timestamp(inherited_data["startDate"])
     if "endDate" in inherited_data and (not df.at[idx, "endDate"] or df.at[idx, "endDate"] == ""):
@@ -379,30 +434,57 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         df.at[idx, "level"] = inherited_data["level"]
 
 
+def _row_super_event_payload(df: pd.DataFrame, idx) -> dict[str, Any]:
+    """Build the inheritable payload for a 'parent' row, including its
+    pre-computed boundary columns."""
+    parent_json = df.at[idx, "json_data"] if isinstance(df.at[idx, "json_data"], dict) else {}
+    parent_inherited = df.at[idx, "inherited_data"] if isinstance(df.at[idx, "inherited_data"], dict) else {}
+    payload: dict[str, Any] = {**parent_inherited, **parent_json}
+    for col in _BOUNDARY_COLUMNS:
+        if col in df.columns:
+            val = df.at[idx, col]
+            if isinstance(val, str) and val:
+                payload[col] = val
+    return payload
+
+
 def handle_sub_events(df: pd.DataFrame, sub_event_indices_by_data_id: dict[str, list[int]]) -> None:
-    """For rows with subEvents, enrich the subEvent rows from this row's data."""
+    """For rows that list subEvents, push the parent's inheritable fields into
+    each subEvent row using the same fill-only-when-empty rules as
+    ``handle_super_events``."""
     sub_events_mask = df["has_subEvent"].notnull()
     sub_events_indices = df[sub_events_mask].index.tolist()
 
     for idx in sub_events_indices:
         sub_event_refs = df.at[idx, "has_subEvent"]
-        if isinstance(sub_event_refs, list):
-            for sub_event_ref in sub_event_refs:
-                if isinstance(sub_event_ref, dict):
+        if not isinstance(sub_event_refs, list):
+            continue
+        super_event_data: dict[str, Any] | None = None
+        for sub_event_ref in sub_event_refs:
+            if isinstance(sub_event_ref, dict):
+                continue
+            if not isinstance(sub_event_ref, str):
+                continue
+            sub_event_id = sub_event_ref.strip('"')
+            sub_event_target_indices = sub_event_indices_by_data_id.get(sub_event_id, [])
+            if not sub_event_target_indices:
+                continue
+            if super_event_data is None:
+                super_event_data = _row_super_event_payload(df, idx)
+                super_event_data = unpack_data(super_event_data)
+            for sub_idx in sub_event_target_indices:
+                if sub_idx == idx:
                     continue
-                elif isinstance(sub_event_ref, str):
-                    sub_event_id = sub_event_ref.strip('"')
-                    sub_event_indices = sub_event_indices_by_data_id.get(sub_event_id, [])
-                    if sub_event_indices:
-                        parent_json = df.at[idx, "json_data"] if isinstance(df.at[idx, "json_data"], dict) else {}
-                        parent_inherited = df.at[idx, "inherited_data"] if isinstance(df.at[idx, "inherited_data"], dict) else {}
-                        super_event_data = {**parent_inherited, **parent_json}
-                        for sub_idx in sub_event_indices:
-                            if sub_idx == idx:
-                                continue
-                            current_json = df.at[sub_idx, "json_data"] if isinstance(df.at[sub_idx, "json_data"], dict) else {}
-                            to_inherit = {k: super_event_data[k] for k in super_event_data if k not in current_json}
-                            df.at[sub_idx, "inherited_data"] = to_inherit
+                current_json_data = df.at[sub_idx, "json_data"]
+                if not isinstance(current_json_data, dict):
+                    current_json_data = {}
+                current_inherited = df.at[sub_idx, "inherited_data"]
+                if not isinstance(current_inherited, dict):
+                    current_inherited = {}
+                updated_inherited = _merge_inherited_data(
+                    current_json_data, super_event_data, current_inherited
+                )
+                apply_inherited_data(df, sub_idx, updated_inherited)
 
 
 def denormalize_dataset(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
