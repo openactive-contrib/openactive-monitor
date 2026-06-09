@@ -1,49 +1,17 @@
-"""One-time backfill: recover rows the has_superEvent quote bug left empty.
+"""
 
-Background
-----------
-For a period before commit 3140d28, ``has_superEvent`` values were stored in
-BigQuery with literal surrounding double-quotes (e.g. ``"https://..."``). The
-ingestion lookup in ``_extract_denormalization_reference_ids`` and
-``get_dataset_opportunities`` then failed to find the matching parent (parents'
-``data_id`` values have no quotes), so super-event inheritance was skipped and
-the affected rows ended up with ``location = {}`` (and missing activity /
-facility / dates / ageRange / level).
+In some scenarios (such as superEvent updated by the nightly feed ingestion but sub opportunities aren't) property
+inheritance isn't happening as expected. This is leaving subevents with missing data.
 
-The forward code paths now strip quotes on both write and read sides. This
-script repairs the rows that were already persisted with the bug.
-
-Target rows (per user spec)
----------------------------
-- ``startDate > 2026-03-01``
-- ``has_superEvent IS NOT NULL``
-- ``location`` is the empty JSON object (``{}``)
-
-For each target row this script looks up the parent by ``data_id`` (after
-stripping quotes from ``has_superEvent``) and reuses
-``processing.handle_super_events`` to apply ``apply_inherited_data`` — the
-exact same merge logic the live pipeline runs. Only rows whose
-``inherited_data`` actually grew as a result of the merge are written back.
-
-Efficiency notes
-----------------
-- Discovery is a single ``GROUP BY dataset_url`` query — datasets are then
-  processed by a thread pool (one dataset per worker) so the slow MERGE/load
-  steps overlap across datasets.
-- The largest datasets are scheduled first so a long-running outlier doesn't
-  hold up the tail of the pool.
-- Inside each dataset we only fetch parents for the ``has_superEvent`` IDs that
-  actually appear, and ``get_dataset_opportunities`` already batches its
-  ``data_id`` UNNEST at 2000 IDs per query.
-- Only rows that were actually filled are sent through
-  ``write_dataset_opportunities`` (staging table + MERGE), so MERGE work is
-  proportional to fixes, not to rows examined.
+This backfill operation scans the database for such missing data inheritance scenarios and re-applies the inheritance
+logic to backfill missing data from parents where possible. The script is careful to only fill truly missing values
+and not overwrite any existing data, so it can be safely re-run as part of self-healing.
 
 Usage
 -----
     cd jobs/ingest-opportunities
     source virt/bin/activate
-    python migrations/backfill_super_event_location.py [--dry-run] \
+    python self_healing/backfill_super_event_inheritance.py [--dry-run] \
         [--max-workers 8] [--dataset <url>] [--limit 0]
 """
 
@@ -328,36 +296,19 @@ def _fix_dataset(
     return examined, merged, location_filled
 
 
-@click.command()
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    default=False,
-    help="Compute the fixes but do not write them back to BigQuery.",
-)
-@click.option(
-    "--max-workers",
-    type=int,
-    default=int(os.getenv("INGEST_MAX_WORKERS", "8")),
-    show_default=True,
-    help="Thread-pool size for parallel dataset processing.",
-)
-@click.option(
-    "--dataset",
-    "datasets",
-    multiple=True,
-    help="Restrict to specific dataset_url(s); repeat for multiple. "
-         "Skips the discovery query.",
-)
-@click.option(
-    "--limit",
-    type=int,
-    default=0,
-    show_default=True,
-    help="Process at most this many datasets (largest-first). 0 = no limit.",
-)
-def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int) -> None:
-    """Backfill missing inherited columns for rows hit by the has_superEvent quote bug."""
+def run(
+    dry_run: bool = False,
+    max_workers: int | None = None,
+    datasets: list[str] | None = None,
+    limit: int = 0,
+) -> None:
+    """Programmatic entry point for backfilling missing inherited columns.
+
+    Called by the self-heal step at the end of ``ingest_opportunities``.
+    """
+    if max_workers is None:
+        max_workers = int(os.getenv("INGEST_MAX_WORKERS", "8"))
+
     overall_start = perf_counter()
     client = bigquery.Client(project=GCP_PROJECT_ID)
 
@@ -410,6 +361,39 @@ def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int)
         total_location_filled,
         dry_run,
     )
+
+
+@click.command()
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Compute the fixes but do not write them back to BigQuery.",
+)
+@click.option(
+    "--max-workers",
+    type=int,
+    default=int(os.getenv("INGEST_MAX_WORKERS", "8")),
+    show_default=True,
+    help="Thread-pool size for parallel dataset processing.",
+)
+@click.option(
+    "--dataset",
+    "datasets",
+    multiple=True,
+    help="Restrict to specific dataset_url(s); repeat for multiple. "
+         "Skips the discovery query.",
+)
+@click.option(
+    "--limit",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Process at most this many datasets (largest-first). 0 = no limit.",
+)
+def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int) -> None:
+    """Backfill missing inherited columns for rows hit by the has_superEvent quote bug."""
+    run(dry_run=dry_run, max_workers=max_workers, datasets=list(datasets) if datasets else None, limit=limit)
 
 
 if __name__ == "__main__":
