@@ -28,7 +28,7 @@ def _build_location(raw_location: object) -> dict[str, Any]:
         for coord in ("latitude", "longitude"):
             try:
                 val = geo.get(coord)
-                if val is not None:
+                if val is not None and str(val).strip() != "0":
                     location[coord] = round(float(val), 6)
                     geo_exists = True
             except (TypeError, ValueError):
