@@ -222,7 +222,7 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
                 "dataset_url":    dataset_url,
                 "feed_id":        feed_id,
                 "id":             item.get("id"),
-                "data_id":        data.get("@id"),
+                "data_id":        data.get("@id") or data.get("id"),
                 "kind":           data.get("@type") or data.get("type"),
                 "modified":       item.get("modified"),
                 "json_data":      data,
