@@ -24,6 +24,7 @@ from bigquery_ops import (
 )
 from processing import DF_COLUMNS, denormalize_dataset, extract_rows
 from rpde import access_feed_url
+from self_healing import backfill_super_event_inheritance
 
 load_dotenv()
 
@@ -476,6 +477,19 @@ def ingest_opportunities(
         pending_deletes,
         max_total_wait_seconds=120 * 60,
     )
+
+    # Self-heal: repair data issues left by previous ingestion runs.
+    run_self_heal()
+
+
+def run_self_heal() -> None:
+    """Run self-healing routines to fix data issues from prior ingestion runs."""
+    logger.info("Starting self-heal step")
+    start = perf_counter()
+
+    backfill_super_event_inheritance()
+
+    logger.info("Self-heal step completed in %.2fs", perf_counter() - start)
 
 
 @click.command()
