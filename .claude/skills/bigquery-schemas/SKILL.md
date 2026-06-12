@@ -79,6 +79,8 @@ Denormalized opportunity data from RPDE feeds.
 | `level` | JSON | NULLABLE | Difficulty level of the opportunity |
 | `has_superEvent` | JSON | NULLABLE | SuperEvent URL or inline superEvent data |
 | `has_subEvent` | JSON | NULLABLE | SubEvent URLs or inline subEvent data |
+| `accessibilitySupport` | JSON | NULLABLE | Normalised list of accessibility-support `prefLabel` strings extracted from `json_data.accessibilitySupport`. Inherited from superEvent when missing. `NULL` when no labels resolved. |
+| `genderRestriction` | STRING | NULLABLE | Gender restriction URI (e.g. `https://openactive.io/FemaleOnly`, `https://openactive.io/NoRestriction`). Inherited from superEvent when missing. |
 | `last_updated` | DATE | UTC date (day/month/year) when this row was last upserted |
 
 ---

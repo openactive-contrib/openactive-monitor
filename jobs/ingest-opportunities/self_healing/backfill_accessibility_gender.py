@@ -1,34 +1,38 @@
 """
-Self-healing backfill: populate ``data_id`` from ``json_data["id"]`` for rows
-that have a JSON ``id`` field but a NULL top-level ``data_id`` column.
+Self-healing backfill: populate ``accessibilitySupport`` and
+``genderRestriction`` for rows whose ``json_data`` exposes those fields but
+the corresponding top-level columns are NULL.
 
-``data_id`` is the join key used by super-event / sub-event lookups, so rows
-left NULL silently break inheritance for any reference that points at them.
-This script is safe to re-run as part of self-healing: rows with a non-NULL
-``data_id`` are untouched, and the assignment itself is idempotent.
+Both columns are filled via a single per-dataset SQL ``UPDATE`` (mirrors
+``backfill_data_id.py``).  The UPDATE uses ``COALESCE`` so it never
+overwrites an already-populated cell — safe to re-run as part of
+self-healing.
+
+Shape of the new columns (matches what the live extractor in
+``processing.py`` writes today):
+
+- ``accessibilitySupport``: JSON array of ``prefLabel`` strings (e.g.
+  ``["Hearing impairment", "Visual impairment"]``).  Real-world feeds carry
+  ``accessibilitySupport`` as a ``Concept[]`` of dicts; this script extracts
+  the ``prefLabel`` from each Concept.  An empty prefLabel array collapses
+  to SQL ``NULL``.
+- ``genderRestriction``: STRING, raw URI value (e.g.
+  ``https://openactive.io/FemaleOnly``).  ``""`` is treated as missing.
 
 Target rows
 -----------
-- ``data_id IS NULL``
-- ``JSON_VALUE(json_data, '$.id') IS NOT NULL``
+A row is affected if either of the following holds:
 
-The fix copies ``JSON_VALUE(json_data, '$.id')`` into ``data_id`` with any
-surrounding double-quote characters stripped (mirrors ``_strip_quotes`` in
-``processing.py``, which guards against legacy quote-wrapped values).
-
-Implementation notes
---------------------
-Because the assignment is a pure column-to-column copy, every per-dataset
-fix is a single ``UPDATE`` against BigQuery — far cheaper than round-tripping
-rows through Python.  The script still uses the same CLI / per-dataset /
-parallel-worker shape as the sibling self-healers so progress logs stay
-readable and ``--dry-run`` / ``--dataset`` / ``--limit`` work as expected.
+- ``accessibilitySupport IS NULL`` AND ``json_data.accessibilitySupport``
+  is a non-empty array/object.
+- ``genderRestriction IS NULL`` AND ``json_data.genderRestriction`` is a
+  non-empty string.
 
 Usage
 -----
     cd jobs/ingest-opportunities
     source virt/bin/activate
-    python self_healing/backfill_data_id.py [--dry-run] \
+    python self_healing/backfill_accessibility_gender.py [--dry-run] \
         [--max-workers 8] [--dataset <url>] [--limit 0]
 """
 
@@ -61,7 +65,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s [%(threadName)s]: %(message)s",
     stream=sys.stdout,
 )
-logger = logging.getLogger("backfill_data_id")
+logger = logging.getLogger("backfill_accessibility_gender")
 
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 BQ_DATASET_ID = os.getenv("BQ_DATASET_ID")
@@ -69,14 +73,62 @@ BQ_OPPORTUNITIES_TABLE = os.getenv("BQ_OPPORTUNITIES_TABLE")
 
 TABLE_ID = f"{GCP_PROJECT_ID}.{BQ_DATASET_ID}.{BQ_OPPORTUNITIES_TABLE}"
 
+# Predicate: either the accessibilitySupport column is unfilled and json_data
+# carries a non-empty array/object for it, OR the genderRestriction column is
+# unfilled and json_data has a non-empty string for it.  Empty `[]` arrays,
+# JSON `null` literals and empty `""` strings are excluded so we don't write
+# meaningless placeholder values.
 _AFFECTED_PREDICATE = (
-    "data_id IS NULL "
-    "AND JSON_VALUE(json_data, '$.id') IS NOT NULL"
+    "("
+    " (accessibilitySupport IS NULL"
+    "    AND JSON_QUERY(json_data, '$.accessibilitySupport') IS NOT NULL"
+    "    AND TO_JSON_STRING(JSON_QUERY(json_data, '$.accessibilitySupport')) NOT IN ('null', '[]'))"
+    " OR"
+    " (genderRestriction IS NULL"
+    "    AND JSON_VALUE(json_data, '$.genderRestriction') IS NOT NULL"
+    "    AND JSON_VALUE(json_data, '$.genderRestriction') != '')"
+    ")"
 )
 
+# UPDATE statement.
+#
+# ``accessibilitySupport``: COALESCE keeps an existing value; otherwise build
+# an ARRAY<STRING> of prefLabels and TO_JSON it.  Real feeds always pass an
+# array of Concept dicts, but some legacy feeds use a single Concept dict —
+# the inner COALESCE wraps that case into a one-element array so the same
+# UNNEST works.  An all-empty result collapses to NULL (via the outer
+# CASE WHEN ARRAY_LENGTH=0).
+#
+# ``genderRestriction``: COALESCE the raw JSON_VALUE — null/empty are
+# excluded by the WHERE clause, so a non-null COALESCE input is a real value.
 _UPDATE_QUERY = f"""
     UPDATE `{TABLE_ID}`
-    SET data_id = TRIM(JSON_VALUE(json_data, '$.id'), '"')
+    SET
+      accessibilitySupport = COALESCE(
+        accessibilitySupport,
+        (
+          SELECT CASE WHEN ARRAY_LENGTH(labels) = 0 THEN NULL ELSE TO_JSON(labels) END
+          FROM (
+            SELECT ARRAY(
+              SELECT JSON_VALUE(item, '$.prefLabel')
+              FROM UNNEST(COALESCE(
+                JSON_QUERY_ARRAY(json_data, '$.accessibilitySupport'),
+                CASE
+                  WHEN JSON_VALUE(json_data, '$.accessibilitySupport.prefLabel') IS NOT NULL
+                    THEN [JSON_QUERY(json_data, '$.accessibilitySupport')]
+                  ELSE []
+                END
+              )) AS item
+              WHERE JSON_VALUE(item, '$.prefLabel') IS NOT NULL
+                AND JSON_VALUE(item, '$.prefLabel') != ''
+            ) AS labels
+          )
+        )
+      ),
+      genderRestriction = COALESCE(
+        genderRestriction,
+        JSON_VALUE(json_data, '$.genderRestriction')
+      )
     WHERE dataset_url = @dataset_url
       AND {_AFFECTED_PREDICATE}
 """
@@ -96,11 +148,11 @@ def _fix_dataset(
     index: int,
     total: int,
 ) -> tuple[int, int]:
-    """Backfill ``data_id`` for one dataset_url.
+    """Backfill the two new columns for one dataset_url.
 
     Returns (examined, updated):
-      - examined: rows that match the affected predicate before the UPDATE
-      - updated:  rows actually modified by the UPDATE (0 in dry-run mode)
+      - examined: rows matching the affected predicate at scan time
+      - updated:  rows actually modified by the UPDATE (0 in dry-run)
     """
     start = perf_counter()
     logger.info("[%d/%d] START dataset=%s", index, total, dataset_url)
@@ -161,7 +213,7 @@ def _fix_dataset(
     help="Process at most this many datasets (largest-first). 0 = no limit.",
 )
 def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int) -> None:
-    """Backfill `data_id` from JSON_VALUE(json_data, '$.id') for NULL rows."""
+    """Backfill accessibilitySupport and genderRestriction from json_data."""
     overall_start = perf_counter()
     client = bigquery.Client(project=GCP_PROJECT_ID)
 
@@ -183,7 +235,7 @@ def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int)
     total_updated = 0
     total_datasets = len(dataset_urls)
 
-    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="data_id") as executor:
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="acc_gender") as executor:
         futures = {
             executor.submit(_fix_dataset, ds, dry_run, idx, total_datasets): ds
             for idx, ds in enumerate(dataset_urls, start=1)

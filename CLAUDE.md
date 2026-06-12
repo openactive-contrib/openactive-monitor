@@ -130,6 +130,8 @@ Stores denormalized opportunity data from RPDE feeds.
 | `level` | STRING | Difficulty/skill level |
 | `has_superEvent` | STRING | Reference to parent event `@id` or inline dict |
 | `has_subEvent` | STRING | Reference to child event(s) |
+| `accessibilitySupport` | JSON | Normalised list of accessibility-support `prefLabel` strings extracted from `json_data.accessibilitySupport` (e.g. `["Hearing impairment", "Visual impairment"]`). Inherited from superEvent when missing. `NULL` when no labels resolved. |
+| `genderRestriction` | STRING | Gender restriction URI (e.g. `https://openactive.io/FemaleOnly`, `https://openactive.io/NoRestriction`). Inherited from superEvent when missing. |
 | `last_updated` | DATE | UTC date (day/month/year) when this row was last upserted by the `ingest-opportunities` job |
 
 **Composite primary key (MERGE key):** `(dataset_url, feed_id, id)`

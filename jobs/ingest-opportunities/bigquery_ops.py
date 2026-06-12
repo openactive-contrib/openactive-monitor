@@ -52,6 +52,8 @@ OPPORTUNITIES_COLUMNS = [
     "level",
     "has_superEvent",
     "has_subEvent",
+    "accessibilitySupport",
+    "genderRestriction",
     "last_updated",
 ]
 
@@ -69,6 +71,7 @@ OPPORTUNITIES_JSON_COLUMNS = frozenset({
     "level",
     "has_superEvent",
     "has_subEvent",
+    "accessibilitySupport",
 })
 
 
@@ -126,7 +129,7 @@ def _parse_composite_key(composite_key: str) -> tuple[str, str, str] | None:
     return parts[0], parts[1], parts[2]
 
 
-def _retry_delay_seconds(retry_count: int, base_delay_seconds: int, max_delay_seconds: int) -> int:
+def retry_delay_seconds(retry_count: int, base_delay_seconds: int, max_delay_seconds: int) -> int:
     exponent = max(retry_count - 1, 0)
     return min(max_delay_seconds, base_delay_seconds * (2 ** exponent))
 
@@ -146,7 +149,7 @@ def _upsert_pending_delete(
     existing = pending_deletes.get(composite_key)
     retry_count = int(existing.get("retry_count", 0) + 1) if existing else 1
     first_seen = existing.get("first_seen") if existing else now
-    delay_seconds = _retry_delay_seconds(retry_count, base_delay_seconds, max_delay_seconds)
+    delay_seconds = retry_delay_seconds(retry_count, base_delay_seconds, max_delay_seconds)
     next_retry_at = now + timedelta(seconds=delay_seconds)
 
     pending_deletes[composite_key] = {
@@ -484,7 +487,7 @@ def delete_dataset_opportunities(
     return total_deleted
 
 
-def _is_streaming_buffer_delete_error(exc: Exception) -> bool:
+def is_streaming_buffer_dml_error(exc: Exception) -> bool:
     if not isinstance(exc, google_exceptions.BadRequest):
         return False
 
@@ -517,7 +520,7 @@ def _delete_batch_with_streaming_buffer_fallback(
         job.result()
         return int(job.num_dml_affected_rows or 0), set()
     except Exception as exc:
-        if not _is_streaming_buffer_delete_error(exc):
+        if not is_streaming_buffer_dml_error(exc):
             raise
 
         logger.debug(
@@ -993,7 +996,7 @@ def _merge_staging_to_main(
             )
             return
         except Exception as exc:
-            if not _is_concurrent_update_error(exc):
+            if not is_concurrent_update_error(exc):
                 raise
 
             if attempt >= max_attempts - 1:
@@ -1004,7 +1007,7 @@ def _merge_staging_to_main(
                 )
                 raise
 
-            delay = _retry_delay_seconds(attempt, base_delay_seconds, max_delay_seconds)
+            delay = retry_delay_seconds(attempt, base_delay_seconds, max_delay_seconds)
             logger.warning(
                 "Concurrent update on MERGE attempt %d/%d for dataset %s; retrying in %d seconds",
                 attempt + 1,
@@ -1014,7 +1017,7 @@ def _merge_staging_to_main(
             )
             time.sleep(delay)
 
-def _is_concurrent_update_error(exc: Exception) -> bool:
+def is_concurrent_update_error(exc: Exception) -> bool:
     if not isinstance(exc, google_exceptions.BadRequest):
         return False
     message = str(exc).lower()
