@@ -124,7 +124,7 @@ def assess_feed_quality(
         )
 
 
-        rows.append({
+        row = {
             "dataset_url":             dataset_url,
             "dataset_name":            feed.get("dataset_name"),
             "feed_id":                 feed_id,
@@ -135,17 +135,19 @@ def assess_feed_quality(
             "warnings":                warnings,
             "errors":                  errors,
             "missing_required_fields": missing_by_kind,
-            "location_completeness":   _round(completeness.get("location_completeness")),
-            "start_date_completeness": _round(completeness.get("start_date_completeness")),
-            "end_date_completeness":   _round(completeness.get("end_date_completeness")),
-            "activities_completeness": _round(completeness.get("activities_completeness")),
-            "facilities_completeness": _round(completeness.get("facilities_completeness")),
+        }
+        # All completeness columns share the same _round(...) shape, so derive
+        # them from the single source of truth instead of spelling each one out.
+        for field in COMPLETENESS_FIELDS:
+            row[field] = _round(completeness.get(field))
+        row.update({
             "num_future_opportunity_items": future_count,
             "grade":                   grade,
             "feed_version":            version_result["version"],
             "score":                   version_result["score"],
             "last_assessed":           run_date,
         })
+        rows.append(row)
 
     logger.info("Built %d feed_quality rows", len(rows))
     return rows
@@ -154,6 +156,22 @@ def assess_feed_quality(
 # ---------------------------------------------------------------------------
 # Data fetchers
 # ---------------------------------------------------------------------------
+
+# Completeness columns produced by ``per_feed_completeness`` and surfaced on
+# every ``feed_quality`` row.  Listed here once so the SQL projection, the
+# in-memory dict and the output row dict can't drift out of sync.
+COMPLETENESS_FIELDS: tuple[str, ...] = (
+    "location_completeness",
+    "start_date_completeness",
+    "end_date_completeness",
+    "activities_completeness",
+    "facilities_completeness",
+    "age_range_completeness",
+    "level_completeness",
+    "accessibility_support_completeness",
+    "gender_restriction_completeness",
+)
+
 
 def _fetch_completeness(
     opportunities_tbl: str,
@@ -168,11 +186,8 @@ def _fetch_completeness(
         if not key[1]:
             continue
         out[key] = {
-            "location_completeness":   float(row.get("location_completeness") or 0.0),
-            "start_date_completeness": float(row.get("start_date_completeness") or 0.0),
-            "end_date_completeness":   float(row.get("end_date_completeness") or 0.0),
-            "activities_completeness": float(row.get("activities_completeness") or 0.0),
-            "facilities_completeness": float(row.get("facilities_completeness") or 0.0),
+            field: float(row.get(field) or 0.0)
+            for field in COMPLETENESS_FIELDS
         }
     return out
 

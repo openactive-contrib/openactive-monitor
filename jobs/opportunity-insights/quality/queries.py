@@ -18,9 +18,15 @@ def per_feed_completeness(opportunities_table: str, reference_date: date) -> str
     Each ``*_completeness`` column is the percentage of items (0-100) where the
     underlying column is populated and non-empty:
 
-      * ``location``: JSON object that is not ``{}``.
+      * ``location`` / ``ageRange``: JSON object that is not the JSON literal
+        ``null`` and not ``{}``.
+      * ``level``: JSON scalar/array/object that is not the JSON literal
+        ``null`` and not an empty form (``""`` / ``{}`` / ``[]``).
       * ``startDate`` / ``endDate``: non-null (these are stored as TIMESTAMP).
-      * ``activity`` / ``facility``: JSON array with at least one element.
+      * ``activity`` / ``facility`` / ``accessibilitySupport``: JSON array with
+        at least one element. ``ARRAY_LENGTH(JSON_EXTRACT_ARRAY(...))`` is
+        already safe against JSON ``null`` (returns NULL → not counted).
+      * ``genderRestriction``: non-null STRING that is not empty.
     """
     return f"""
         WITH recent AS (
@@ -31,7 +37,11 @@ def per_feed_completeness(opportunities_table: str, reference_date: date) -> str
             startDate,
             endDate,
             activity,
-            facility
+            facility,
+            ageRange,
+            level,
+            accessibilitySupport,
+            genderRestriction
           FROM `{opportunities_table}`
           WHERE feed_id IS NOT NULL
             AND last_updated >= DATE_SUB(DATE '{reference_date.isoformat()}', INTERVAL {QUALITY_WINDOW_DAYS} DAY)
@@ -41,7 +51,7 @@ def per_feed_completeness(opportunities_table: str, reference_date: date) -> str
           feed_id,
           COUNT(*) AS total_items,
           SAFE_DIVIDE(
-            COUNTIF(location IS NOT NULL AND TO_JSON_STRING(location) != '{{}}'),
+            COUNTIF(location IS NOT NULL AND TO_JSON_STRING(location) NOT IN ('null', '{{}}')),
             COUNT(*)
           ) * 100 AS location_completeness,
           SAFE_DIVIDE(
@@ -59,7 +69,23 @@ def per_feed_completeness(opportunities_table: str, reference_date: date) -> str
           SAFE_DIVIDE(
             COUNTIF(facility IS NOT NULL AND ARRAY_LENGTH(JSON_EXTRACT_ARRAY(facility)) > 0),
             COUNT(*)
-          ) * 100 AS facilities_completeness
+          ) * 100 AS facilities_completeness,
+          SAFE_DIVIDE(
+            COUNTIF(ageRange IS NOT NULL AND TO_JSON_STRING(ageRange) NOT IN ('null', '{{}}')),
+            COUNT(*)
+          ) * 100 AS age_range_completeness,
+          SAFE_DIVIDE(
+            COUNTIF(level IS NOT NULL AND TO_JSON_STRING(level) NOT IN ('null', '""', '{{}}', '[]')),
+            COUNT(*)
+          ) * 100 AS level_completeness,
+          SAFE_DIVIDE(
+            COUNTIF(accessibilitySupport IS NOT NULL AND ARRAY_LENGTH(JSON_EXTRACT_ARRAY(accessibilitySupport)) > 0),
+            COUNT(*)
+          ) * 100 AS accessibility_support_completeness,
+          SAFE_DIVIDE(
+            COUNTIF(genderRestriction IS NOT NULL AND genderRestriction != ''),
+            COUNT(*)
+          ) * 100 AS gender_restriction_completeness
         FROM recent
         GROUP BY dataset_url, feed_id
     """
