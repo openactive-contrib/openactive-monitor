@@ -29,6 +29,7 @@ DF_COLUMNS = [
     "district_name", "region_name",
     "publisher_name", "district_code", "region_code", "country_code", "country_name",
     "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent",
+    "accessibilitySupport", "genderRestriction",
     "last_updated",
 ]
 
@@ -192,6 +193,38 @@ def get_facility(data: dict) -> list[Any]:
     return []
 
 
+def get_accessibility_support(data: dict) -> list[str] | None:
+    """Normalise ``accessibilitySupport`` into a list of ``prefLabel`` strings.
+
+    OpenActive feeds may present ``accessibilitySupport`` as a list of
+    ``Concept`` dicts (the common case), a single ``Concept`` dict, or even
+    as plain strings.  This helper returns the prefLabels (or the strings
+    themselves) as a clean ``list[str]``.
+
+    Returns ``None`` when no labels can be resolved.
+    """
+    field = data.get("accessibilitySupport")
+    if not field:
+        return None
+    if isinstance(field, dict):
+        items: list[Any] = [field]
+    elif isinstance(field, list):
+        items = field
+    else:
+        return None
+    labels: list[str] = []
+    for item in items:
+        if isinstance(item, dict):
+            label = item.get("prefLabel")
+        elif isinstance(item, str):
+            label = item
+        else:
+            label = None
+        if isinstance(label, str) and label.strip():
+            labels.append(label.strip())
+    return labels or None
+
+
 def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: str | None = None) -> tuple[list[dict], list[dict]]:
     """Flatten RPDE ``items`` into row dicts ready for a DataFrame.
 
@@ -241,9 +274,11 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
                 "endDate":        _normalize_timestamp(data.get("endDate") or data.get("date_end")),
                 "ageRange":       data.get("ageRange"),
                 "level":          data.get("level"),
-                "has_superEvent": _strip_quotes(data.get("superEvent") or data.get("facilityUse")),
-                "has_subEvent":   _strip_quotes_list(data.get("subEvent")),
-                "last_updated":   datetime.now(timezone.utc).date(),
+                "has_superEvent":       _strip_quotes(data.get("superEvent") or data.get("facilityUse")),
+                "has_subEvent":         _strip_quotes_list(data.get("subEvent")),
+                "accessibilitySupport": get_accessibility_support(data),
+                "genderRestriction":    (data.get("genderRestriction") or None),
+                "last_updated":         datetime.now(timezone.utc).date(),
             })
     return updated, deleted
 
@@ -432,6 +467,16 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         df.at[idx, "ageRange"] = inherited_data["ageRange"]
     if "level" in inherited_data and (not df.at[idx, "level"] or df.at[idx, "level"] == []):
         df.at[idx, "level"] = inherited_data["level"]
+    inherited_access = get_accessibility_support(inherited_data)
+    if inherited_access and _is_slot_empty(df.at[idx, "accessibilitySupport"]):
+        df.at[idx, "accessibilitySupport"] = inherited_access
+    inherited_gender = inherited_data.get("genderRestriction")
+    if (
+        isinstance(inherited_gender, str)
+        and inherited_gender.strip()
+        and _is_slot_empty(df.at[idx, "genderRestriction"])
+    ):
+        df.at[idx, "genderRestriction"] = inherited_gender
 
 
 def _row_super_event_payload(df: pd.DataFrame, idx) -> dict[str, Any]:
