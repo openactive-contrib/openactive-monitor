@@ -597,14 +597,22 @@ def _run_quality_assessment(
     source: _SourceData,
     feed_rows: list[dict[str, Any]],
     opportunities_tbl: str,
+    opportunity_ingestion_tbl: str,
     reference_date: date,
 ) -> None:
     from quality.assess import assess_feed_quality
 
-    logger.info("Running per-feed data-quality assessment")
+    active_df_feeds = _filter_active_feeds(
+        source.df_feeds, opportunity_ingestion_tbl, reference_date,
+    )
+
+    logger.info(
+        "Running per-feed data-quality assessment on %d active feeds",
+        len(active_df_feeds),
+    )
     quality_rows = assess_feed_quality(
         run_date=run_date,
-        df_feeds=source.df_feeds,
+        df_feeds=active_df_feeds,
         df_status=source.df_status,
         feed_rows=feed_rows,
         opportunities_tbl=opportunities_tbl,
@@ -612,6 +620,58 @@ def _run_quality_assessment(
         max_workers=int(os.getenv("INGEST_MAX_WORKERS", "4")),
     )
     bigquery_ops.write_feed_quality(quality_rows)
+
+
+def _filter_active_feeds(
+    df_feeds: pd.DataFrame,
+    opportunity_ingestion_tbl: str,
+    reference_date: date,
+) -> pd.DataFrame:
+    """Drop stale feeds while keeping every dataset visible.
+
+    A feed is "active" when its ``opportunity_ingestion`` rows in the last
+    ``QUALITY_FEED_STALE_DAYS`` days include at least one with ``updated > 0``
+    or ``deleted > 0``.
+
+    A stale feed is dropped only if **another feed in the same dataset** is
+    active.  When every feed in a dataset is stale, all of them are kept so
+    the dataset still produces ``feed_quality`` rows — losing entire
+    datasets from the assessment is worse than having a few "stale" rows
+    that surface why nothing is moving.
+    """
+    from quality import queries as quality_queries
+
+    df_active = bigquery_ops.run_query(
+        quality_queries.active_feed_ids(opportunity_ingestion_tbl, reference_date)
+    )
+    active_ids = set(df_active["feed_id"].dropna().tolist())
+
+    is_active = df_feeds["feed_id"].isin(active_ids)
+    # Datasets that contain at least one active feed.  Any stale feed in a
+    # dataset NOT in this set is preserved (so the dataset still produces
+    # ``feed_quality`` rows).  ``isin`` returns False for NULL dataset_urls,
+    # which naturally falls through to the "no active sibling" branch and
+    # preserves orphan feeds too.
+    active_datasets = set(
+        df_feeds.loc[is_active, "dataset_url"].dropna().tolist()
+    )
+    has_active_sibling = df_feeds["dataset_url"].isin(active_datasets)
+    keep_mask = is_active | ~has_active_sibling
+    kept = df_feeds[keep_mask].copy()
+
+    active_count = int(is_active.sum())
+    stale_kept = int((~is_active & ~has_active_sibling).sum())
+    skipped = len(df_feeds) - len(kept)
+
+    if skipped or stale_kept:
+        logger.info(
+            "Quality assessment: keeping %d feeds (%d active + %d stale "
+            "preserved for dataset visibility); skipping %d stale feeds with "
+            "no updated/deleted items in the last %d days",
+            len(kept), active_count, stale_kept, skipped,
+            quality_queries.QUALITY_FEED_STALE_DAYS,
+        )
+    return kept
 
 
 DISTRICT_LOOKUP_FILENAME = "000-district-region-country.json"
@@ -725,7 +785,8 @@ def run(
     # ---------- Data quality assessment ---------- #
     if not skip_quality:
         _run_quality_assessment(
-            run_date, source, feed_rows, opportunities_tbl, effective_reference_date,
+            run_date, source, feed_rows, opportunities_tbl,
+            opportunity_ingestion_tbl, effective_reference_date,
         )
     else:
         logger.info("Skipping data-quality assessment (--skip-quality)")

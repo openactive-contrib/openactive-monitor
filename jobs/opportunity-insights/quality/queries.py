@@ -12,6 +12,34 @@ from datetime import date
 SAMPLES_PER_KIND = 100
 QUALITY_WINDOW_DAYS = 5
 
+# Feeds whose ``opportunity_ingestion`` rows in the last
+# ``QUALITY_FEED_STALE_DAYS`` days are ALL ``updated = 0 AND deleted = 0`` are
+# treated as stale and excluded from the per-feed data-quality assessment —
+# they aren't producing change signals so their quality metrics aren't
+# actionable.
+QUALITY_FEED_STALE_DAYS = 30
+
+
+def active_feed_ids(opportunity_ingestion_table: str, reference_date: date) -> str:
+    """Return SQL that yields feed_ids considered "active" for quality scoring.
+
+    A feed is active if at least one ``opportunity_ingestion`` row in the
+    ``QUALITY_FEED_STALE_DAYS``-day window ending on ``reference_date`` has
+    ``updated > 0`` OR ``deleted > 0``.  Feeds with no such row in the window
+    (and feeds with no ingestion row at all) are stale.
+    """
+    return f"""
+        SELECT DISTINCT feed_id
+        FROM `{opportunity_ingestion_table}`
+        WHERE feed_id IS NOT NULL
+          AND ingestion_date >= TIMESTAMP_SUB(
+                TIMESTAMP(DATE '{reference_date.isoformat()}'),
+                INTERVAL {QUALITY_FEED_STALE_DAYS} DAY
+              )
+          AND (COALESCE(updated, 0) > 0 OR COALESCE(deleted, 0) > 0)
+    """
+
+
 def per_feed_completeness(opportunities_table: str, reference_date: date) -> str:
     """Per-feed completeness percentages for the last ``QUALITY_WINDOW_DAYS`` days.
 
