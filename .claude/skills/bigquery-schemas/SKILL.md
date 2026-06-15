@@ -81,6 +81,8 @@ Denormalized opportunity data from RPDE feeds.
 | `has_subEvent` | JSON | NULLABLE | SubEvent URLs or inline subEvent data |
 | `accessibilitySupport` | JSON | NULLABLE | Normalised list of accessibility-support `prefLabel` strings extracted from `json_data.accessibilitySupport`. Inherited from superEvent when missing. `NULL` when no labels resolved. |
 | `genderRestriction` | STRING | NULLABLE | Gender restriction URI (e.g. `https://openactive.io/FemaleOnly`, `https://openactive.io/NoRestriction`). Inherited from superEvent when missing. |
+| `organization_name` | STRING | NULLABLE | First non-empty `name` from `json_data.organizer` (Event-shaped types) or `json_data.provider` (FacilityUse-shaped types); `organizer` wins when both are present. Inherited from superEvent when missing. `NULL` for URI-only references that carry no embedded `name`. |
+| `organization_json` | JSON | NULLABLE | Full `organizer` (or `provider`) payload from `json_data`, original shape preserved (dict, list of dicts, or URI string). **Not** inherited — reflects only the row's own `json_data`. |
 | `last_updated` | DATE | UTC date (day/month/year) when this row was last upserted |
 
 ---
