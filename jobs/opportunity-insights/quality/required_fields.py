@@ -12,17 +12,17 @@ populated option is listed here so the per-kind check stays simple.
 
 from __future__ import annotations
 
-# REQUIRED_FIELDS_BY_KIND: dict[str, list[str]] = {
-#     "SessionSeries":         ["@type", "name", "url", "activity", "location", "organizer"],
-#     "ScheduledSession":      ["@type", "name", "startDate"],
-#     "Event":                 ["@type", "name", "url", "activity", "location", "organizer"],
-#     "HeadlineEvent":         ["@type", "name", "url", "activity", "location", "organizer"],
-#     "OnDemandEvent":         ["@type", "name", "url", "activity", "organizer"],
-#     "CourseInstance":        ["@type", "name", "url", "activity", "location", "organizer"],
-#     "Course":                ["@type"],
-#     "FacilityUse":           ["@type", "@id", "name", "url", "provider", "activity", "location"],
-#     "IndividualFacilityUse": ["@type", "name", "url", "provider", "location"],
-#     "Slot":                  ["@type", "facilityUse", "startDate", "duration", "remainingUses"],
-# }
+REQUIRED_FIELDS_BY_KIND: dict[str, list[str]] = {
+    "SessionSeries":         ["@type", "name", "url", "activity", "location", "organizer"],
+    "ScheduledSession":      ["@type", "startDate"],
+    "Event":                 ["@type", "name", "url", "activity", "location", "organizer"],
+    "HeadlineEvent":         ["@type", "name", "url", "activity", "location", "organizer"],
+    "OnDemandEvent":         ["@type", "name", "url", "activity", "organizer"],
+    "CourseInstance":        ["@type", "name", "url", "activity", "location", "organizer"],
+    "Course":                ["@type"],
+    "FacilityUse":           ["@type", "@id", "name", "url", "provider", "activity", "location"],
+    "IndividualFacilityUse": ["@type", "name", "url", "provider", "location"],
+    "Slot":                  ["@type", "facilityUse", "startDate", "duration", "remainingUses"],
+}
 
 

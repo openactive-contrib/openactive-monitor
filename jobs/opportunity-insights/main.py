@@ -780,7 +780,7 @@ def run(
 
     # ---------- Persist ---------- #
     # TODO disabled for debugging
-    # _persist_outputs(feed_rows, summary_row, category_rows, sad_rows, master_rows)
+    _persist_outputs(feed_rows, summary_row, category_rows, sad_rows, master_rows)
 
     # ---------- Data quality assessment ---------- #
     if not skip_quality:
