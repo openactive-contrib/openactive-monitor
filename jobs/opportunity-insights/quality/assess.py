@@ -289,14 +289,10 @@ def _classify(
         warnings.append("Missing required fields — " + "; ".join(fragments))
 
     if ingestion_status == "WARNING":
-        if probe is None:
-            warnings.append("Ingestion reported WARNING in last run")
-        elif probe.kind == "empty":
+        if probe is not None and probe.kind == "empty":
             _add_unique(warnings, probe.message)
-        elif probe.kind in ("http_error", "parse_error"):
+        elif probe is not None and probe.kind in ("http_error", "parse_error"):
             errors.append(probe.message)
-        else:
-            warnings.append("Ingestion reported WARNING in last run")
 
     if num_future == 0 and feed_type not in ["FacilityUse", "SessionSeries"]:
         if probe is not None and probe.kind == "empty":
