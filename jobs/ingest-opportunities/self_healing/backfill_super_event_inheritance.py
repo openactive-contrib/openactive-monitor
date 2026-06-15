@@ -65,7 +65,7 @@ TABLE_ID = f"{GCP_PROJECT_ID}.{BQ_DATASET_ID}.{BQ_OPPORTUNITIES_TABLE}"
 # _AFFECTED_PREDICATE = (
 #     "startDate > TIMESTAMP(@cutoff) "
 #     "AND has_superEvent IS NOT NULL "
-#     "AND accessibilitySupport IS NULL"
+#     "AND organization_name IS NULL"
 # )
 
 _AFFECTED_PREDICATE = (
@@ -96,6 +96,7 @@ INHERITABLE_FIELDS: tuple[str, ...] = (
     "region_code",
     "country_code",
     "country_name",
+    "organization_name",
 )
 
 
