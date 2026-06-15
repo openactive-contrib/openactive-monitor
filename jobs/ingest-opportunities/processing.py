@@ -30,6 +30,7 @@ DF_COLUMNS = [
     "publisher_name", "district_code", "region_code", "country_code", "country_name",
     "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent",
     "accessibilitySupport", "genderRestriction",
+    "organization_name", "organization_json",
     "last_updated",
 ]
 
@@ -225,6 +226,57 @@ def get_accessibility_support(data: dict) -> list[str] | None:
     return labels or None
 
 
+def get_organization_payload(data: dict) -> Any | None:
+    """Return the raw organisation payload from an opportunity.
+
+    Events expose ``organizer`` (Organization, list of Organizations, or URI
+    string); FacilityUses expose ``provider`` (Organization).  ``organizer``
+    takes priority — when both are present we keep the event's organiser as
+    the more specific signal.
+
+    The original shape is preserved so the downstream ``organization_json``
+    column reflects the source feed verbatim.  Returns ``None`` for empty
+    containers and for blank strings.
+    """
+    for field in ("organizer", "provider"):
+        value = data.get(field)
+        if value is None:
+            continue
+        if isinstance(value, str):
+            if value.strip():
+                return value
+            continue
+        if isinstance(value, (dict, list)) and value:
+            return value
+    return None
+
+
+def get_organization_name(data: dict) -> str | None:
+    """Resolve the organisation's ``name`` from ``organizer`` / ``provider``.
+
+    Returns the first non-empty ``name`` string found:
+      - dict payload → ``payload.name``
+      - list payload → first list entry with a non-empty ``name``
+      - URI string payload → no embedded name, returns ``None``
+    """
+    payload = get_organization_payload(data)
+    if payload is None:
+        return None
+    if isinstance(payload, dict):
+        candidates: list[Any] = [payload]
+    elif isinstance(payload, list):
+        candidates = payload
+    else:
+        return None
+    for item in candidates:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        if isinstance(name, str) and name.strip():
+            return name.strip()
+    return None
+
+
 def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: str | None = None) -> tuple[list[dict], list[dict]]:
     """Flatten RPDE ``items`` into row dicts ready for a DataFrame.
 
@@ -278,6 +330,8 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
                 "has_subEvent":         _strip_quotes_list(data.get("subEvent")),
                 "accessibilitySupport": get_accessibility_support(data),
                 "genderRestriction":    (data.get("genderRestriction") or None),
+                "organization_name":    get_organization_name(data),
+                "organization_json":    get_organization_payload(data),
                 "last_updated":         datetime.now(timezone.utc).date(),
             })
     return updated, deleted
@@ -477,6 +531,9 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         and _is_slot_empty(df.at[idx, "genderRestriction"])
     ):
         df.at[idx, "genderRestriction"] = inherited_gender
+    inherited_org_name = get_organization_name(inherited_data)
+    if inherited_org_name and _is_slot_empty(df.at[idx, "organization_name"]):
+        df.at[idx, "organization_name"] = inherited_org_name
 
 
 def _row_super_event_payload(df: pd.DataFrame, idx) -> dict[str, Any]:

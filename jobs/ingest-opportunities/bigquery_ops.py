@@ -54,6 +54,8 @@ OPPORTUNITIES_COLUMNS = [
     "has_subEvent",
     "accessibilitySupport",
     "genderRestriction",
+    "organization_name",
+    "organization_json",
     "last_updated",
 ]
 
@@ -72,6 +74,7 @@ OPPORTUNITIES_JSON_COLUMNS = frozenset({
     "has_superEvent",
     "has_subEvent",
     "accessibilitySupport",
+    "organization_json",
 })
 
 

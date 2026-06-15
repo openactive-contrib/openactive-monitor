@@ -13,7 +13,7 @@ populated option is listed here so the per-kind check stays simple.
 from __future__ import annotations
 
 REQUIRED_FIELDS_BY_KIND: dict[str, list[str]] = {
-    "SessionSeries":         ["@type", "name", "url", "activity", "location", "organizer"],
+    "SessionSeries":         ["@type", "name", "url", "location", "organizer"],
     "ScheduledSession":      ["@type", "startDate"],
     "Event":                 ["@type", "name", "url", "activity", "location", "organizer"],
     "HeadlineEvent":         ["@type", "name", "url", "activity", "location", "organizer"],

@@ -132,6 +132,8 @@ Stores denormalized opportunity data from RPDE feeds.
 | `has_subEvent` | STRING | Reference to child event(s) |
 | `accessibilitySupport` | JSON | Normalised list of accessibility-support `prefLabel` strings extracted from `json_data.accessibilitySupport` (e.g. `["Hearing impairment", "Visual impairment"]`). Inherited from superEvent when missing. `NULL` when no labels resolved. |
 | `genderRestriction` | STRING | Gender restriction URI (e.g. `https://openactive.io/FemaleOnly`, `https://openactive.io/NoRestriction`). Inherited from superEvent when missing. |
+| `organization_name` | STRING | First non-empty `name` from `json_data.organizer` (Event types) or `json_data.provider` (FacilityUse types); `organizer` wins when both are present. Inherited from superEvent when missing. `NULL` for URI-only references. |
+| `organization_json` | JSON | Full `organizer` (or `provider`) payload from `json_data`, original shape preserved (dict, list of dicts, or URI string). Not inherited. |
 | `last_updated` | DATE | UTC date (day/month/year) when this row was last upserted by the `ingest-opportunities` job |
 
 **Composite primary key (MERGE key):** `(dataset_url, feed_id, id)`
