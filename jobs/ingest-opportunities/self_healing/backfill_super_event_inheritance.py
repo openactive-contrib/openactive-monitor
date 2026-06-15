@@ -62,17 +62,17 @@ CUTOFF_DATE = "2026-06-01"
 
 TABLE_ID = f"{GCP_PROJECT_ID}.{BQ_DATASET_ID}.{BQ_OPPORTUNITIES_TABLE}"
 
-_AFFECTED_PREDICATE = (
-    "startDate > TIMESTAMP(@cutoff) "
-    "AND has_superEvent IS NOT NULL "
-    "AND accessibilitySupport IS NULL"
-)
-
 # _AFFECTED_PREDICATE = (
 #     "startDate > TIMESTAMP(@cutoff) "
 #     "AND has_superEvent IS NOT NULL "
-#     "AND TO_JSON_STRING(location) = '{}'"
+#     "AND accessibilitySupport IS NULL"
 # )
+
+_AFFECTED_PREDICATE = (
+    "startDate > TIMESTAMP(@cutoff) "
+    "AND has_superEvent IS NOT NULL "
+    "AND TO_JSON_STRING(location) = '{}'"
+)
 
 
 # Columns that ``apply_inherited_data`` may fill from a parent. We snapshot
