@@ -21,12 +21,9 @@ import pandas as pd
 import bigquery_ops
 from quality import queries as quality_queries
 from quality.health_check import ProbeResult, probe_feeds
+from quality.required_fields import REQUIRED_FIELDS_BY_KIND
 from quality.version_compliance import (
-    FEED_TYPE_TO_SPEC_CATEGORY,
-    VERSION_ORDER,
-    VERSION_SPECS,
     compute_feed_score,
-    get_alternatives,
 )
 
 logger = logging.getLogger(__name__)
@@ -114,6 +111,7 @@ def assess_feed_quality(
             probe=probe_results.get(feed_id),
             missing_by_kind=missing_by_kind,
             num_future=future_count,
+            feed_type=feed_type,
         )
 
         grade = _grade(
@@ -233,9 +231,7 @@ def _missing_required_by_kind(
 ) -> dict[str, list[str]]:
     """For each kind in a feed, return required fields that are missing in all sampled payloads.
 
-    Uses ``VERSION_SPECS`` for the kind's spec category at the feed's detected version
-    (falling back to the highest version available for that spec category if the
-    detected version is not defined for it).
+    Uses ``REQUIRED_FIELDS_BY_KIND`` to look up required fields for each opportunity kind.
     """
     out: dict[str, list[str]] = {}
     if detected_version in (None, "Unknown"):
@@ -244,29 +240,16 @@ def _missing_required_by_kind(
     for kind, payloads in kind_samples.items():
         if not payloads:
             continue
-        spec_category = FEED_TYPE_TO_SPEC_CATEGORY.get(kind.strip(), "Event")
-        version_specs = VERSION_SPECS.get(spec_category)
-        if not version_specs:
-            continue
-
-        # Pick the spec for the detected version, or fall back to the highest
-        # version available for this category if the detected version is missing
-        # (e.g. detected V1.1 but kind is FacilityUse which is V2.0+ only).
-        spec = version_specs.get(detected_version)
-        if spec is None:
-            fallback = max(version_specs.keys(), key=lambda v: VERSION_ORDER.get(v, 0))
-            spec = version_specs[fallback]
-
-        required_fields = [p for p, status in spec.items() if status == "required"]
+        required_fields = REQUIRED_FIELDS_BY_KIND.get(kind.strip())
         if not required_fields:
             continue
 
         missing = []
         for field in required_fields:
-            alts = get_alternatives(spec_category, field)
+            alternatives = ("type",) if field == "@type" else ()
             if not any(
                 _is_field_present(payload, field)
-                or any(_is_field_present(payload, alt) for alt in alts)
+                or any(_is_field_present(payload, alt) for alt in alternatives)
                 for payload in payloads
             ):
                 missing.append(field)
@@ -286,6 +269,7 @@ def _classify(
     probe: ProbeResult | None,
     missing_by_kind: dict[str, list[str]],
     num_future: int,
+    feed_type: str = "",
 ) -> tuple[str, list[str], list[str]]:
     warnings: list[str] = []
     errors: list[str] = []
@@ -314,7 +298,7 @@ def _classify(
         else:
             warnings.append("Ingestion reported WARNING in last run")
 
-    if num_future == 0:
+    if num_future == 0 and feed_type not in ["FacilityUse", "SessionSeries"]:
         if probe is not None and probe.kind == "empty":
             _add_unique(warnings, probe.message)
         elif probe is not None and probe.kind in ("http_error", "parse_error"):
