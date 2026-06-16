@@ -365,6 +365,7 @@ def active_opportunities_summary(
             o.district_name,
             fd.publisher_name AS publisher,
             fd.provider,
+            o.organization_name,
             NOT COALESCE(
               o.kind IN ('FacilityUse', 'IndividualFacilityUse', 'Slot'), FALSE
             ) AS is_activity,
@@ -388,7 +389,8 @@ def active_opportunities_summary(
           provider,
           is_activity,
           TO_JSON_STRING(activity_or_facility_arr) AS activity_or_facility,
-          COUNT(*) AS opportunity_count
+          COUNT(*) AS opportunity_count,
+          TO_JSON_STRING(ARRAY_AGG(DISTINCT organization_name IGNORE NULLS ORDER BY organization_name)) AS organization_names
         FROM base
         GROUP BY district_name, publisher, provider, is_activity, activity_or_facility
     """

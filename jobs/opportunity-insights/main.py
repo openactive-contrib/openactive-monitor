@@ -724,6 +724,7 @@ def _run_api_tables_export(
             "is_activity": rec.get("is_activity"),
             # JSON array string from TO_JSON_STRING(...) -> stored as JSON column.
             "activity_or_facility": rec.get("activity_or_facility"),
+            "organization_names": rec.get("organization_names"),
             "district_code": info.get("district_code"),
             "region_code": info.get("region_code"),
             "region_name": info.get("region_name"),

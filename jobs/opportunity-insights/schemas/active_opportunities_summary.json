@@ -5,6 +5,7 @@
   {"name": "opportunity_count",    "type": "INTEGER", "mode": "NULLABLE"},
   {"name": "is_activity",          "type": "BOOL",    "mode": "NULLABLE", "description": "TRUE if activity_or_facility holds activities, FALSE if it holds facilities (FacilityUse/IndividualFacilityUse/Slot)"},
   {"name": "activity_or_facility", "type": "JSON",    "mode": "NULLABLE", "description": "JSON array of activity labels (or facility types for FacilityUse/IndividualFacilityUse/Slot)"},
+  {"name": "organization_names",  "type": "JSON",    "mode": "NULLABLE", "description": "JSON array of distinct organization_name values for the group"},
   {"name": "district_code",        "type": "STRING",  "mode": "NULLABLE", "description": "LAD code from 000-district-region-country.json"},
   {"name": "region_code",          "type": "STRING",  "mode": "NULLABLE"},
   {"name": "region_name",          "type": "STRING",  "mode": "NULLABLE"},
