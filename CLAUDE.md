@@ -124,6 +124,8 @@ Stores denormalized opportunity data from RPDE feeds.
 | `region_code` | STRING | UK Region code resolved from `district_name` via `000-district-region-country.json` |
 | `country_code` | STRING | UK country code resolved from `district_name` via `000-district-region-country.json` |
 | `country_name` | STRING | UK country name resolved from `district_name` via `000-district-region-country.json` |
+| `nhstrust_name` | STRING | NHS Trust name (`TrustName`) resolved from `location.latitude/longitude` via point-in-polygon lookup against `000-location-nhstrusts.geojson`. Inherited from superEvent when missing. |
+| `nhstrust_code` | STRING | NHS Trust code (`TrustCd`) resolved from the same NHS Trust feature as `nhstrust_name`. Inherited from superEvent when missing. |
 | `startDate` | TIMESTAMP | Start date |
 | `endDate` | TIMESTAMP | End date |
 | `ageRange` | JSON | Age range information |

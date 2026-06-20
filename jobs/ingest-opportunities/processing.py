@@ -16,7 +16,7 @@ from typing import Any
 import pandas as pd
 from pandas import DataFrame
 
-from boundary_lookup import enrich_from_district_lookup, lookup_boundaries
+from boundary_lookup import enrich_from_district_lookup, lookup_boundaries, lookup_nhs_trust
 from geolocation import _build_location
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ DF_COLUMNS = [
     "json_data", "inherited_data", "activity", "facility", "location",
     "district_name", "region_name",
     "publisher_name", "district_code", "region_code", "country_code", "country_name",
+    "nhstrust_name", "nhstrust_code",
     "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent",
     "accessibilitySupport", "genderRestriction",
     "organization_name", "organization_json",
@@ -45,6 +46,8 @@ _BOUNDARY_COLUMNS: tuple[str, ...] = (
     "region_code",
     "country_code",
     "country_name",
+    "nhstrust_name",
+    "nhstrust_code",
 )
 
 
@@ -54,6 +57,13 @@ def _resolve_boundaries(location: dict[str, Any]) -> tuple[str | None, str | Non
     if not location:
         return None, None
     return lookup_boundaries(location.get("latitude"), location.get("longitude"))
+
+
+def _resolve_nhs_trust(location: dict[str, Any]) -> tuple[str | None, str | None]:
+    """Resolve (nhstrust_name, nhstrust_code) from a built location dict."""
+    if not location:
+        return None, None
+    return lookup_nhs_trust(location.get("latitude"), location.get("longitude"))
 
 
 def _strip_quotes(value: Any) -> Any:
@@ -303,6 +313,7 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
             location = _build_location(data.get("location"))
             district_name, region_name = _resolve_boundaries(location)
             enriched = enrich_from_district_lookup(district_name)
+            nhstrust_name, nhstrust_code = _resolve_nhs_trust(location)
             updated.append({
                 "dataset_url":    dataset_url,
                 "feed_id":        feed_id,
@@ -322,6 +333,8 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
                 "region_code":    enriched["region_code"],
                 "country_code":   enriched["country_code"],
                 "country_name":   enriched["country_name"],
+                "nhstrust_name":  nhstrust_name,
+                "nhstrust_code":  nhstrust_code,
                 "startDate":      _normalize_timestamp(data.get("startDate") or data.get("date_start")),
                 "endDate":        _normalize_timestamp(data.get("endDate") or data.get("date_end")),
                 "ageRange":       data.get("ageRange"),
@@ -501,6 +514,7 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         df.at[idx, "location"] = new_location
         district_name, region_name = _resolve_boundaries(new_location)
         enriched = enrich_from_district_lookup(district_name)
+        nhstrust_name, nhstrust_code = _resolve_nhs_trust(new_location)
         # Fill only-when-empty so an existing boundary value isn't overwritten.
         _set_if_empty(df, idx, "district_name", district_name)
         _set_if_empty(df, idx, "region_name", region_name)
@@ -508,6 +522,8 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         _set_if_empty(df, idx, "region_code", enriched["region_code"])
         _set_if_empty(df, idx, "country_code", enriched["country_code"])
         _set_if_empty(df, idx, "country_name", enriched["country_name"])
+        _set_if_empty(df, idx, "nhstrust_name", nhstrust_name)
+        _set_if_empty(df, idx, "nhstrust_code", nhstrust_code)
     # Direct inheritance of boundary columns from the super event row — covers
     # the case where the parent has these populated but no usable raw
     # ``location`` (e.g. it inherited them from its own super event).

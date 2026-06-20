@@ -73,6 +73,8 @@ Denormalized opportunity data from RPDE feeds.
 | `region_code` | STRING | NULLABLE | UK region code resolved from `district_name` |
 | `country_code` | STRING | NULLABLE | UK country code resolved from `district_name` |
 | `country_name` | STRING | NULLABLE | UK country name resolved from `district_name` |
+| `nhstrust_name` | STRING | NULLABLE | NHS Trust name (`TrustName`) resolved from `location.latitude/longitude` via point-in-polygon lookup against `000-location-nhstrusts.geojson`. Inherited from superEvent when missing. |
+| `nhstrust_code` | STRING | NULLABLE | NHS Trust code (`TrustCd`) resolved from the same NHS Trust feature as `nhstrust_name`. Inherited from superEvent when missing. |
 | `startDate` | TIMESTAMP | NULLABLE | Opportunity start date and time |
 | `endDate` | TIMESTAMP | NULLABLE | Opportunity end date and time |
 | `ageRange` | JSON | NULLABLE | Age range for the opportunity |
