@@ -96,6 +96,8 @@ INHERITABLE_FIELDS: tuple[str, ...] = (
     "region_code",
     "country_code",
     "country_name",
+    "nhstrust_name",
+    "nhstrust_code",
     "organization_name",
 )
 

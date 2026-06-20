@@ -46,6 +46,8 @@ OPPORTUNITIES_COLUMNS = [
     "region_code",
     "country_code",
     "country_name",
+    "nhstrust_name",
+    "nhstrust_code",
     "startDate",
     "endDate",
     "ageRange",
