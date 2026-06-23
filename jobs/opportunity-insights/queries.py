@@ -363,6 +363,8 @@ def active_opportunities_summary(
         base AS (
           SELECT
             o.district_name,
+            o.nhstrust_name,
+            o.nhstrust_code,
             fd.publisher_name AS publisher,
             fd.provider,
             o.organization_name,
@@ -385,6 +387,8 @@ def active_opportunities_summary(
         )
         SELECT
           district_name,
+          nhstrust_name,
+          nhstrust_code,
           publisher,
           provider,
           is_activity,
@@ -392,7 +396,7 @@ def active_opportunities_summary(
           COUNT(*) AS opportunity_count,
           TO_JSON_STRING(ARRAY_AGG(DISTINCT organization_name IGNORE NULLS ORDER BY organization_name)) AS organization_names
         FROM base
-        GROUP BY district_name, publisher, provider, is_activity, activity_or_facility
+        GROUP BY district_name, nhstrust_name, nhstrust_code, publisher, provider, is_activity, activity_or_facility
     """
 
 
