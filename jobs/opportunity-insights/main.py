@@ -730,6 +730,8 @@ def _run_api_tables_export(
             "region_name": info.get("region_name"),
             "country_code": info.get("country_code"),
             "country_name": info.get("country_name"),
+            "nhstrust_name": rec.get("nhstrust_name"),
+            "nhstrust_code": rec.get("nhstrust_code"),
         })
 
     bigquery_ops.write_active_opportunities_summary(rows)
