@@ -1,9 +1,10 @@
 import gc
+import itertools
 import logging
 import os
 import threading
 from collections import defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from datetime import date, datetime, timezone
 from pathlib import Path
 from time import perf_counter
@@ -36,6 +37,11 @@ from self_healing import (
 load_dotenv()
 
 INGEST_MAX_WORKERS = int(os.getenv("INGEST_MAX_WORKERS", "8"))
+
+# Cap on datasets processed concurrently per infrastructure provider (server),
+# to reduce provider-side 403 / rate-limit responses when many datasets share
+# the same host.
+MAX_PROVIDER_CONCURRENCY = int(os.getenv("INGEST_MAX_PROVIDER_CONCURRENCY", "3"))
 
 # For Debugging True
 # TODO
@@ -503,32 +509,45 @@ def _process_single_dataset(
     finally:
         _clear_log_dataset_context()
 
-def _order_datasets_by_provider(feeds: dict[str, list[dict]]) -> list[str]:
-    """Order dataset URLs round-robin across infrastructure providers.
+def _dataset_provider(dataset_feeds: list[dict[str, Any]]) -> str:
+    """Return the infrastructure provider (server host) for a dataset's feeds.
 
-    Datasets published on the same provider share the same server, so running
-    many of them concurrently raises the chance of provider-side 403 / rate-limit
-    responses. Interleaving the submission order so consecutive datasets rotate
-    through different providers spreads the in-flight load across servers instead
-    of clustering workers on one provider.
+    All feeds within a dataset are published by the same provider, so the first
+    non-empty ``provider`` value is representative.
     """
-    buckets: dict[str, deque[str]] = defaultdict(deque)
-    for dataset_url, dataset_feeds in feeds.items():
-        provider = ""
-        for feed in dataset_feeds:
-            provider = feed.get("provider") or ""
-            if provider:
-                break
-        buckets[provider].append(dataset_url)
+    for feed in dataset_feeds:
+        provider = feed.get("provider") or ""
+        if provider:
+            return provider
+    return ""
 
-    ordered: list[str] = []
-    queues = list(buckets.values())
-    while queues:
-        for queue in queues:
-            if queue:
-                ordered.append(queue.popleft())
-        queues = [queue for queue in queues if queue]
-    return ordered
+
+def _next_eligible_dataset(
+    pending_by_provider: dict[str, deque[str]],
+    active_by_provider: dict[str, int],
+) -> tuple[str, str] | None:
+    """Pick the next dataset to dispatch honouring the per-provider concurrency cap.
+
+    Among providers that still have pending datasets and fewer than
+    ``MAX_PROVIDER_CONCURRENCY`` datasets in flight, choose the least-busy one so
+    load stays spread across providers. Returns ``(provider, dataset_url)`` or
+    ``None`` when no dataset can currently be dispatched without exceeding a cap.
+    """
+    best_provider: str | None = None
+    best_active: int | None = None
+    for provider, queue in pending_by_provider.items():
+        if not queue:
+            continue
+        active = active_by_provider[provider]
+        if active >= MAX_PROVIDER_CONCURRENCY:
+            continue
+        if best_active is None or active < best_active:
+            best_provider = provider
+            best_active = active
+
+    if best_provider is None:
+        return None
+    return best_provider, pending_by_provider[best_provider].popleft()
 
 
 def ingest_opportunities(
@@ -543,29 +562,50 @@ def ingest_opportunities(
     logger.info("Loaded %d datasets", len(feeds))
     total = len(feeds)
 
-    # order datasets so not overload to single provider at once
-    ordered_datasets = _order_datasets_by_provider(feeds)
+    # Group pending datasets by provider so we can cap concurrency per provider
+    # (max MAX_PROVIDER_CONCURRENCY in flight) while keeping up to
+    # INGEST_MAX_WORKERS datasets running overall.
+    pending_by_provider: dict[str, deque[str]] = defaultdict(deque)
+    for dataset_url, dataset_feeds in feeds.items():
+        pending_by_provider[_dataset_provider(dataset_feeds)].append(dataset_url)
+
+    active_by_provider: dict[str, int] = defaultdict(int)
+    index_counter = itertools.count(1)
 
     with ThreadPoolExecutor(max_workers=INGEST_MAX_WORKERS, thread_name_prefix="ingest-worker") as executor:
-        futures = {
-            executor.submit(
-                _process_single_dataset,
-                dataset_url,
-                feeds[dataset_url],
-                pending_deletes,
-                pending_deletes_lock,
-                idx,
-                total,
-            ): dataset_url
-            for idx, dataset_url in enumerate(ordered_datasets, start=1)
-        }
+        futures: dict[Future, tuple[str, str]] = {}
 
-        for future in as_completed(futures):
-            dataset_url = futures[future]
-            try:
-                future.result()
-            except Exception:
-                logger.exception("Unhandled error processing dataset %s", dataset_url)
+        def dispatch_ready() -> None:
+            """Submit datasets while free thread and provider slots remain."""
+            while len(futures) < INGEST_MAX_WORKERS:
+                eligible = _next_eligible_dataset(pending_by_provider, active_by_provider)
+                if eligible is None:
+                    break
+                provider, dataset_url = eligible
+                active_by_provider[provider] += 1
+                idx = next(index_counter)
+                future = executor.submit(
+                    _process_single_dataset,
+                    dataset_url,
+                    feeds[dataset_url],
+                    pending_deletes,
+                    pending_deletes_lock,
+                    idx,
+                    total,
+                )
+                futures[future] = (dataset_url, provider)
+
+        dispatch_ready()
+        while futures:
+            done, _ = wait(futures, return_when=FIRST_COMPLETED)
+            for future in done:
+                dataset_url, provider = futures.pop(future)
+                active_by_provider[provider] -= 1
+                try:
+                    future.result()
+                except Exception:
+                    logger.exception("Unhandled error processing dataset %s", dataset_url)
+            dispatch_ready()
 
     # Flush any remaining deferred deletes, waiting up to 120 minutes for BigQuery streaming buffer to clear if needed.
     drain_deferred_deletes_until_timeout(
