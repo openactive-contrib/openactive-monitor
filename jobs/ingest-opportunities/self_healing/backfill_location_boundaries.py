@@ -8,11 +8,29 @@ Target rows
 -----------
 - ``district_name IS NULL`` (proxy for "boundary lookup hasn't been run")
 - ``location`` is not the empty JSON object
+- ``location.latitude IS NOT NULL``
 
 The script fills only-when-empty; it never overwrites an already-populated
 column. Rows whose location lacks latitude/longitude (or whose coordinates
 fall outside any known UK boundary) are skipped and counted as
 ``unresolvable``.
+
+Performance design
+------------------
+This backfill targets a ~10M-row table, so it is built to stay cheap on both
+memory and BigQuery cost:
+
+- **Minimal projection.** Only the columns needed to resolve and key a row are
+  read (``dataset_url, feed_id, id`` plus ``location.latitude/longitude``). The
+  large ``json_data`` / ``inherited_data`` payloads are never fetched.
+- **Lightweight write-back.** Only the six boundary columns are upserted (via a
+  tiny staging table + targeted MERGE that fills only-when-empty with
+  ``COALESCE``), so the heavy JSON columns are never re-serialized or rewritten.
+  This keeps the MERGE from scanning/updating the wide JSON columns across the
+  whole table and avoids the lost-update race a full-row rewrite would carry.
+- **No "largest-first" ordering.** Datasets are processed in a stable
+  ``dataset_url`` order. Sorting by row-count pushed the biggest datasets to
+  the front and made several workers load huge datasets into memory at once.
 
 Usage
 -----
@@ -28,10 +46,12 @@ import gc
 import logging
 import os
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from time import perf_counter
 from typing import Any
+from uuid import uuid4
 
 import click
 import pandas as pd
@@ -42,9 +62,11 @@ from google.cloud import bigquery
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from bigquery_ops import (  # noqa: E402
-    OPPORTUNITIES_COLUMNS,
-    parse_opportunities_json_columns,
-    write_dataset_opportunities,
+    MERGE_RETRY_BASE_SECONDS,
+    MERGE_RETRY_MAX_ATTEMPTS,
+    MERGE_RETRY_MAX_SECONDS,
+    is_concurrent_update_error,
+    retry_delay_seconds,
 )
 from boundary_lookup import enrich_from_district_lookup, lookup_boundaries  # noqa: E402
 
@@ -69,9 +91,7 @@ _AFFECTED_PREDICATE = (
     "AND location.latitude IS NOT NULL"
 )
 
-# Columns we may populate on each affected row. We snapshot these before
-# enrichment so we can guarantee fill-only-when-empty semantics and pick out
-# which rows actually need to be written back.
+# The boundary columns we may populate on each affected row.
 BOUNDARY_COLUMNS: tuple[str, ...] = (
     "district_name",
     "region_name",
@@ -81,57 +101,53 @@ BOUNDARY_COLUMNS: tuple[str, ...] = (
     "country_name",
 )
 
+# Only the columns required to resolve a coordinate and key the row back to the
+# table. Crucially this excludes the large JSON payload columns.
+_LOAD_COLUMNS: tuple[str, ...] = (
+    "dataset_url",
+    "feed_id",
+    "id",
+    # location.latitude / longitude is all we need from the location struct.
+    "location.latitude AS _lat",
+    "location.longitude AS _lng",
+)
 
-def _is_empty_value(value: Any) -> bool:
-    """True if a DataFrame cell should be treated as 'missing'."""
-    if isinstance(value, (list, dict)):
-        return len(value) == 0
-    if isinstance(value, str):
-        return value.strip() == ""
+
+def _coerce_float(value: Any) -> float | None:
+    """Return a finite float, or None if missing/malformed."""
     if value is None:
-        return True
-    try:
-        return bool(pd.isna(value))
-    except (TypeError, ValueError):
-        return False
-
-
-def _location_coords(location: Any) -> tuple[float, float] | None:
-    """Return (lat, lng) if both are present and finite, else None."""
-    if not isinstance(location, dict):
-        return None
-    lat = location.get("latitude")
-    lng = location.get("longitude")
-    if lat is None or lng is None:
         return None
     try:
-        lat_f = float(lat)
-        lng_f = float(lng)
+        f = float(value)
     except (TypeError, ValueError):
         return None
-    return lat_f, lng_f
+    if pd.isna(f):
+        return None
+    return f
 
 
-def _get_affected_datasets(client: bigquery.Client) -> list[tuple[str, int]]:
-    """Return (dataset_url, row_count) tuples ordered by row_count desc."""
+def _get_affected_datasets(client: bigquery.Client) -> list[str]:
+    """Return the distinct affected ``dataset_url`` values in a stable order.
+
+    We deliberately do NOT order by row count: that front-loads the largest
+    datasets and makes several workers hold huge result sets in memory at once.
+    A stable ``dataset_url`` ordering also makes the run resumable.
+    """
     query = f"""
-        SELECT dataset_url, COUNT(*) AS row_count
+        SELECT DISTINCT dataset_url
         FROM `{TABLE_ID}`
         WHERE {_AFFECTED_PREDICATE}
-        GROUP BY dataset_url
-        ORDER BY row_count DESC
+        ORDER BY dataset_url
     """
     rows = client.query(query).result()
-    out = [(r["dataset_url"], int(r["row_count"])) for r in rows if r["dataset_url"]]
-    total = sum(c for _, c in out)
-    logger.info("Discovery: %d datasets, %d total affected rows", len(out), total)
+    out = [r["dataset_url"] for r in rows if r["dataset_url"]]
+    logger.info("Discovery: %d datasets with affected rows", len(out))
     return out
 
 
-def _load_affected_rows(dataset_url: str) -> pd.DataFrame:
-    """Load all affected rows for one dataset_url with the full opportunities schema."""
-    client = bigquery.Client(project=GCP_PROJECT_ID)
-    selected = ", ".join(OPPORTUNITIES_COLUMNS)
+def _load_affected_rows(client: bigquery.Client, dataset_url: str) -> pd.DataFrame:
+    """Load the minimal columns for affected rows of one ``dataset_url``."""
+    selected = ", ".join(_LOAD_COLUMNS)
     query = f"""
         SELECT {selected}
         FROM `{TABLE_ID}`
@@ -146,26 +162,23 @@ def _load_affected_rows(dataset_url: str) -> pd.DataFrame:
     return client.query(query, job_config=job_config).to_dataframe()
 
 
-def _enrich_row(
-    df: pd.DataFrame,
-    idx,
-) -> bool:
-    """Compute boundaries for one row's location and fill empty boundary cells.
+def _resolve_boundaries(
+    lat: float | None,
+    lng: float | None,
+) -> dict[str, str | None] | None:
+    """Resolve the six boundary columns for one coordinate.
 
-    Returns True iff at least one boundary cell on this row was populated.
+    Returns a dict keyed by :data:`BOUNDARY_COLUMNS`, or ``None`` when the point
+    is missing coordinates or falls outside every known UK district
+    (unresolvable — mirrors ``extract_rows`` behaviour).
     """
-    coords = _location_coords(df.at[idx, "location"])
-    if coords is None:
-        return False
-    lat, lng = coords
-
+    if lat is None or lng is None:
+        return None
     district_name, region_name = lookup_boundaries(lat, lng)
     if not district_name:
-        # Outside UK / unresolvable — nothing to fill, mirrors extract_rows behavior.
-        return False
+        return None
     enriched = enrich_from_district_lookup(district_name)
-
-    new_values = {
+    return {
         "district_name": district_name,
         "region_name": region_name,
         "district_code": enriched["district_code"],
@@ -174,14 +187,105 @@ def _enrich_row(
         "country_name": enriched["country_name"],
     }
 
-    changed = False
-    for col, val in new_values.items():
-        if val is None:
-            continue
-        if _is_empty_value(df.at[idx, col]):
-            df.at[idx, col] = val
-            changed = True
-    return changed
+
+def _run_merge_with_retry(
+    client: bigquery.Client,
+    merge_query: str,
+    dataset_url: str,
+) -> int:
+    """Execute a MERGE, retrying on BigQuery concurrent-update conflicts.
+
+    Many workers MERGE into the same opportunities table at once, so BigQuery
+    can reject a statement with "Could not serialize access ... due to
+    concurrent update". Those conflicts are transient; retry with exponential
+    backoff (mirrors the production ingest write path). Returns the number of
+    DML-affected rows.
+    """
+    for attempt in range(MERGE_RETRY_MAX_ATTEMPTS):
+        try:
+            merge_job = client.query(merge_query)
+            merge_job.result()
+            return int(merge_job.num_dml_affected_rows or 0)
+        except Exception as exc:
+            if not is_concurrent_update_error(exc):
+                raise
+            if attempt >= MERGE_RETRY_MAX_ATTEMPTS - 1:
+                logger.error(
+                    "MERGE failed after %d attempts due to concurrent updates for dataset %s",
+                    MERGE_RETRY_MAX_ATTEMPTS, dataset_url,
+                )
+                raise
+            delay = retry_delay_seconds(attempt, MERGE_RETRY_BASE_SECONDS, MERGE_RETRY_MAX_SECONDS)
+            logger.warning(
+                "Concurrent update on MERGE attempt %d/%d for dataset %s; retrying in %d seconds",
+                attempt + 1, MERGE_RETRY_MAX_ATTEMPTS, dataset_url, delay,
+            )
+            time.sleep(delay)
+    return 0
+
+
+def _write_boundary_updates(
+    client: bigquery.Client,
+    dataset_url: str,
+    updates_df: pd.DataFrame,
+) -> int:
+    """Upsert ONLY the six boundary columns for the given rows.
+
+    Loads a tiny staging table (merge keys + boundary columns) and MERGEs it
+    into the opportunities table, filling each boundary column only where it is
+    still NULL (fill-only-when-empty via ``COALESCE``). The large JSON columns
+    are never read or rewritten. Returns the number of affected rows.
+    """
+    if updates_df.empty:
+        return 0
+
+    staging_table_id = (
+        f"{GCP_PROJECT_ID}.{BQ_DATASET_ID}.{BQ_OPPORTUNITIES_TABLE}"
+        f"_boundaries_staging_{uuid4().hex[:12]}"
+    )
+    staging_schema = [
+        bigquery.SchemaField("dataset_url", "STRING"),
+        bigquery.SchemaField("feed_id", "STRING"),
+        bigquery.SchemaField("id", "STRING"),
+        *[bigquery.SchemaField(col, "STRING") for col in BOUNDARY_COLUMNS],
+    ]
+
+    columns = ["dataset_url", "feed_id", "id", *BOUNDARY_COLUMNS]
+    rows = updates_df[columns].to_dict(orient="records")
+
+    # Gate on the affected predicate (district_name IS NULL) so we only touch
+    # intended rows, and COALESCE each column so an already-populated value is
+    # never overwritten (preserves fill-only-when-empty semantics per column).
+    update_set = ",\n                ".join(
+        f"T.{col} = COALESCE(T.{col}, S.{col})" for col in BOUNDARY_COLUMNS
+    )
+    merge_query = f"""
+        MERGE `{TABLE_ID}` AS T
+        USING `{staging_table_id}` AS S
+        ON  T.dataset_url = S.dataset_url
+        AND T.feed_id = S.feed_id
+        AND T.id = S.id
+        WHEN MATCHED AND T.district_name IS NULL THEN
+            UPDATE SET
+                {update_set}
+    """
+
+    try:
+        load_job = client.load_table_from_json(
+            rows,
+            staging_table_id,
+            job_config=bigquery.LoadJobConfig(
+                schema=staging_schema,
+                write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+            ),
+        )
+        load_job.result()
+
+        affected = _run_merge_with_retry(client, merge_query, dataset_url)
+        logger.info("Updated %d boundary rows for %s", affected, dataset_url)
+        return affected
+    finally:
+        client.delete_table(staging_table_id, not_found_ok=True)
 
 
 def _fix_dataset(
@@ -194,89 +298,65 @@ def _fix_dataset(
 
     Returns (examined, filled, unresolvable):
       - examined: rows matching the affected predicate that we loaded
-      - filled: rows where we populated at least one boundary column
+      - filled: rows where we resolved a district to write back
       - unresolvable: rows we couldn't help (no lat/lng, or outside UK)
     """
     start = perf_counter()
     logger.info("[%d/%d] START dataset=%s", index, total, dataset_url)
-    affected_df = _load_affected_rows(dataset_url)
+
+    client = bigquery.Client(project=GCP_PROJECT_ID)
+    affected_df = _load_affected_rows(client, dataset_url)
     examined = len(affected_df)
     logger.info("[%d/%d] loaded %d affected rows for %s", index, total, examined, dataset_url)
     if examined == 0:
         return 0, 0, 0
 
-    affected_df = affected_df.reset_index(drop=True)
-    # Parse JSON-typed columns (location especially) into real Python objects.
-    parse_opportunities_json_columns(affected_df)
+    resolved: list[dict[str, str | None] | None] = [
+        _resolve_boundaries(_coerce_float(lat), _coerce_float(lng))
+        for lat, lng in zip(affected_df["_lat"], affected_df["_lng"])
+    ]
 
-    filled_indices: list[int] = []
-    unresolvable = 0
-    for idx in affected_df.index:
-        if _enrich_row(affected_df, idx):
-            filled_indices.append(idx)
-        else:
-            unresolvable += 1
+    for col in BOUNDARY_COLUMNS:
+        affected_df[col] = [r[col] if r else None for r in resolved]
 
-    filled = len(filled_indices)
-    if filled == 0:
-        logger.info(
-            "[%d/%d] DONE %s — examined=%d unresolvable=%d (in %.2fs)",
-            index, total, dataset_url, examined, unresolvable, perf_counter() - start,
-        )
-        del affected_df
-        gc.collect()
-        return examined, 0, unresolvable
+    updates_df = affected_df.loc[
+        affected_df["district_name"].notna(),
+        ["dataset_url", "feed_id", "id", *BOUNDARY_COLUMNS],
+    ].copy()
+    filled = len(updates_df)
+    unresolvable = examined - filled
 
-    rows_to_write = affected_df.loc[filled_indices].copy()
-    del affected_df
+    del affected_df, resolved
     gc.collect()
 
-    if not dry_run:
-        logger.info(
-            "[%d/%d] writing %d rows for %s",
-            index, total, len(rows_to_write), dataset_url,
-        )
-        write_dataset_opportunities(dataset_url, rows_to_write)
+    if filled and not dry_run:
+        logger.info("[%d/%d] writing %d rows for %s", index, total, filled, dataset_url)
+        _write_boundary_updates(client, dataset_url, updates_df)
 
     logger.info(
         "[%d/%d] DONE %s — examined=%d filled=%d unresolvable=%d in %.2fs (dry_run=%s)",
-        index, total, dataset_url, examined, filled, unresolvable, perf_counter() - start, dry_run,
+        index, total, dataset_url, examined, filled, unresolvable,
+        perf_counter() - start, dry_run,
     )
-    del rows_to_write
+    del updates_df
     gc.collect()
     return examined, filled, unresolvable
 
 
-@click.command()
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    default=False,
-    help="Compute the fixes but do not write them back to BigQuery.",
-)
-@click.option(
-    "--max-workers",
-    type=int,
-    default=int(os.getenv("INGEST_MAX_WORKERS", "8")),
-    show_default=True,
-    help="Thread-pool size for parallel dataset processing.",
-)
-@click.option(
-    "--dataset",
-    "datasets",
-    multiple=True,
-    help="Restrict to specific dataset_url(s); repeat for multiple. "
-         "Skips the discovery query.",
-)
-@click.option(
-    "--limit",
-    type=int,
-    default=0,
-    show_default=True,
-    help="Process at most this many datasets (largest-first). 0 = no limit.",
-)
-def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int) -> None:
-    """Backfill UK boundary columns from existing location lat/lng pairs."""
+def run(
+    dry_run: bool = False,
+    max_workers: int | None = None,
+    datasets: list[str] | None = None,
+    limit: int = 0,
+) -> None:
+    """Backfill UK boundary columns from existing location lat/lng pairs.
+
+    Programmatic entry point called by the self-heal step at the end of
+    ``ingest_opportunities``.
+    """
+    if max_workers is None:
+        max_workers = int(os.getenv("INGEST_MAX_WORKERS", "8"))
+
     overall_start = perf_counter()
     client = bigquery.Client(project=GCP_PROJECT_ID)
 
@@ -284,11 +364,10 @@ def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int)
         dataset_urls = list(datasets)
         logger.info("Restricting to %d explicit dataset_url(s)", len(dataset_urls))
     else:
-        affected = _get_affected_datasets(client)
+        dataset_urls = _get_affected_datasets(client)
         if limit and limit > 0:
-            affected = affected[:limit]
-            logger.info("Limiting to top %d datasets by affected-row count", limit)
-        dataset_urls = [url for url, _ in affected]
+            dataset_urls = dataset_urls[:limit]
+            logger.info("Limiting to first %d datasets", limit)
 
     if not dataset_urls:
         logger.info("Nothing to fix.")
@@ -328,6 +407,44 @@ def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int)
         total_filled,
         total_unresolvable,
         dry_run,
+    )
+
+
+@click.command()
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Compute the fixes but do not write them back to BigQuery.",
+)
+@click.option(
+    "--max-workers",
+    type=int,
+    default=int(os.getenv("INGEST_MAX_WORKERS", "8")),
+    show_default=True,
+    help="Thread-pool size for parallel dataset processing.",
+)
+@click.option(
+    "--dataset",
+    "datasets",
+    multiple=True,
+    help="Restrict to specific dataset_url(s); repeat for multiple. "
+         "Skips the discovery query.",
+)
+@click.option(
+    "--limit",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Process at most this many datasets (stable dataset_url order). 0 = no limit.",
+)
+def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int) -> None:
+    """Backfill UK boundary columns from existing location lat/lng pairs."""
+    run(
+        dry_run=dry_run,
+        max_workers=max_workers,
+        datasets=list(datasets) if datasets else None,
+        limit=limit,
     )
 
 

@@ -26,7 +26,9 @@ from bigquery_ops import (
 from processing import DF_COLUMNS, denormalize_dataset, extract_rows
 from rpde import access_feed_url
 from self_healing import (
+    backfill_location_boundaries,
     backfill_nested_ifu_inheritance,
+    backfill_nhs_trust,
     backfill_super_event_inheritance,
 )
 
@@ -544,12 +546,18 @@ def ingest_opportunities(
 
 
 def run_self_heal() -> None:
-    """Run self-healing routines to fix data issues from prior ingestion runs."""
+    """
+    Run self-healing routines to fix data issues from prior ingestion runs.
+    Data can be updated out of order (Slot exists in the db but FacilityUse
+    updated afterward etc.), so run these backfills to identify and solve common issues.
+    """
     logger.info("Starting self-heal step")
     start = perf_counter()
 
     backfill_super_event_inheritance()
     backfill_nested_ifu_inheritance()
+    backfill_location_boundaries()
+    backfill_nhs_trust()
 
     logger.info("Self-heal step completed in %.2fs", perf_counter() - start)
 

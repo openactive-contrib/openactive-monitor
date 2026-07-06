@@ -47,6 +47,7 @@ import gc
 import logging
 import os
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from time import perf_counter
@@ -61,6 +62,13 @@ from google.cloud import bigquery
 # Make the ingest-opportunities package importable when running this file directly.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from bigquery_ops import (  # noqa: E402
+    MERGE_RETRY_BASE_SECONDS,
+    MERGE_RETRY_MAX_ATTEMPTS,
+    MERGE_RETRY_MAX_SECONDS,
+    is_concurrent_update_error,
+    retry_delay_seconds,
+)
 from boundary_lookup import lookup_nhs_trust_batch  # noqa: E402
 
 load_dotenv()
@@ -145,6 +153,42 @@ def _load_affected_rows(client: bigquery.Client, dataset_url: str) -> pd.DataFra
     return client.query(query, job_config=job_config).to_dataframe()
 
 
+def _run_merge_with_retry(
+    client: bigquery.Client,
+    merge_query: str,
+    dataset_url: str,
+) -> int:
+    """Execute a MERGE, retrying on BigQuery concurrent-update conflicts.
+
+    Many workers MERGE into the same opportunities table at once, so BigQuery
+    can reject a statement with "Could not serialize access ... due to
+    concurrent update". Those conflicts are transient; retry with exponential
+    backoff (mirrors the production ingest write path). Returns the number of
+    DML-affected rows.
+    """
+    for attempt in range(MERGE_RETRY_MAX_ATTEMPTS):
+        try:
+            merge_job = client.query(merge_query)
+            merge_job.result()
+            return int(merge_job.num_dml_affected_rows or 0)
+        except Exception as exc:
+            if not is_concurrent_update_error(exc):
+                raise
+            if attempt >= MERGE_RETRY_MAX_ATTEMPTS - 1:
+                logger.error(
+                    "MERGE failed after %d attempts due to concurrent updates for dataset %s",
+                    MERGE_RETRY_MAX_ATTEMPTS, dataset_url,
+                )
+                raise
+            delay = retry_delay_seconds(attempt, MERGE_RETRY_BASE_SECONDS, MERGE_RETRY_MAX_SECONDS)
+            logger.warning(
+                "Concurrent update on MERGE attempt %d/%d for dataset %s; retrying in %d seconds",
+                attempt + 1, MERGE_RETRY_MAX_ATTEMPTS, dataset_url, delay,
+            )
+            time.sleep(delay)
+    return 0
+
+
 def _write_nhstrust_updates(
     client: bigquery.Client,
     dataset_url: str,
@@ -199,9 +243,7 @@ def _write_nhstrust_updates(
         )
         load_job.result()
 
-        merge_job = client.query(merge_query)
-        merge_job.result()
-        affected = int(merge_job.num_dml_affected_rows or 0)
+        affected = _run_merge_with_retry(client, merge_query, dataset_url)
         logger.info("Updated %d NHS Trust rows for %s", affected, dataset_url)
         return affected
     finally:
@@ -266,6 +308,73 @@ def _fix_dataset(
     return examined, filled, unresolvable
 
 
+def run(
+    dry_run: bool = False,
+    max_workers: int | None = None,
+    datasets: list[str] | None = None,
+    limit: int = 0,
+) -> None:
+    """Backfill NHS Trust columns from existing location lat/lng pairs.
+
+    Programmatic entry point called by the self-heal step at the end of
+    ``ingest_opportunities``.
+    """
+    if max_workers is None:
+        max_workers = int(os.getenv("INGEST_MAX_WORKERS", "8"))
+
+    overall_start = perf_counter()
+    client = bigquery.Client(project=GCP_PROJECT_ID)
+
+    if datasets:
+        dataset_urls = list(datasets)
+        logger.info("Restricting to %d explicit dataset_url(s)", len(dataset_urls))
+    else:
+        dataset_urls = _get_affected_datasets(client)
+        if limit and limit > 0:
+            dataset_urls = dataset_urls[:limit]
+            logger.info("Limiting to first %d datasets", limit)
+
+    if not dataset_urls:
+        logger.info("Nothing to fix.")
+        return
+
+    total_examined = 0
+    total_filled = 0
+    total_unresolvable = 0
+    total_datasets = len(dataset_urls)
+
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="nhstrust") as executor:
+        futures = {
+            executor.submit(_fix_dataset, ds, dry_run, idx, total_datasets): ds
+            for idx, ds in enumerate(dataset_urls, start=1)
+        }
+        completed = 0
+        for future in as_completed(futures):
+            ds = futures[future]
+            try:
+                examined, filled, unresolvable = future.result()
+                total_examined += examined
+                total_filled += filled
+                total_unresolvable += unresolvable
+            except Exception:
+                logger.exception("Failed for dataset %s", ds)
+            completed += 1
+            logger.info(
+                "Progress %d/%d datasets complete — running totals examined=%d filled=%d unresolvable=%d",
+                completed, total_datasets, total_examined, total_filled, total_unresolvable,
+            )
+
+    logger.info(
+        "DONE in %.2fs — datasets=%d examined=%d filled=%d unresolvable=%d (dry_run=%s)",
+        perf_counter() - overall_start,
+        len(dataset_urls),
+        total_examined,
+        total_filled,
+        total_unresolvable,
+        dry_run,
+    )
+
+
 @click.command()
 @click.option(
     "--dry-run",
@@ -296,56 +405,11 @@ def _fix_dataset(
 )
 def main(dry_run: bool, max_workers: int, datasets: tuple[str, ...], limit: int) -> None:
     """Backfill NHS Trust columns from existing location lat/lng pairs."""
-    overall_start = perf_counter()
-    client = bigquery.Client(project=GCP_PROJECT_ID)
-
-    if datasets:
-        dataset_urls = list(datasets)
-        logger.info("Restricting to %d explicit dataset_url(s)", len(dataset_urls))
-    else:
-        dataset_urls = _get_affected_datasets(client)
-        if limit and limit > 0:
-            dataset_urls = dataset_urls[:limit]
-            logger.info("Limiting to first %d datasets", limit)
-
-    if not dataset_urls:
-        logger.info("Nothing to fix.")
-        return
-
-    total_examined = 0
-    total_filled = 0
-    total_unresolvable = 0
-    total_datasets = len(dataset_urls)
-
-    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="nhstrust") as executor:
-        futures = {
-            executor.submit(_fix_dataset, ds, dry_run, idx, total_datasets): ds
-            for idx, ds in enumerate(dataset_urls, start=1)
-        }
-        completed = 0
-        for future in as_completed(futures):
-            ds = futures[future]
-            try:
-                examined, filled, unresolvable = future.result()
-                total_examined += examined
-                total_filled += filled
-                total_unresolvable += unresolvable
-            except Exception:
-                logger.exception("Failed for dataset %s", ds)
-            completed += 1
-            logger.info(
-                "Progress %d/%d datasets complete — running totals examined=%d filled=%d unresolvable=%d",
-                completed, total_datasets, total_examined, total_filled, total_unresolvable,
-            )
-
-    logger.info(
-        "DONE in %.2fs — datasets=%d examined=%d filled=%d unresolvable=%d (dry_run=%s)",
-        perf_counter() - overall_start,
-        len(dataset_urls),
-        total_examined,
-        total_filled,
-        total_unresolvable,
-        dry_run,
+    run(
+        dry_run=dry_run,
+        max_workers=max_workers,
+        datasets=list(datasets) if datasets else None,
+        limit=limit,
     )
 
 
