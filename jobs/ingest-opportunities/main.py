@@ -2,6 +2,7 @@ import gc
 import logging
 import os
 import threading
+from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -502,6 +503,34 @@ def _process_single_dataset(
     finally:
         _clear_log_dataset_context()
 
+def _order_datasets_by_provider(feeds: dict[str, list[dict]]) -> list[str]:
+    """Order dataset URLs round-robin across infrastructure providers.
+
+    Datasets published on the same provider share the same server, so running
+    many of them concurrently raises the chance of provider-side 403 / rate-limit
+    responses. Interleaving the submission order so consecutive datasets rotate
+    through different providers spreads the in-flight load across servers instead
+    of clustering workers on one provider.
+    """
+    buckets: dict[str, deque[str]] = defaultdict(deque)
+    for dataset_url, dataset_feeds in feeds.items():
+        provider = ""
+        for feed in dataset_feeds:
+            provider = feed.get("provider") or ""
+            if provider:
+                break
+        buckets[provider].append(dataset_url)
+
+    ordered: list[str] = []
+    queues = list(buckets.values())
+    while queues:
+        for queue in queues:
+            if queue:
+                ordered.append(queue.popleft())
+        queues = [queue for queue in queues if queue]
+    return ordered
+
+
 def ingest_opportunities(
     datasets: list[str] | None = None,
     verbose: bool = False,
@@ -514,6 +543,9 @@ def ingest_opportunities(
     logger.info("Loaded %d datasets", len(feeds))
     total = len(feeds)
 
+    # order datasets so not overload to single provider at once
+    ordered_datasets = _order_datasets_by_provider(feeds)
+
     with ThreadPoolExecutor(max_workers=INGEST_MAX_WORKERS, thread_name_prefix="ingest-worker") as executor:
         futures = {
             executor.submit(
@@ -525,7 +557,7 @@ def ingest_opportunities(
                 idx,
                 total,
             ): dataset_url
-            for idx, dataset_url in enumerate(feeds, start=1)
+            for idx, dataset_url in enumerate(ordered_datasets, start=1)
         }
 
         for future in as_completed(futures):
