@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date, datetime, timezone
-from typing import Any
+from typing import Any, Iterator
 
 import pandas as pd
 from pandas import DataFrame
@@ -396,6 +396,30 @@ def _merge_inherited_data(
     return merged
 
 
+def _iter_nested_ifus(json_data: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
+    """Yield ``(ifu_@id, ifu_item)`` for each nested IndividualFacilityUse.
+
+    A ``FacilityUse`` may embed its ``IndividualFacilityUse`` children inline in
+    a ``individualFacilityUse`` list rather than publishing them as standalone
+    opportunities.  A ``Slot``'s ``facilityUse`` reference can then point at one
+    of those nested IFU ``@id``s, which never appears as any row's ``data_id``.
+    This helper surfaces those ``(id, item)`` pairs so the parent-payload lookup
+    can register a virtual entry for each, letting the Slot inherit from the
+    IFU (which in turn inherits from its containing FacilityUse).
+    """
+    if not isinstance(json_data, dict):
+        return
+    ifus = json_data.get("individualFacilityUse")
+    if not isinstance(ifus, list):
+        return
+    for item in ifus:
+        if not isinstance(item, dict):
+            continue
+        ifu_id = item.get("@id") or item.get("id")
+        if isinstance(ifu_id, str) and ifu_id:
+            yield ifu_id, item
+
+
 def _build_super_event_payload_by_data_id(df, df_bigquery):
     """Build data_id -> payload lookup from old then new frame; new frame overrides duplicates.
 
@@ -404,15 +428,24 @@ def _build_super_event_payload_by_data_id(df, df_bigquery):
     activity, etc.).  We also surface the parent's pre-computed boundary
     columns (district/region/country names + codes) on the payload so children
     can inherit them directly when the parent's raw ``location`` is missing.
+
+    In addition to keying each row by its own ``data_id``, we register a
+    *virtual* payload for every IndividualFacilityUse embedded inline in a
+    FacilityUse's ``json_data.individualFacilityUse`` list.  The virtual payload
+    is the FacilityUse payload overlaid with that specific IFU item's own fields
+    (IFU-specific values win), so a Slot pointing at a nested IFU ``@id`` can
+    inherit correctly.  Virtual entries never clobber a real row: they are only
+    folded in for IFU ``@id``s that no real ``data_id`` claims.
     """
     payload_by_data_id = {}
+    # Kept separate so real rows always win — a dataset may also publish the same
+    # IFU as a first-class row via a dedicated IndividualFacilityUse feed.
+    virtual_ifu_payloads: dict[str, dict[str, Any]] = {}
     for frame in (df_bigquery, df):
         if frame.empty or "data_id" not in frame.columns:
             continue
         for row in frame.itertuples(index=False):
             row_data_id = getattr(row, "data_id", None)
-            if not isinstance(row_data_id, str) or not row_data_id:
-                continue
             row_json = getattr(row, "json_data", None)
             row_inherited = getattr(row, "inherited_data", None)
             json_data = row_json if isinstance(row_json, dict) else {}
@@ -422,7 +455,17 @@ def _build_super_event_payload_by_data_id(df, df_bigquery):
                 val = getattr(row, col, None)
                 if isinstance(val, str) and val:
                     payload[col] = val
-            payload_by_data_id[row_data_id] = payload
+            if isinstance(row_data_id, str) and row_data_id:
+                payload_by_data_id[row_data_id] = payload
+            # Register virtual payloads for any inline IndividualFacilityUse
+            # children.  The new frame is iterated last, so its FacilityUse rows
+            # override older BigQuery copies here too.
+            for ifu_id, ifu_item in _iter_nested_ifus(json_data):
+                virtual_ifu_payloads[ifu_id] = {**payload, **ifu_item}
+
+    for ifu_id, virtual_payload in virtual_ifu_payloads.items():
+        if ifu_id not in payload_by_data_id:
+            payload_by_data_id[ifu_id] = virtual_payload
     return payload_by_data_id
 
 

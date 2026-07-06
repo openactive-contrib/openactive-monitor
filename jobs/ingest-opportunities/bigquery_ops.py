@@ -379,6 +379,40 @@ def get_dataset_opportunities(
     return normalized_df
 
 
+def get_dataset_facility_uses(dataset_url: str) -> pd.DataFrame:
+    """Fetch all ``kind='FacilityUse'`` rows for a dataset_url from BigQuery.
+
+    FacilityUse rows can embed their ``IndividualFacilityUse`` children inline
+    (``json_data.individualFacilityUse``).  When a Slot's ``facilityUse``
+    reference points at one of those nested IFU ``@id``s, the parent FacilityUse
+    is needed for inheritance but is never returned by the ``data_id``-keyed
+    ``get_dataset_opportunities`` (the nested IFU ``@id`` is not any row's
+    ``data_id``).  FacilityUse rows are few per dataset, so loading them all is
+    cheap and avoids any assumption about the IFU URL structure.
+    """
+    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}"
+    selected_columns = ", ".join(OPPORTUNITIES_COLUMNS)
+    client = bigquery.Client(project=BIGQUERY_PROJECT)
+    query = f"""
+        SELECT {selected_columns}
+        FROM `{table_id}`
+        WHERE dataset_url = @dataset_url
+          AND kind = 'FacilityUse'
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("dataset_url", "STRING", dataset_url)
+        ]
+    )
+    dataset_df = client.query(query, job_config=job_config).to_dataframe()
+    if dataset_df.empty:
+        return pd.DataFrame(columns=OPPORTUNITIES_COLUMNS)
+    # JSON columns arrive as raw JSON strings from ``to_dataframe()``; parse them
+    # so denormalize_dataset sees real Python dicts/lists.
+    parse_opportunities_json_columns(dataset_df)
+    return dataset_df.reindex(columns=OPPORTUNITIES_COLUMNS)
+
+
 def _normalize_required_data_ids(required_data_ids: list[str] | None) -> list[str] | None:
     if required_data_ids is None:
         return None

@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from bigquery_ops import (
     delete_dataset_opportunities,
     drain_deferred_deletes_until_timeout,
+    get_dataset_facility_uses,
     get_dataset_opportunities,
     get_feeds,
     get_last_ingestion_info_batch,
@@ -24,7 +25,12 @@ from bigquery_ops import (
 )
 from processing import DF_COLUMNS, denormalize_dataset, extract_rows
 from rpde import access_feed_url
-from self_healing import backfill_super_event_inheritance
+from self_healing import (
+    backfill_location_boundaries,
+    backfill_nested_ifu_inheritance,
+    backfill_nhs_trust,
+    backfill_super_event_inheritance,
+)
 
 load_dotenv()
 
@@ -255,6 +261,26 @@ def _persist_dataset_results(
     dataset_referred_df = get_dataset_opportunities(dataset_url, required_data_ids=denormalization_reference_ids)
     logger.info("Persist phase get_dataset_opportunities completed in %.2fs (rows=%d)", perf_counter() - phase_start, len(dataset_referred_df))
 
+    # A Slot's ``facilityUse`` reference may point at an IndividualFacilityUse
+    # embedded inside its parent FacilityUse (``json_data.individualFacilityUse``)
+    # rather than existing as its own row.  Such refs don't resolve via the
+    # data_id-keyed fetch above, so when unresolved Slot refs remain we also load
+    # the dataset's FacilityUse rows and let denormalize_dataset expand their
+    # nested IFUs.  Gated on unresolved Slot refs so it is a no-op for datasets
+    # without the nested-IFU pattern.
+    facility_use_df = _fetch_facility_uses_for_unresolved_slots(
+        dataset_url, dataset_new_df, dataset_referred_df
+    )
+    if facility_use_df is not None and not facility_use_df.empty:
+        dataset_referred_df = pd.concat(
+            [dataset_referred_df, facility_use_df], ignore_index=True
+        )
+        logger.info(
+            "Persist phase fetched %d FacilityUse rows for nested-IFU inheritance",
+            len(facility_use_df),
+        )
+    del facility_use_df
+
     phase_start = perf_counter()
     denormalize_dataset(dataset_new_df, dataset_referred_df)
     logger.info("Persist phase denormalize_dataset completed in %.2fs", perf_counter() - phase_start)
@@ -308,6 +334,43 @@ def _extract_denormalization_reference_ids(dataset_new_df: pd.DataFrame) -> list
         add_reference(sub_event_ref)
 
     return reference_ids
+
+
+def _fetch_facility_uses_for_unresolved_slots(
+    dataset_url: str,
+    dataset_new_df: pd.DataFrame,
+    dataset_referred_df: pd.DataFrame,
+) -> pd.DataFrame | None:
+    """Load the dataset's FacilityUse rows iff some Slot's superEvent ref is unresolved.
+
+    A Slot's ``facilityUse`` reference is stored in ``has_superEvent``.  When it
+    points at an IndividualFacilityUse nested inside a FacilityUse (rather than a
+    standalone row), the ref won't match any ``data_id`` already in the new batch
+    or the targeted fetch.  In that case we return the dataset's FacilityUse rows
+    so ``denormalize_dataset`` can expand their nested IFUs; otherwise ``None``.
+    """
+    if dataset_new_df.empty or "kind" not in dataset_new_df.columns:
+        return None
+
+    slot_refs = dataset_new_df.loc[dataset_new_df["kind"] == "Slot", "has_superEvent"]
+    if slot_refs.empty:
+        return None
+
+    resolved_data_ids: set[str] = set()
+    for frame in (dataset_new_df, dataset_referred_df):
+        if not frame.empty and "data_id" in frame.columns:
+            resolved_data_ids.update(
+                d for d in frame["data_id"].tolist() if isinstance(d, str) and d
+            )
+
+    for ref in slot_refs.tolist():
+        if not isinstance(ref, str):
+            continue  # inline dicts resolve on their own; only string refs need a lookup
+        cleaned = ref.replace('"', "").strip()
+        if cleaned and cleaned not in resolved_data_ids:
+            return get_dataset_facility_uses(dataset_url)
+
+    return None
 
 
 def _build_ingestion_records(
@@ -483,11 +546,18 @@ def ingest_opportunities(
 
 
 def run_self_heal() -> None:
-    """Run self-healing routines to fix data issues from prior ingestion runs."""
+    """
+    Run self-healing routines to fix data issues from prior ingestion runs.
+    Data can be updated out of order (Slot exists in the db but FacilityUse
+    updated afterward etc.), so run these backfills to identify and solve common issues.
+    """
     logger.info("Starting self-heal step")
     start = perf_counter()
 
     backfill_super_event_inheritance()
+    backfill_nested_ifu_inheritance()
+    backfill_location_boundaries()
+    backfill_nhs_trust()
 
     logger.info("Self-heal step completed in %.2fs", perf_counter() - start)
 
