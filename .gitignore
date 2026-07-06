@@ -24,6 +24,7 @@ virt*/
 
 # Tests
 test*/
+!tests/
 !.claude/skills/testing-debugging/
 !.claude/skills/testing-debugging/**
 
