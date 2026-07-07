@@ -8,12 +8,14 @@ from typing import Any
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
-from request_client import build_session, get
+from request_client import build_session, get_json_with_retry
 
 logger = logging.getLogger(__name__)
 
 RPDE_REQUEST_TIMEOUT = 30  # seconds
-RPDE_WAIT_BETWEEN_PAGES = 0  # seconds
+# Politeness delay between page fetches within a feed. Rapid zero-delay
+# pagination trips provider-side rate limits (403/429), so wait between pages.
+RPDE_WAIT_BETWEEN_PAGES = float(os.getenv("RPDE_WAIT_BETWEEN_PAGES", "0.0"))  # seconds
 
 # for debugging and development
 OPPORTUNITIES_OUTPUT_DIR = os.getenv("OPPORTUNITIES_OUTPUT_DIR", "./opportunities")
@@ -99,17 +101,13 @@ def access_feed_url(
                 last_after_change_number = None
             logger.debug("Fetching RPDE url: %s", current_url)
             try:
-                response = get(session, current_url, timeout=RPDE_REQUEST_TIMEOUT)
-                response.raise_for_status()
+                page_data = get_json_with_retry(session, current_url, timeout=RPDE_REQUEST_TIMEOUT)
             except requests.RequestException as exc:
                 logger.error("Failed to fetch %s: %s", current_url, exc)
                 status = "ERROR"
                 break
-
-            try:
-                page_data = response.json()
-            except json.JSONDecodeError as exc:
-                logger.error("Failed to parse JSON from %s: %s", current_url, exc)
+            except (json.JSONDecodeError, ValueError) as exc:
+                logger.error("Failed to parse JSON from %s after retries: %s", current_url, exc)
                 status = "ERROR"
                 break
 
@@ -152,6 +150,23 @@ def access_feed_url(
 
             url = next_url
             sleep(RPDE_WAIT_BETWEEN_PAGES)
+
+        # Partial progress: a mid-feed fetch/parse failure (e.g. provider 403 after
+        # several pages) should not discard the pages already collected. Keep the
+        # items and the last cursor so the next run resumes from where we stopped
+        # instead of restarting the feed. Status stays "ERROR" for front-end
+        # compatibility; the collected items and resume cursor are persisted anyway.
+        if status == "ERROR" and items:
+            logger.warning(
+                "Feed %s made partial progress: collected %d items across %d page(s) before failure; "
+                "resuming next run from cursor (afterTimestamp=%s, afterId=%s, afterChangeNumber=%s)",
+                feed_id,
+                len(items),
+                pages_fetched,
+                last_after_timestamp,
+                last_after_id,
+                last_after_change_number,
+            )
 
         result = {
             "feed_id": feed_id,

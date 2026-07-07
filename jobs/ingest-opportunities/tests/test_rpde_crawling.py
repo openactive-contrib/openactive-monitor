@@ -35,12 +35,12 @@ logger = logging.getLogger(__name__)
 
 # Feeds reported as failing during ingestion despite being browser-accessible.
 PROBLEMATIC_FEED_URLS = [
-    "https://halo-openactive.legendonlineservices.co.uk/api/facility-uses/events",
+    # "https://halo-openactive.legendonlineservices.co.uk/api/facility-uses/events",
     "https://halo-openactive.legendonlineservices.co.uk/api/sessions",
-    "https://lsbuactive-openactive.legendonlineservices.co.uk/api/facility-uses/events",
-    "https://salfordcommunityleisure-openactive.legendonlineservices.co.uk/api/facility-uses/events",
-    "https://sllandinspireall-openactive.legendonlineservices.co.uk/api/facility-uses/events",
-    "https://tendringcouncil-openactive.legendonlineservices.co.uk/api/sessions",
+    # "https://lsbuactive-openactive.legendonlineservices.co.uk/api/facility-uses/events",
+    # "https://salfordcommunityleisure-openactive.legendonlineservices.co.uk/api/facility-uses/events",
+    # "https://sllandinspireall-openactive.legendonlineservices.co.uk/api/facility-uses/events",
+    # "https://tendringcouncil-openactive.legendonlineservices.co.uk/api/sessions",
 ]
 
 

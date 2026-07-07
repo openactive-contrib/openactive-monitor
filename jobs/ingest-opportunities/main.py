@@ -43,6 +43,25 @@ INGEST_MAX_WORKERS = int(os.getenv("INGEST_MAX_WORKERS", "8"))
 # the same host.
 MAX_PROVIDER_CONCURRENCY = int(os.getenv("INGEST_MAX_PROVIDER_CONCURRENCY", "3"))
 
+# Fragile providers whose servers aggressively rate-limit / return 403 under
+# concurrent load. These are processed one dataset at a time. Extend the default
+# set via the INGEST_FRAGILE_PROVIDERS env var (comma-separated provider hosts).
+FRAGILE_PROVIDER_CONCURRENCY = 1
+FRAGILE_PROVIDERS: set[str] = {
+    "openactivedatacatalog.legendonlineservices.co.uk",
+} | {
+    provider.strip()
+    for provider in os.getenv("INGEST_FRAGILE_PROVIDERS", "").split(",")
+    if provider.strip()
+}
+
+
+def _provider_concurrency_cap(provider: str) -> int:
+    """Max datasets processed concurrently for a provider (1 for fragile ones)."""
+    if provider in FRAGILE_PROVIDERS:
+        return FRAGILE_PROVIDER_CONCURRENCY
+    return MAX_PROVIDER_CONCURRENCY
+
 # For Debugging True
 # TODO
 PERSIST_CSV=False
@@ -526,12 +545,13 @@ def _next_eligible_dataset(
     pending_by_provider: dict[str, deque[str]],
     active_by_provider: dict[str, int],
 ) -> tuple[str, str] | None:
-    """Pick the next dataset to dispatch honouring the per-provider concurrency cap.
+    """Pick the next dataset to dispatch honouring each provider's concurrency cap.
 
-    Among providers that still have pending datasets and fewer than
-    ``MAX_PROVIDER_CONCURRENCY`` datasets in flight, choose the least-busy one so
-    load stays spread across providers. Returns ``(provider, dataset_url)`` or
-    ``None`` when no dataset can currently be dispatched without exceeding a cap.
+    Among providers that still have pending datasets and fewer than their
+    concurrency cap (``_provider_concurrency_cap``) datasets in flight, choose the
+    least-busy one so load stays spread across providers. Returns
+    ``(provider, dataset_url)`` or ``None`` when no dataset can currently be
+    dispatched without exceeding a cap.
     """
     best_provider: str | None = None
     best_active: int | None = None
@@ -539,7 +559,7 @@ def _next_eligible_dataset(
         if not queue:
             continue
         active = active_by_provider[provider]
-        if active >= MAX_PROVIDER_CONCURRENCY:
+        if active >= _provider_concurrency_cap(provider):
             continue
         if best_active is None or active < best_active:
             best_provider = provider
