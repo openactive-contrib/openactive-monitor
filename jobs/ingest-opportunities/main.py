@@ -41,7 +41,7 @@ INGEST_MAX_WORKERS = int(os.getenv("INGEST_MAX_WORKERS", "8"))
 # Cap on datasets processed concurrently per infrastructure provider (server),
 # to reduce provider-side 403 / rate-limit responses when many datasets share
 # the same host.
-MAX_PROVIDER_CONCURRENCY = int(os.getenv("INGEST_MAX_PROVIDER_CONCURRENCY", "3"))
+MAX_PROVIDER_CONCURRENCY = int(os.getenv("INGEST_MAX_PROVIDER_CONCURRENCY", "4"))
 
 # Fragile providers whose servers aggressively rate-limit / return 403 under
 # concurrent load. These are processed one dataset at a time. Extend the default
