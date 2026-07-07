@@ -46,7 +46,7 @@ MAX_PROVIDER_CONCURRENCY = int(os.getenv("INGEST_MAX_PROVIDER_CONCURRENCY", "3")
 # Fragile providers whose servers aggressively rate-limit / return 403 under
 # concurrent load. These are processed one dataset at a time. Extend the default
 # set via the INGEST_FRAGILE_PROVIDERS env var (comma-separated provider hosts).
-FRAGILE_PROVIDER_CONCURRENCY = 1
+FRAGILE_PROVIDER_CONCURRENCY = 2
 FRAGILE_PROVIDERS: set[str] = {
     "openactivedatacatalog.legendonlineservices.co.uk",
 } | {
