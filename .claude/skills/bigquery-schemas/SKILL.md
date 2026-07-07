@@ -103,7 +103,7 @@ Append-only log of per-feed opportunity ingestion runs with cursor tracking.
 | `afterChangeNumber` | INTEGER | NULLABLE | RPDE cursor: afterChangeNumber |
 | `updated` | INTEGER | NULLABLE | Number of updated items in this run |
 | `deleted` | INTEGER | NULLABLE | Number of deleted items in this run |
-| `status` | STRING | NULLABLE | `COMPLETE`, `ERROR`, or `WARNING` |
+| `status` | STRING | NULLABLE | `COMPLETE`, `ERROR`, or `WARNING`. On a mid-feed failure with partial progress the status is `ERROR` but the collected items and advanced cursor are still persisted, so the next run resumes. |
 
 ---
 
