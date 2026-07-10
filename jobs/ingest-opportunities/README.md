@@ -12,6 +12,34 @@ Cloud Run **Cloud Storage volume** at `/volume-1`. The Python code reads
 the path from the `INGEST_BOUNDARY_DIR` env var (set by the Dockerfile and
 cloudbuild.yaml to `/volume-1/data-analysis`).
 
+## Crawl modes: continue vs from scratch
+
+By default the job runs in **continue** mode: for each feed it resumes the RPDE
+traversal from the last cursor recorded in the `opportunity_ingestion` table
+(`afterTimestamp`/`afterId`/`afterChangeNumber`). This is the normal scheduled
+behaviour.
+
+**From-scratch** mode ignores those stored cursors and re-crawls every feed from
+its first page, fully re-populating the `opportunities` table. Enable it with
+either:
+
+- CLI flag: `python main.py --from-scratch` (default is `--continue`)
+- Env var: `INGEST_FROM_SCRATCH=true`
+
+The mode is logged at startup (`Ingestion mode: FROM SCRATCH | CONTINUE`).
+
+### Running a one-off full re-crawl
+
+1. (Optional) Snapshot the table for rollback:
+   `CREATE TABLE openactive_analytics.opportunities_backup_YYYYMMDD AS SELECT * FROM openactive_analytics.opportunities;`
+2. Empty the table **with TRUNCATE** (keeps schema/partitioning; do **not** DROP):
+   `TRUNCATE TABLE openactive_analytics.opportunities;`
+3. Do **not** touch `feeds`, `feed_ingestion`, or `opportunity_ingestion`.
+4. Run once with `INGEST_FROM_SCRATCH=true` (or `--from-scratch`).
+5. Switch back to continue mode (unset the flag/env var) for all later runs.
+   The fresh cursors written during the scratch run are the newest rows, so
+   continue mode automatically resumes from them.
+
 ## Files
 
 | File | Purpose |
