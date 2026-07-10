@@ -62,6 +62,12 @@ def _provider_concurrency_cap(provider: str) -> int:
         return FRAGILE_PROVIDER_CONCURRENCY
     return MAX_PROVIDER_CONCURRENCY
 
+
+# When true, ignore stored RPDE cursors and re-crawl every feed from its first
+# page (full re-ingest). When false (default), resume from the last cursor
+# recorded in the opportunity_ingestion table.
+INGEST_FROM_SCRATCH = os.getenv("INGEST_FROM_SCRATCH", "true").strip().lower() in {"1", "true", "yes", "on"}
+
 # For Debugging True
 # TODO
 PERSIST_CSV=False
@@ -159,6 +165,7 @@ def _collect_dataset_feed_rows(
     dataset_url: str,
     dataset_feeds: list[dict[str, Any]],
     feed_states: dict[str, dict[str, Any]],
+    from_scratch: bool = INGEST_FROM_SCRATCH,
 ) -> tuple[list[dict], list[dict[str, Any]]]:
     """
     Traverse dataset feeds and collect update/delete rows while tracking feed cursor state.
@@ -172,7 +179,11 @@ def _collect_dataset_feed_rows(
     dataset_updates: list[dict] = []
     dataset_deletes: list[dict[str, Any]] = []
     feed_ids = [dataset_feed["id"] for dataset_feed in dataset_feeds]
-    latest_cursor_by_feed_id = get_last_ingestion_info_batch(feed_ids)
+    if from_scratch:
+        # Ignore stored cursors: start every feed from its first RPDE page.
+        latest_cursor_by_feed_id: dict[str, tuple[str | None, str | None, int | None]] = {}
+    else:
+        latest_cursor_by_feed_id = get_last_ingestion_info_batch(feed_ids)
 
     for dataset_feed in dataset_feeds:
         feed_id = dataset_feed["id"]
@@ -463,6 +474,7 @@ def _process_single_dataset(
     pending_deletes_lock: threading.Lock,
     index: int,
     total: int,
+    from_scratch: bool = INGEST_FROM_SCRATCH,
 ) -> None:
     """Process one dataset: fetch feeds, persist results, write ingestion records."""
     _set_log_dataset_context(dataset_url)
@@ -496,7 +508,9 @@ def _process_single_dataset(
                     dataset_url,
                     len(batch_feeds),
                 )
-                dataset_updates, dataset_deletes = _collect_dataset_feed_rows(dataset_url, batch_feeds, feed_states)
+                dataset_updates, dataset_deletes = _collect_dataset_feed_rows(
+                    dataset_url, batch_feeds, feed_states, from_scratch=from_scratch
+                )
                 _persist_dataset_results(
                     dataset_url,
                     dataset_updates,
@@ -573,8 +587,10 @@ def _next_eligible_dataset(
 def ingest_opportunities(
     datasets: list[str] | None = None,
     verbose: bool = False,
+    from_scratch: bool = INGEST_FROM_SCRATCH,
 ) -> None:
     _configure_logging(verbose)
+    logger.info("Ingestion mode: %s", "FROM SCRATCH" if from_scratch else "CONTINUE")
     pending_deletes: dict[str, dict[str, Any]] = {}
     pending_deletes_lock = threading.Lock()
 
@@ -612,6 +628,7 @@ def ingest_opportunities(
                     pending_deletes_lock,
                     idx,
                     total,
+                    from_scratch,
                 )
                 futures[future] = (dataset_url, provider)
 
@@ -667,7 +684,14 @@ def run_self_heal() -> None:
     default=False,
     help="Enable verbose logging (includes RPDE traversal logs).",
 )
-def cli(datasets: tuple[str, ...], verbose: bool) -> None:
+@click.option(
+    "--from-scratch/--continue",
+    "from_scratch",
+    default=INGEST_FROM_SCRATCH,
+    help="Re-crawl every feed from its first page, ignoring stored cursors. "
+         "Default is continue (resume from last cursor). Env: INGEST_FROM_SCRATCH.",
+)
+def cli(datasets: tuple[str, ...], verbose: bool, from_scratch: bool) -> None:
     """Ingest opportunities from RPDE feeds."""
     parsed_datasets = list(datasets) if datasets else None
 
@@ -678,7 +702,7 @@ def cli(datasets: tuple[str, ...], verbose: bool) -> None:
     #                    "https://leisurefocus-openactive.legendonlineservices.co.uk/OpenActive"]
     # verbose = True
 
-    ingest_opportunities(parsed_datasets, verbose)
+    ingest_opportunities(parsed_datasets, verbose, from_scratch)
 
 
 if __name__ == "__main__":
