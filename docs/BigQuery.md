@@ -230,3 +230,10 @@ After running these, you may still continue seeing old data in the tables due to
 ```SQL
 SELECT * FROM `openactive-monitor.openactive_analytics.opportunities` LIMIT 100;
 ```
+
+## Create backup of a table
+
+```SQL
+CREATE TABLE `openactive-monitor.openactive_analytics.opportunities_backup_20260711`
+AS SELECT * FROM `openactive-monitor.openactive_analytics.opportunities`;
+```
