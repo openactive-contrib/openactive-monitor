@@ -66,7 +66,7 @@ def _provider_concurrency_cap(provider: str) -> int:
 # When true, ignore stored RPDE cursors and re-crawl every feed from its first
 # page (full re-ingest). When false (default), resume from the last cursor
 # recorded in the opportunity_ingestion table.
-INGEST_FROM_SCRATCH = os.getenv("INGEST_FROM_SCRATCH", "true").strip().lower() in {"1", "true", "yes", "on"}
+INGEST_FROM_SCRATCH = os.getenv("INGEST_FROM_SCRATCH", "false").strip().lower() in {"1", "true", "yes", "on"}
 
 # For Debugging True
 # TODO
