@@ -173,33 +173,39 @@ def get_activity(data: dict) -> list[Any]:
         if isinstance(activities_field, dict):
             label = activities_field.get("prefLabel")
             return [label] if label else []
+        elif isinstance(activities_field, str):
+            return [activities_field]
         elif isinstance(activities_field, list):
-            labels = [
-                item.get("prefLabel")
-                for item in activities_field
-                if isinstance(item, dict) and item.get("prefLabel")
-            ]
+            labels = []
+            for item in activities_field:
+                if isinstance(item, dict):
+                    label = item.get("prefLabel")
+                    if label:
+                        labels.append(label)
+                elif isinstance(item, str) and item:
+                    labels.append(item)
             return labels
     return []
 
 
 def get_facility(data: dict) -> list[Any]:
-    """Extract facility labels from facilityType or facilities field."""
-    # Try both singular and plural forms
-    facility_field = data.get("facilityType") or data.get("facilities")
+    """Extract facility labels from facilityType, facilities, or category field."""
+    facility_field = data.get("facilityType") or data.get("facilities") or data.get("category")
     if facility_field:
-        facility_items = []
         if isinstance(facility_field, dict):
-            facility_items = [facility_field]
+            label = facility_field.get("prefLabel")
+            return [label] if label else []
+        elif isinstance(facility_field, str):
+            return [facility_field]
         elif isinstance(facility_field, list):
-            facility_items = facility_field
-
-        if facility_items:
-            labels = [
-                item.get("prefLabel")
-                for item in facility_items
-                if isinstance(item, dict) and item.get("prefLabel")
-            ]
+            labels = []
+            for item in facility_field:
+                if isinstance(item, dict):
+                    label = item.get("prefLabel")
+                    if label:
+                        labels.append(label)
+                elif isinstance(item, str) and item:
+                    labels.append(item)
             return labels
     return []
 
