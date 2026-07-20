@@ -184,9 +184,8 @@ def get_activity(data: dict) -> list[Any]:
 
 
 def get_facility(data: dict) -> list[Any]:
-    """Extract facility labels from facilityType or facilities field."""
-    # Try both singular and plural forms
-    facility_field = data.get("facilityType") or data.get("facilities")
+    """Extract facility labels from facilityType, facilities, or category field."""
+    facility_field = data.get("facilityType") or data.get("facilities") or data.get("category")
     if facility_field:
         facility_items = []
         if isinstance(facility_field, dict):
