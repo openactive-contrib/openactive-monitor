@@ -1,42 +1,35 @@
-"""Insight test for feeds that have stopped publishing opportunity changes.
+"""Report on feeds that have stopped publishing opportunity changes.
 
-Run directly with:
-
-    cd jobs/ingest-opportunities
-    source virt/bin/activate
-    python -m unittest tests.test_inactive_feeds_insight -v
+Run with:
+    python jobs/opportunity-insights/report_runner/inactive_feeds.py
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import sys
-import unittest
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from dotenv import load_dotenv
 from google.cloud import bigquery
 
-# Allow importing the job modules when run from anywhere.
-JOB_ROOT = Path(__file__).resolve().parent.parent
-if str(JOB_ROOT) not in sys.path:
-    sys.path.insert(0, str(JOB_ROOT))
-
-from bigquery_ops import (  # noqa: E402
-    BIGQUERY_DATASET,
-    BIGQUERY_PROJECT,
-    FEEDS_TABLE,
-    OPPORTUNITIES_TABLE,
-    OPPORTUNITY_INGESTION_TABLE,
-)
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-INACTIVE_DAYS = 20
+INACTIVE_DAYS = 45
 IGNORED_KINDS = ["FacilityUse"]
 
+BIGQUERY_PROJECT = os.getenv("GCP_PROJECT_ID")
+BIGQUERY_DATASET = os.getenv("BQ_DATASET_ID")
+FEEDS_TABLE = os.getenv("BQ_FEEDS_TABLE")
+OPPORTUNITY_INGESTION_TABLE = os.getenv("BQ_OPPORTUNITY_INGESTION_TABLE")
+OPPORTUNITIES_TABLE = os.getenv("BQ_OPPORTUNITIES_TABLE")
 
-def _query_inactive_feeds(
+
+def query_inactive_feeds(
     inactive_days: int,
     ignored_kinds: list[str] | None = None,
 ) -> list[dict[str, object]]:
@@ -154,83 +147,80 @@ def _query_inactive_feeds(
     ]
 
 
-class InactiveFeedsInsightTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-            stream=sys.stdout,
-            force=True,
-        )
+def main() -> None:
+    """Run the inactive feeds report."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        stream=sys.stdout,
+    )
 
-    def test_logs_feeds_inactive_for_last_n_days(self) -> None:
-        rows = _query_inactive_feeds(INACTIVE_DAYS, ignored_kinds=IGNORED_KINDS)
+    rows = query_inactive_feeds(INACTIVE_DAYS, ignored_kinds=IGNORED_KINDS)
 
-        if not rows:
-            logger.info(
-                "No inactive feeds matched the criteria after ignoring kinds: %s",
-                IGNORED_KINDS,
-            )
-            return
-
-        dataset_groups: dict[str, list[dict[str, object]]] = defaultdict(list)
-        for row in rows:
-            dataset_groups[str(row["dataset_id"])].append(row)
-
+    if not rows:
         logger.info(
-            "Found %d inactive feed(s) across %d dataset(s) in the last %d days.",
-            len(rows),
-            len(dataset_groups),
-            INACTIVE_DAYS,
+            "No inactive feeds matched the criteria after ignoring kinds: %s",
+            IGNORED_KINDS,
         )
-        if IGNORED_KINDS:
-            logger.info("Ignoring kinds: %s", IGNORED_KINDS)
+        return
 
-        kind_counts = Counter(str(row["kind"] or "unknown") for row in rows)
-        logger.info("Inactive feeds by kind: %s", dict(sorted(kind_counts.items())))
+    dataset_groups: dict[str, list[dict[str, object]]] = defaultdict(list)
+    for row in rows:
+        dataset_groups[str(row["dataset_id"])].append(row)
 
-        grouped_rows = sorted(
-            dataset_groups.items(),
-            key=lambda item: (
-                -int(item[1][0]["impact_opportunity_count"]),
-                str(item[0]),
-            ),
+    logger.info(
+        "Found %d inactive feed(s) across %d dataset(s) in the last %d days.",
+        len(rows),
+        len(dataset_groups),
+        INACTIVE_DAYS,
+    )
+    if IGNORED_KINDS:
+        logger.info("Ignoring kinds: %s", IGNORED_KINDS)
+
+    kind_counts = Counter(str(row["kind"] or "unknown") for row in rows)
+    logger.info("Inactive feeds by kind: %s", dict(sorted(kind_counts.items())))
+
+    grouped_rows = sorted(
+        dataset_groups.items(),
+        key=lambda item: (
+            -int(item[1][0]["impact_opportunity_count"]),
+            str(item[0]),
+        ),
+    )
+
+    for dataset_id, dataset_rows in grouped_rows:
+        impact_opportunity_count = int(dataset_rows[0]["impact_opportunity_count"])
+        dataset_name = dataset_rows[0]["dataset_name"]
+        publisher_name = dataset_rows[0]["publisher_name"]
+        last_published_at = min(
+            row["last_published_at"] for row in dataset_rows if row["last_published_at"] is not None
         )
-
-        for dataset_id, dataset_rows in grouped_rows:
-            impact_opportunity_count = int(dataset_rows[0]["impact_opportunity_count"])
-            dataset_name = dataset_rows[0]["dataset_name"]
-            publisher_name = dataset_rows[0]["publisher_name"]
-            last_published_at = min(
-                row["last_published_at"] for row in dataset_rows if row["last_published_at"] is not None
-            )
+        logger.info(
+            "dataset_id=%s | dataset=%s | publisher=%s | impact_opportunity_count=%s | inactive_feeds=%s | oldest_last_published_at=%s",
+            dataset_id,
+            dataset_name,
+            publisher_name,
+            impact_opportunity_count,
+            len(dataset_rows),
+            last_published_at,
+        )
+        for row in dataset_rows:
             logger.info(
-                "dataset_id=%s | dataset=%s | publisher=%s | impact_opportunity_count=%s | inactive_feeds=%s | oldest_last_published_at=%s",
-                dataset_id,
-                dataset_name,
-                publisher_name,
-                impact_opportunity_count,
-                len(dataset_rows),
-                last_published_at,
+                "  feed_id=%s | kind=%s | url=%s | "
+                "last_published_at=%s | last_ingestion_date=%s | runs_in_window=%s/%s zero-activity | "
+                "days_since_last_publish=%s | lifetime_updated_total=%s | lifetime_deleted_total=%s",
+                row["feed_id"],
+                row["kind"],
+                row["url"],
+                row["last_published_at"],
+                row["last_ingestion_date"],
+                row["zero_activity_runs"],
+                row["runs_in_window"],
+                row["days_since_last_publish"],
+                row["lifetime_updated_total"],
+                row["lifetime_deleted_total"],
             )
-            for row in dataset_rows:
-                logger.info(
-                    "  feed_id=%s | kind=%s | url=%s | "
-                    "last_published_at=%s | last_ingestion_date=%s | runs_in_window=%s/%s zero-activity | "
-                    "days_since_last_publish=%s | lifetime_updated_total=%s | lifetime_deleted_total=%s",
-                    row["feed_id"],
-                    row["kind"],
-                    row["url"],
-                    row["last_published_at"],
-                    row["last_ingestion_date"],
-                    row["zero_activity_runs"],
-                    row["runs_in_window"],
-                    row["days_since_last_publish"],
-                    row["lifetime_updated_total"],
-                    row["lifetime_deleted_total"],
-                )
 
 
 if __name__ == "__main__":
-    unittest.main()
+    main()
