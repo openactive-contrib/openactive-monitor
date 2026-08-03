@@ -27,6 +27,14 @@ FEED_INGESTION_TABLE = os.getenv("BQ_FEED_INGESTION_TABLE")
 OPPORTUNITY_INGESTION_TABLE = os.getenv("BQ_OPPORTUNITY_INGESTION_TABLE")
 OPPORTUNITIES_TABLE = os.getenv("BQ_OPPORTUNITIES_TABLE")
 
+# Optional comma-separated list of dataset URLs to skip during ingestion.
+# Feeds belonging to a listed dataset are excluded from get_feeds results.
+EXCLUDED_DATASET_URLS: set[str] = {
+    url.strip()
+    for url in os.getenv("EXCLUDED_DATASET_URLS", "").split(",")
+    if url.strip()
+}
+
 OPPORTUNITIES_COLUMNS = [
     "dataset_url",
     "feed_id",
@@ -205,8 +213,13 @@ def get_feeds(datasets: list[str] | None = None) -> dict[str, list[dict]]:
 
     rows = client.query(query, job_config=job_config).result()
 
+    if EXCLUDED_DATASET_URLS:
+        logger.info("Excluding datasets from ingestion: %s", sorted(EXCLUDED_DATASET_URLS))
+
     feeds: dict[str, list[dict]] = {}
     for row in rows:
+        if row["dataset_url"] in EXCLUDED_DATASET_URLS:
+            continue
         if datasets is None or row["dataset_url"] in datasets:
             if row["dataset_url"] not in feeds:
                 feeds[row["dataset_url"]] = []

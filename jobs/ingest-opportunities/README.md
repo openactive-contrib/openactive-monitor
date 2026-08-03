@@ -40,6 +40,21 @@ The mode is logged at startup (`Ingestion mode: FROM SCRATCH | CONTINUE`).
    The fresh cursors written during the scratch run are the newest rows, so
    continue mode automatically resumes from them.
 
+## Excluding datasets
+
+Set the optional `EXCLUDED_DATASET_URLS` env var to a comma-separated list of
+dataset URLs to skip. Feeds belonging to a listed dataset are filtered out in
+`get_feeds`, so they are never crawled or ingested. Comparison is an exact
+match on the dataset URL (surrounding whitespace is ignored).
+
+```bash
+EXCLUDED_DATASET_URLS=https://data.everyoneactive.com/OpenActive/,https://example.com/feed
+```
+
+The active exclusion list is logged when feeds are loaded
+(`Excluding datasets from ingestion: [...]`). Unset or empty (the default)
+excludes nothing.
+
 ## Files
 
 | File | Purpose |
