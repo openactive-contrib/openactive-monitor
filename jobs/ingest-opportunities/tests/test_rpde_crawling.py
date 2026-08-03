@@ -23,6 +23,7 @@ import sys
 import unittest
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from rpde import _build_initial_url, access_feed_url
 
 # Allow importing the job modules (request_client, rpde) when run from anywhere.
 JOB_ROOT = Path(__file__).resolve().parent.parent
@@ -36,11 +37,12 @@ logger = logging.getLogger(__name__)
 # Feeds reported as failing during ingestion despite being browser-accessible.
 PROBLEMATIC_FEED_URLS = [
     # "https://halo-openactive.legendonlineservices.co.uk/api/facility-uses/events",
-    "https://halo-openactive.legendonlineservices.co.uk/api/sessions",
+    # "https://halo-openactive.legendonlineservices.co.uk/api/sessions",
     # "https://lsbuactive-openactive.legendonlineservices.co.uk/api/facility-uses/events",
     # "https://salfordcommunityleisure-openactive.legendonlineservices.co.uk/api/facility-uses/events",
     # "https://sllandinspireall-openactive.legendonlineservices.co.uk/api/facility-uses/events",
     # "https://tendringcouncil-openactive.legendonlineservices.co.uk/api/sessions",
+    "https://opendata.leisurecloud.live/api/feeds/EveryoneActive-live-slots"
 ]
 
 
@@ -69,6 +71,16 @@ def _crawl_feed(url: str) -> tuple[str, str | None]:
             after_id=None,
             after_change_number=None,
         )
+        after_timestamp = result.get("after_timestamp")
+        after_id = result.get("after_id")
+        after_change_number = result.get("after_change_number")
+        last_url = _build_initial_url(url, after_timestamp, after_id, after_change_number)
+        print(
+            f"Feed {url} completed: {result.get('items_count')} items | "
+            f"last accessed url={last_url} "
+            f"(after_timestamp={after_timestamp}, after_id={after_id}, "
+            f"after_change_number={after_change_number})"
+        )
     except Exception as exc:  # noqa: BLE001 - record any failure per feed
         logger.error("Feed %s raised an exception: %s", url, exc)
         return url, f"exception: {exc}"
@@ -87,7 +99,16 @@ def _crawl_feed(url: str) -> tuple[str, str | None]:
         )
         return url, f"status={status}"
 
-    logger.info("Feed %s completed: %s items", url, result.get("items_count"))
+    after_timestamp = result.get("after_timestamp")
+    after_id = result.get("after_id")
+    after_change_number = result.get("after_change_number")
+    last_url = _build_initial_url(url, after_timestamp, after_id, after_change_number)
+    print(
+        f"Feed {url} completed: {result.get('items_count')} items | "
+        f"last accessed url={last_url} "
+        f"(after_timestamp={after_timestamp}, after_id={after_id}, "
+        f"after_change_number={after_change_number})"
+    )
     return url, None
 
 

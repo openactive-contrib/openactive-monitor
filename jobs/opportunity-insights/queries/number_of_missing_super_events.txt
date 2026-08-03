@@ -1,0 +1,57 @@
+WITH extracted_super_events AS (
+  SELECT
+    dataset_url,
+    data_id,
+    -- Native BigQuery JSON access: backticks escape special characters like '@'
+    TRIM(
+      COALESCE(
+        SAFE.STRING(has_superEvent.`@id`),
+        SAFE.STRING(has_superEvent.id),
+        SAFE.STRING(has_superEvent)
+      ),
+      '" '
+    ) AS superevent_iri
+  FROM
+    `openactive-monitor.openactive_analytics.opportunities`
+),
+
+-- Filter down to records that actually reference a superEvent
+sub_events AS (
+  SELECT
+    dataset_url,
+    data_id,
+    superevent_iri
+  FROM
+    extracted_super_events
+  WHERE
+    superevent_iri IS NOT NULL
+    AND superevent_iri != ''
+),
+
+-- Get distinct valid data_ids present in each dataset
+existing_records AS (
+  SELECT DISTINCT
+    dataset_url,
+    data_id
+  FROM
+    `openactive-monitor.openactive_analytics.opportunities`
+  WHERE
+    data_id IS NOT NULL
+)
+
+SELECT
+  child.dataset_url,
+  COUNT(1) AS total_subevents_referencing_superevent,
+  COUNTIF(parent.data_id IS NULL) AS missing_superevent_references,
+  COUNT(DISTINCT IF(parent.data_id IS NULL, child.superevent_iri, NULL)) AS unique_missing_superevents
+FROM
+  sub_events child
+LEFT JOIN
+  existing_records parent
+ON
+  child.dataset_url = parent.dataset_url
+  AND child.superevent_iri = parent.data_id
+GROUP BY
+  child.dataset_url
+ORDER BY
+  missing_superevent_references DESC;
