@@ -30,7 +30,7 @@ DF_COLUMNS = [
     "publisher_name", "district_code", "region_code", "country_code", "country_name",
     "nhstrust_name", "nhstrust_code",
     "startDate", "endDate", "ageRange", "level", "has_superEvent", "has_subEvent",
-    "accessibilitySupport", "genderRestriction",
+    "accessibilitySupport", "genderRestriction", "isAccessibleForFree",
     "organization_name", "organization_json",
     "last_updated",
 ]
@@ -80,6 +80,26 @@ def _strip_quotes_list(value: Any) -> Any:
     if isinstance(value, str):
         return value.strip('"')
     return value
+
+
+def _normalize_bool(value: Any) -> bool | None:
+    """Coerce a raw ``isAccessibleForFree`` value to a bool, or None when absent.
+
+    Deliberately avoids the ``value or None`` idiom used for string fields, which
+    would collapse a legitimate ``False`` to ``None``. Also tolerates the string
+    encodings ("true"/"false") that some feeds emit.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        v = value.strip().lower()
+        if v in {"true", "1", "yes", "y", "t"}:
+            return True
+        if v in {"false", "0", "no", "n", "f"}:
+            return False
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -349,6 +369,7 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
                 "has_subEvent":         _strip_quotes_list(data.get("subEvent")),
                 "accessibilitySupport": get_accessibility_support(data),
                 "genderRestriction":    (data.get("genderRestriction") or None),
+                "isAccessibleForFree":  _normalize_bool(data.get("isAccessibleForFree")),
                 "organization_name":    get_organization_name(data),
                 "organization_json":    get_organization_payload(data),
                 "last_updated":         datetime.now(timezone.utc).date(),
@@ -596,6 +617,9 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         and _is_slot_empty(df.at[idx, "genderRestriction"])
     ):
         df.at[idx, "genderRestriction"] = inherited_gender
+    inherited_free = _normalize_bool(inherited_data.get("isAccessibleForFree"))
+    if inherited_free is not None and _is_slot_empty(df.at[idx, "isAccessibleForFree"]):
+        df.at[idx, "isAccessibleForFree"] = inherited_free
     inherited_org_name = get_organization_name(inherited_data)
     if inherited_org_name and _is_slot_empty(df.at[idx, "organization_name"]):
         df.at[idx, "organization_name"] = inherited_org_name
