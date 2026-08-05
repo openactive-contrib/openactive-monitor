@@ -64,6 +64,7 @@ OPPORTUNITIES_COLUMNS = [
     "has_subEvent",
     "accessibilitySupport",
     "genderRestriction",
+    "isAccessibleForFree",
     "organization_name",
     "organization_json",
     "last_updated",
