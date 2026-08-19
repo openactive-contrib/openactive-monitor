@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import time
+from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
@@ -451,8 +452,13 @@ def delete_dataset_opportunities(
     now: datetime | None = None,
     base_delay_seconds: int = DEFAULT_DELETE_RETRY_BASE_SECONDS,
     max_delay_seconds: int = DEFAULT_DELETE_RETRY_MAX_SECONDS,
+    feed_actual_deletes: dict[str, int] | None = None,
 ) -> int:
-    """Delete opportunities rows by dataset_url + feed_id + id (ignores modified)."""
+    """Delete opportunities rows by dataset_url + feed_id + id (ignores modified).
+
+    When ``feed_actual_deletes`` is provided it is populated in place with the number of
+    rows actually removed from the table per ``feed_id`` (``num_dml_affected_rows``).
+    """
     if pending_deletes is None:
         pending_deletes = {}
     if now is None:
@@ -497,18 +503,32 @@ def delete_dataset_opportunities(
     total_deleted = 0
     deferred_keys: set[str] = set()
     batch_size = DELETE_BATCH_SIZE
-    sorted_keys = sorted(composite_keys)
 
-    for start in range(0, len(sorted_keys), batch_size):
-        logger.debug("Processing batch delete %d of %d", len(sorted_keys), batch_size)
-        batch_keys = sorted_keys[start:start + batch_size]
-        deleted_count, deferred_count = _delete_batch_with_streaming_buffer_fallback(
-            client,
-            query,
-            batch_keys,
-        )
-        total_deleted += deleted_count
-        deferred_keys.update(deferred_count)
+    # Group keys by feed_id so num_dml_affected_rows can be attributed to the correct feed.
+    keys_by_feed: dict[str, list[str]] = defaultdict(list)
+    for composite_key in composite_keys:
+        parsed = _parse_composite_key(composite_key)
+        feed_id = parsed[1] if parsed else ""
+        keys_by_feed[feed_id].append(composite_key)
+
+    for feed_id, feed_keys in keys_by_feed.items():
+        sorted_keys = sorted(feed_keys)
+        feed_deleted = 0
+        for start in range(0, len(sorted_keys), batch_size):
+            logger.debug("Processing batch delete %d of %d", len(sorted_keys), batch_size)
+            batch_keys = sorted_keys[start:start + batch_size]
+            deleted_count, deferred_count = _delete_batch_with_streaming_buffer_fallback(
+                client,
+                query,
+                batch_keys,
+            )
+            feed_deleted += deleted_count
+            deferred_keys.update(deferred_count)
+        total_deleted += feed_deleted
+        if feed_actual_deletes is not None:
+            feed_actual_deletes[feed_id] = feed_actual_deletes.get(feed_id, 0) + feed_deleted
+
+    sorted_keys = sorted(composite_keys)
 
     attempted_keys = set(sorted_keys)
     resolved_keys = attempted_keys - deferred_keys
