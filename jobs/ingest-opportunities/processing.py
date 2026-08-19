@@ -319,13 +319,24 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
     ``result`` is the dict returned by ``rpde.access_feed_url`` (or any
     equivalent shape — the only field used is ``items``, a list of
     ``{state, kind, id, modified, data}`` dicts).
+
+    A single RPDE traversal can surface the same ``id`` more than once when the
+    feed changes mid-pagination (e.g. ``updated`` on page 1, ``updated`` on page
+    2, ``deleted`` on page 3). RPDE orders items by ``modified`` ascending, so an
+    id's **last** occurrence reflects its current state. We therefore collapse to
+    that last occurrence and route it to exactly one of the returned buckets.
+    This prevents an id from landing in both ``updated`` and ``deleted``.
     """
     updated: list[dict] = []
     deleted: list[dict] = []
+
+    last_item_by_id: dict[Any, dict] = {}
     for item in result.get("items", []):
         if not isinstance(item, dict):
             continue
+        last_item_by_id[item.get("id")] = item
 
+    for item in last_item_by_id.values():
         if item.get("state") == "deleted":
             deleted.append({
                 "dataset_url": dataset_url,
