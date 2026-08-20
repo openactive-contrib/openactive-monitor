@@ -284,6 +284,50 @@ def get_last_ingestion_info_batch(feed_ids: list[str]) -> dict[str, tuple[str | 
     return cursor_by_feed_id
 
 
+def get_dataset_feed_opportunity_counts(dataset_url: str) -> dict[str, dict[str, int]]:
+    """Return per-feed opportunity counts for a dataset from the opportunities table.
+
+    For each ``feed_id`` under ``dataset_url`` this returns the total number of rows and the
+    number of future opportunities (``startDate >= TIMESTAMP(CURRENT_DATE())``, i.e. today's
+    midnight). Only the top-level ``startDate`` column is considered.
+
+    Returns:
+        Mapping of ``feed_id`` -> ``{"total": int, "future": int}``.
+    """
+    if not dataset_url:
+        return {}
+
+    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}"
+
+    query = f"""
+        SELECT
+          feed_id,
+          COUNT(*) AS total,
+          COUNTIF(startDate IS NOT NULL AND startDate >= TIMESTAMP(CURRENT_DATE())) AS future
+        FROM `{table_id}`
+        WHERE dataset_url = @dataset_url
+          AND feed_id IS NOT NULL
+        GROUP BY feed_id
+    """
+
+    client = bigquery.Client(project=BIGQUERY_PROJECT)
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("dataset_url", "STRING", dataset_url)
+        ]
+    )
+
+    rows = client.query(query, job_config=job_config).result()
+    counts_by_feed_id: dict[str, dict[str, int]] = {}
+    for row in rows:
+        counts_by_feed_id[row["feed_id"]] = {
+            "total": int(row["total"] or 0),
+            "future": int(row["future"] or 0),
+        }
+
+    return counts_by_feed_id
+
+
 def get_dataset_opportunities(
     dataset_url: str,
     required_data_ids: list[str] | None = None,

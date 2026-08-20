@@ -105,6 +105,8 @@ Append-only log of per-feed opportunity ingestion runs with cursor tracking.
 | `deleted` | INTEGER | NULLABLE | Number of items the feed requested to delete in this run |
 | `actual_deletes` | INTEGER | NULLABLE | Rows actually removed from `opportunities` for this feed this run (`num_dml_affected_rows`) |
 | `pending_deletes` | INTEGER | NULLABLE | This feed's delete keys still deferred (BigQuery streaming buffer) when the ingestion record was written |
+| `total_opportunities` | INTEGER | NULLABLE | Total rows in `opportunities` for this feed at the time the ingestion record was written |
+| `total_future_opportunities` | INTEGER | NULLABLE | Rows in `opportunities` for this feed whose top-level `startDate >= TIMESTAMP(CURRENT_DATE())` (today's midnight) at write time |
 | `status` | STRING | NULLABLE | `COMPLETE`, `ERROR`, or `WARNING`. On a mid-feed failure with partial progress the status is `ERROR` but the collected items and advanced cursor are still persisted, so the next run resumes. |
 
 ---

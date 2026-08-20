@@ -153,6 +153,8 @@ Append-only log of per-feed opportunity ingestion runs with cursor tracking.
 | `deleted` | INTEGER | Number of items the feed requested to delete |
 | `actual_deletes` | INTEGER | Number of rows actually removed from `opportunities` for this feed in this run (`num_dml_affected_rows`) |
 | `pending_deletes` | INTEGER | Number of this feed's delete keys still deferred (BigQuery streaming buffer) when the ingestion record was written |
+| `total_opportunities` | INTEGER | Total rows in `opportunities` for this feed at the time the ingestion record was written |
+| `total_future_opportunities` | INTEGER | Rows in `opportunities` for this feed whose top-level `startDate >= TIMESTAMP(CURRENT_DATE())` (today's midnight) at write time |
 | `afterTimestamp` | STRING | RPDE cursor: afterTimestamp |
 | `afterId` | STRING | RPDE cursor: afterId |
 | `afterChangeNumber` | INTEGER | RPDE cursor: afterChangeNumber |

@@ -18,6 +18,7 @@ from bigquery_ops import (
     delete_dataset_opportunities,
     drain_deferred_deletes_until_timeout,
     get_dataset_facility_uses,
+    get_dataset_feed_opportunity_counts,
     get_dataset_opportunities,
     get_feeds,
     get_last_ingestion_info_batch,
@@ -449,6 +450,16 @@ def _build_ingestion_records(
     """
     records_to_write: list[dict[str, Any]] = []
 
+    # Snapshot the current per-feed opportunity counts for this dataset at build time.
+    try:
+        opportunity_counts = get_dataset_feed_opportunity_counts(dataset_url)
+    except Exception:
+        logger.exception(
+            "Failed fetching opportunity counts for dataset %s; recording NULL totals",
+            dataset_url,
+        )
+        opportunity_counts = {}
+
     # Snapshot per-feed pending delete counts for this dataset at build time.
     pending_by_feed: dict[str, int] = defaultdict(int)
     with pending_deletes_lock:
@@ -460,6 +471,9 @@ def _build_ingestion_records(
         feed_id = dataset_feed["id"]
         state = feed_states.get(feed_id, {})
         pending_count = pending_by_feed.get(feed_id, 0)
+        feed_counts = opportunity_counts.get(feed_id)
+        total_opportunities = feed_counts["total"] if feed_counts else 0
+        total_future_opportunities = feed_counts["future"] if feed_counts else 0
 
         if feed_id in persisted_feed_ids and feed_id not in failed_feed_ids:
             record = {
@@ -471,6 +485,8 @@ def _build_ingestion_records(
                 "deleted": state.get("deleted", 0),
                 "actual_deletes": state.get("actual_deletes", 0),
                 "pending_deletes": pending_count,
+                "total_opportunities": total_opportunities,
+                "total_future_opportunities": total_future_opportunities,
                 "afterTimestamp": state.get("next_afterTimestamp"),
                 "afterId": state.get("next_afterId"),
                 "afterChangeNumber": state.get("next_afterChangeNumber"),
@@ -487,6 +503,8 @@ def _build_ingestion_records(
                 "deleted": 0,
                 "actual_deletes": 0,
                 "pending_deletes": pending_count,
+                "total_opportunities": total_opportunities,
+                "total_future_opportunities": total_future_opportunities,
                 "afterTimestamp": state.get("previous_afterTimestamp"),
                 "afterId": state.get("previous_afterId"),
                 "afterChangeNumber": state.get("previous_afterChangeNumber"),
