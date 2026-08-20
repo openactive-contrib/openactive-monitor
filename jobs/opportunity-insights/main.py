@@ -149,6 +149,9 @@ def _build_feed_insights_rows(
             "num_opportunity_items": int(base.get("num_opportunity_items") or 0),
             "num_future_opportunity_items": int(base.get("num_future_opportunity_items") or 0),
             "num_future_week_opportunity_items": int(base.get("num_future_week_opportunity_items") or 0),
+            "num_items_narrow": int(base.get("num_items_narrow") or 0),
+            "num_future_opportunity_items_narrow": int(base.get("num_future_opportunity_items_narrow") or 0),
+            "num_future_week_opportunity_items_narrow": int(base.get("num_future_week_opportunity_items_narrow") or 0),
             "num_opportunity_start_dates": int(base.get("num_opportunity_items") or 0),
             "num_future_opportunity_start_dates": int(base.get("num_future_opportunity_items") or 0),
             "num_future_week_opportunity_start_dates": int(base.get("num_future_week_opportunity_items") or 0),
@@ -437,6 +440,9 @@ def _compute_scope_totals(
         "total_items": sum_by_scope("num_items"),
         "total_future": sum_by_scope("num_future_opportunity_items"),
         "total_future_week": sum_by_scope("num_future_week_opportunity_items"),
+        "total_items_narrow": sum_by_scope("num_items_narrow"),
+        "total_future_narrow": sum_by_scope("num_future_opportunity_items_narrow"),
+        "total_future_week_narrow": sum_by_scope("num_future_week_opportunity_items_narrow"),
     }
 
 
@@ -470,6 +476,9 @@ def _build_summary_row(
     total_items = totals["total_items"]
     total_future = totals["total_future"]
     total_future_week = totals["total_future_week"]
+    total_items_narrow = totals["total_items_narrow"]
+    total_future_narrow = totals["total_future_narrow"]
+    total_future_week_narrow = totals["total_future_week_narrow"]
 
     return {
         "run_date": run_date,
@@ -491,12 +500,15 @@ def _build_summary_row(
         "total_num_items":                                   total_items["all"],
         "total_num_items_regular":                           total_items["regular"],
         "total_num_items_preview":                           total_items["preview"],
+        "total_num_items_narrow":                            total_items_narrow["all"],
         "total_num_future_opportunity_items":                total_future["all"],
         "total_num_future_opportunity_items_regular":        total_future["regular"],
         "total_num_future_opportunity_items_preview":        total_future["preview"],
+        "total_num_future_opportunity_items_narrow":         total_future_narrow["all"],
         "total_num_future_week_opportunity_items":           total_future_week["all"],
         "total_num_future_week_opportunity_items_regular":   total_future_week["regular"],
         "total_num_future_week_opportunity_items_preview":   total_future_week["preview"],
+        "total_num_future_week_opportunity_items_narrow":    total_future_week_narrow["all"],
         "total_num_item_kinds":                              len(categories["item_kind"]["all"]),
         "total_num_item_types":                              len(categories["item_type"]["all"]),
         "total_num_organizer_names":                         len(categories["organizer"]["all"]),

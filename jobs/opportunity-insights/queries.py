@@ -44,9 +44,57 @@ def per_feed_base_metrics(opportunities_table: str, reference_date: date | None 
                 startDate IS NOT NULL
                 AND startDate >= TIMESTAMP({reference_date_sql})
                 AND startDate <  TIMESTAMP(DATE_ADD({reference_date_sql}, INTERVAL 7 DAY))
-              ) AS num_future_week_opportunity_items
+              ) AS num_future_week_opportunity_items,
+              -- Narrow variants: exclude bookable Slot rows (their parent facility
+              -- is credited separately via slot_super_agg below).
+              COUNTIF(kind != 'Slot') AS num_items_nonslot,
+              COUNTIF(
+                kind != 'Slot'
+                AND startDate IS NOT NULL
+                AND startDate >= TIMESTAMP({reference_date_sql})
+              ) AS num_future_nonslot,
+              COUNTIF(
+                kind != 'Slot'
+                AND startDate IS NOT NULL
+                AND startDate >= TIMESTAMP({reference_date_sql})
+                AND startDate <  TIMESTAMP(DATE_ADD({reference_date_sql}, INTERVAL 7 DAY))
+              ) AS num_future_week_nonslot
             FROM `{opportunities_table}`
             WHERE feed_id IS NOT NULL
+            GROUP BY dataset_url, feed_id
+          ),
+          slot_super AS (
+            -- Inline (embedded) superEvent objects referenced by Slot rows.
+            -- has_superEvent is a STRING holding JSON; JSON_VALUE(...,'$."@id"')
+            -- yields the @id for an inline object and NULL for a bare @id string,
+            -- so this naturally selects only embedded superEvent objects.
+            SELECT
+              dataset_url,
+              feed_id,
+              JSON_VALUE(has_superEvent, '$."@id"') AS super_id,
+              startDate
+            FROM `{opportunities_table}`
+            WHERE feed_id IS NOT NULL
+              AND kind = 'Slot'
+              AND JSON_VALUE(has_superEvent, '$."@id"') IS NOT NULL
+          ),
+          slot_super_agg AS (
+            SELECT
+              dataset_url,
+              feed_id,
+              COUNT(DISTINCT super_id) AS num_super_items,
+              COUNT(DISTINCT IF(
+                startDate IS NOT NULL
+                AND startDate >= TIMESTAMP({reference_date_sql}),
+                super_id, NULL
+              )) AS num_future_super_items,
+              COUNT(DISTINCT IF(
+                startDate IS NOT NULL
+                AND startDate >= TIMESTAMP({reference_date_sql})
+                AND startDate <  TIMESTAMP(DATE_ADD({reference_date_sql}, INTERVAL 7 DAY)),
+                super_id, NULL
+              )) AS num_future_week_super_items
+            FROM slot_super
             GROUP BY dataset_url, feed_id
           ),
           {_inline_subevents_cte(opportunities_table)},
@@ -85,9 +133,18 @@ def per_feed_base_metrics(opportunities_table: str, reference_date: date | None 
           r.num_items,
           r.num_opportunity_items + COALESCE(i.inline_num_opportunity_items, 0) AS num_opportunity_items,
           r.num_future_opportunity_items + COALESCE(i.inline_num_future_opportunity_items, 0) AS num_future_opportunity_items,
-          r.num_future_week_opportunity_items + COALESCE(i.inline_num_future_week_opportunity_items, 0) AS num_future_week_opportunity_items
+          r.num_future_week_opportunity_items + COALESCE(i.inline_num_future_week_opportunity_items, 0) AS num_future_week_opportunity_items,
+          r.num_items_nonslot + COALESCE(s.num_super_items, 0) AS num_items_narrow,
+          r.num_future_nonslot
+            + COALESCE(i.inline_num_future_opportunity_items, 0)
+            + COALESCE(s.num_future_super_items, 0) AS num_future_opportunity_items_narrow,
+          r.num_future_week_nonslot
+            + COALESCE(i.inline_num_future_week_opportunity_items, 0)
+            + COALESCE(s.num_future_week_super_items, 0) AS num_future_week_opportunity_items_narrow
         FROM root AS r
         LEFT JOIN inline_agg AS i
+          USING (dataset_url, feed_id)
+        LEFT JOIN slot_super_agg AS s
           USING (dataset_url, feed_id)
     """
 
