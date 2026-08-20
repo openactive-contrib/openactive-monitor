@@ -71,6 +71,11 @@ raw totals over-count real-world opportunities. The narrow variants drop `Slot`
 rows and instead credit each Slot's **embedded** (inline) `has_superEvent`
 facility once, de-duplicated by superEvent `@id` **within each feed**.
 
+The `active_opportunities_summary` table applies the same idea per output group in
+`opportunity_count_narrow` (a sibling of `opportunity_count`): `Slot` rows are
+excluded and each Slot's embedded superEvent facility is credited once,
+de-duplicated by superEvent `@id` within the group.
+
 ## Files
 
 | File | Purpose |

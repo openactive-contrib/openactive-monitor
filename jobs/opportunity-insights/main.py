@@ -705,6 +705,20 @@ def _load_district_lookup(geo_dir: Path) -> dict[str, dict[str, Any]]:
         return json.load(handle)
 
 
+def _active_summary_group_key(rec: dict[str, Any]) -> tuple:
+    """Grouping key shared by ``active_opportunities_summary`` and its narrow-count
+    query, used to join per-group ``opportunity_count_narrow`` back onto the rows."""
+    return (
+        rec.get("district_name"),
+        rec.get("nhstrust_name"),
+        rec.get("nhstrust_code"),
+        rec.get("publisher"),
+        rec.get("provider"),
+        rec.get("is_activity"),
+        rec.get("activity_or_facility"),
+    )
+
+
 def _run_api_tables_export(
     opportunities_tbl: str,
     feeds_tbl: str,
@@ -721,6 +735,15 @@ def _run_api_tables_export(
     df = bigquery_ops.run_query(
         queries.active_opportunities_summary(opportunities_tbl, feeds_tbl, reference_date)
     )
+    df_narrow = bigquery_ops.run_query(
+        queries.active_opportunities_summary_narrow_counts(
+            opportunities_tbl, feeds_tbl, reference_date
+        )
+    )
+    narrow_by_group = {
+        _active_summary_group_key(rec): int(rec.get("opportunity_count_narrow") or 0)
+        for rec in df_narrow.to_dict("records")
+    }
     lookup = _load_district_lookup(geo_dir)
 
     rows: list[dict[str, Any]] = []
@@ -733,6 +756,7 @@ def _run_api_tables_export(
             "publisher": rec.get("publisher"),
             "provider": rec.get("provider"),
             "opportunity_count": int(rec.get("opportunity_count") or 0),
+            "opportunity_count_narrow": narrow_by_group.get(_active_summary_group_key(rec), 0),
             "is_activity": rec.get("is_activity"),
             # JSON array string from TO_JSON_STRING(...) -> stored as JSON column.
             "activity_or_facility": rec.get("activity_or_facility"),
