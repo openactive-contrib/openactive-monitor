@@ -54,6 +54,28 @@ GeoJSONs and the Sport-England mapping CSVs) that live in the **`volume-1`
 GCS bucket** under `data-analysis/`. They are mounted into the container at
 runtime via a Cloud Run **Cloud Storage volume**.
 
+## Run-summary "narrow" opportunity totals
+
+`insight_run_summary` also records three **narrow** totals alongside the existing
+`total_num_items` / `total_num_future_opportunity_items` /
+`total_num_future_week_opportunity_items` figures:
+
+| Column | Meaning |
+|--------|---------|
+| `total_num_items_narrow` | Total items excluding bookable `Slot` rows, **plus** the count of distinct embedded superEvent facilities they reference. |
+| `total_num_future_opportunity_items_narrow` | As above, restricted to future items: future non-`Slot` rows (incl. inline subEvents) plus distinct superEvents that have ≥1 future-dated `Slot` child. |
+| `total_num_future_week_opportunity_items_narrow` | As above within the next 7 days. |
+
+A `Slot` represents a single bookable time on a facility (`FacilityUse`), so the
+raw totals over-count real-world opportunities. The narrow variants drop `Slot`
+rows and instead credit each Slot's **embedded** (inline) `has_superEvent`
+facility once, de-duplicated by superEvent `@id` **within each feed**.
+
+The `active_opportunities_summary` table applies the same idea per output group in
+`opportunity_count_narrow` (a sibling of `opportunity_count`): `Slot` rows are
+excluded and each Slot's embedded superEvent facility is credited once,
+de-duplicated by superEvent `@id` within the group.
+
 ## Files
 
 | File | Purpose |

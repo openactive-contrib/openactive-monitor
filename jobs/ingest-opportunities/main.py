@@ -18,6 +18,7 @@ from bigquery_ops import (
     delete_dataset_opportunities,
     drain_deferred_deletes_until_timeout,
     get_dataset_facility_uses,
+    get_dataset_feed_opportunity_counts,
     get_dataset_opportunities,
     get_feeds,
     get_last_ingestion_info_batch,
@@ -156,6 +157,7 @@ def _initialize_feed_states(dataset_url: str, dataset_feeds: list[dict[str, Any]
             "status": None,
             "updated": 0,
             "deleted": 0,
+            "actual_deletes": 0,
         }
         for dataset_feed in dataset_feeds
     }
@@ -234,6 +236,7 @@ def _persist_dataset_results(
     dataset_deletes: list[dict[str, Any]],
     pending_deletes: dict[str, dict[str, Any]],
     pending_deletes_lock: threading.Lock,
+    feed_states: dict[str, dict[str, Any]],
 ) -> None:
     """
     Persist collected dataset rows to BigQuery opportunities after denormalization.
@@ -242,6 +245,7 @@ def _persist_dataset_results(
         dataset_updates: List of dataset rows.
         dataset_deletes: List of dataset deletes.
         pending_deletes: List of pending deletes.
+        feed_states: Per-feed state, updated in place with actual delete counts.
     """
     total_start = perf_counter()
     logger.info(
@@ -267,7 +271,18 @@ def _persist_dataset_results(
         }
 
     phase_start = perf_counter()
-    delete_dataset_opportunities(dataset_deletes, pending_deletes=local_pending_deletes)
+    feed_actual_deletes: dict[str, int] = {}
+    delete_dataset_opportunities(
+        dataset_deletes,
+        pending_deletes=local_pending_deletes,
+        feed_actual_deletes=feed_actual_deletes,
+    )
+
+    for feed_id, actual_deleted in feed_actual_deletes.items():
+        if feed_id in feed_states:
+            feed_states[feed_id]["actual_deletes"] = (
+                feed_states[feed_id].get("actual_deletes", 0) + actual_deleted
+            )
 
     with pending_deletes_lock:
         for key in attempted_delete_keys:
@@ -416,6 +431,8 @@ def _build_ingestion_records(
     feed_states: dict[str, dict[str, Any]],
     persisted_feed_ids: set[str],
     failed_feed_ids: set[str],
+    pending_deletes: dict[str, dict[str, Any]],
+    pending_deletes_lock: threading.Lock,
 ) -> list[dict[str, Any]]:
     """
     Build ingestion-summary rows based on per-feed batch outcomes.
@@ -426,14 +443,37 @@ def _build_ingestion_records(
         feed_states: Dictionary of feed states.
         persisted_feed_ids: Feed IDs for batches that were fully persisted.
         failed_feed_ids: Feed IDs for the batch that failed (safe fallback marks those as ERROR).
+        pending_deletes: Shared map of deferred deletes, used to count per-feed pending deletes.
+        pending_deletes_lock: Lock guarding pending_deletes.
     Returns:
         List of opportunity_ingestion record dicts to write to BigQuery.
     """
     records_to_write: list[dict[str, Any]] = []
 
+    # Snapshot the current per-feed opportunity counts for this dataset at build time.
+    try:
+        opportunity_counts = get_dataset_feed_opportunity_counts(dataset_url)
+    except Exception:
+        logger.exception(
+            "Failed fetching opportunity counts for dataset %s; recording NULL totals",
+            dataset_url,
+        )
+        opportunity_counts = {}
+
+    # Snapshot per-feed pending delete counts for this dataset at build time.
+    pending_by_feed: dict[str, int] = defaultdict(int)
+    with pending_deletes_lock:
+        for metadata in pending_deletes.values():
+            if metadata.get("dataset_url") == dataset_url:
+                pending_by_feed[str(metadata.get("feed_id"))] += 1
+
     for dataset_feed in dataset_feeds:
         feed_id = dataset_feed["id"]
         state = feed_states.get(feed_id, {})
+        pending_count = pending_by_feed.get(feed_id, 0)
+        feed_counts = opportunity_counts.get(feed_id)
+        total_opportunities = feed_counts["total"] if feed_counts else 0
+        total_future_opportunities = feed_counts["future"] if feed_counts else 0
 
         if feed_id in persisted_feed_ids and feed_id not in failed_feed_ids:
             record = {
@@ -443,6 +483,10 @@ def _build_ingestion_records(
                 "ingestion_date": datetime.now(timezone.utc),
                 "updated": state.get("updated", 0),
                 "deleted": state.get("deleted", 0),
+                "actual_deletes": state.get("actual_deletes", 0),
+                "pending_deletes": pending_count,
+                "total_opportunities": total_opportunities,
+                "total_future_opportunities": total_future_opportunities,
                 "afterTimestamp": state.get("next_afterTimestamp"),
                 "afterId": state.get("next_afterId"),
                 "afterChangeNumber": state.get("next_afterChangeNumber"),
@@ -457,6 +501,10 @@ def _build_ingestion_records(
                 "ingestion_date": datetime.now(timezone.utc),
                 "updated": 0,
                 "deleted": 0,
+                "actual_deletes": 0,
+                "pending_deletes": pending_count,
+                "total_opportunities": total_opportunities,
+                "total_future_opportunities": total_future_opportunities,
                 "afterTimestamp": state.get("previous_afterTimestamp"),
                 "afterId": state.get("previous_afterId"),
                 "afterChangeNumber": state.get("previous_afterChangeNumber"),
@@ -517,6 +565,7 @@ def _process_single_dataset(
                     dataset_deletes,
                     pending_deletes,
                     pending_deletes_lock,
+                    feed_states,
                 )
                 persisted_feed_ids.update(current_batch_feed_ids)
                 current_batch_feed_ids = set()
@@ -534,6 +583,8 @@ def _process_single_dataset(
                 feed_states,
                 persisted_feed_ids,
                 failed_feed_ids,
+                pending_deletes,
+                pending_deletes_lock,
             )
             try:
                 write_opportunity_ingestion_records(records_to_write)

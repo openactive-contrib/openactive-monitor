@@ -44,9 +44,57 @@ def per_feed_base_metrics(opportunities_table: str, reference_date: date | None 
                 startDate IS NOT NULL
                 AND startDate >= TIMESTAMP({reference_date_sql})
                 AND startDate <  TIMESTAMP(DATE_ADD({reference_date_sql}, INTERVAL 7 DAY))
-              ) AS num_future_week_opportunity_items
+              ) AS num_future_week_opportunity_items,
+              -- Narrow variants: exclude bookable Slot rows (their parent facility
+              -- is credited separately via slot_super_agg below).
+              COUNTIF(kind != 'Slot') AS num_items_nonslot,
+              COUNTIF(
+                kind != 'Slot'
+                AND startDate IS NOT NULL
+                AND startDate >= TIMESTAMP({reference_date_sql})
+              ) AS num_future_nonslot,
+              COUNTIF(
+                kind != 'Slot'
+                AND startDate IS NOT NULL
+                AND startDate >= TIMESTAMP({reference_date_sql})
+                AND startDate <  TIMESTAMP(DATE_ADD({reference_date_sql}, INTERVAL 7 DAY))
+              ) AS num_future_week_nonslot
             FROM `{opportunities_table}`
             WHERE feed_id IS NOT NULL
+            GROUP BY dataset_url, feed_id
+          ),
+          slot_super AS (
+            -- Inline (embedded) superEvent objects referenced by Slot rows.
+            -- has_superEvent is a STRING holding JSON; JSON_VALUE(...,'$."@id"')
+            -- yields the @id for an inline object and NULL for a bare @id string,
+            -- so this naturally selects only embedded superEvent objects.
+            SELECT
+              dataset_url,
+              feed_id,
+              JSON_VALUE(has_superEvent, '$."@id"') AS super_id,
+              startDate
+            FROM `{opportunities_table}`
+            WHERE feed_id IS NOT NULL
+              AND kind = 'Slot'
+              AND JSON_VALUE(has_superEvent, '$."@id"') IS NOT NULL
+          ),
+          slot_super_agg AS (
+            SELECT
+              dataset_url,
+              feed_id,
+              COUNT(DISTINCT super_id) AS num_super_items,
+              COUNT(DISTINCT IF(
+                startDate IS NOT NULL
+                AND startDate >= TIMESTAMP({reference_date_sql}),
+                super_id, NULL
+              )) AS num_future_super_items,
+              COUNT(DISTINCT IF(
+                startDate IS NOT NULL
+                AND startDate >= TIMESTAMP({reference_date_sql})
+                AND startDate <  TIMESTAMP(DATE_ADD({reference_date_sql}, INTERVAL 7 DAY)),
+                super_id, NULL
+              )) AS num_future_week_super_items
+            FROM slot_super
             GROUP BY dataset_url, feed_id
           ),
           {_inline_subevents_cte(opportunities_table)},
@@ -85,9 +133,18 @@ def per_feed_base_metrics(opportunities_table: str, reference_date: date | None 
           r.num_items,
           r.num_opportunity_items + COALESCE(i.inline_num_opportunity_items, 0) AS num_opportunity_items,
           r.num_future_opportunity_items + COALESCE(i.inline_num_future_opportunity_items, 0) AS num_future_opportunity_items,
-          r.num_future_week_opportunity_items + COALESCE(i.inline_num_future_week_opportunity_items, 0) AS num_future_week_opportunity_items
+          r.num_future_week_opportunity_items + COALESCE(i.inline_num_future_week_opportunity_items, 0) AS num_future_week_opportunity_items,
+          r.num_items_nonslot + COALESCE(s.num_super_items, 0) AS num_items_narrow,
+          r.num_future_nonslot
+            + COALESCE(i.inline_num_future_opportunity_items, 0)
+            + COALESCE(s.num_future_super_items, 0) AS num_future_opportunity_items_narrow,
+          r.num_future_week_nonslot
+            + COALESCE(i.inline_num_future_week_opportunity_items, 0)
+            + COALESCE(s.num_future_week_super_items, 0) AS num_future_week_opportunity_items_narrow
         FROM root AS r
         LEFT JOIN inline_agg AS i
+          USING (dataset_url, feed_id)
+        LEFT JOIN slot_super_agg AS s
           USING (dataset_url, feed_id)
     """
 
@@ -395,6 +452,75 @@ def active_opportunities_summary(
           TO_JSON_STRING(activity_or_facility_arr) AS activity_or_facility,
           COUNT(*) AS opportunity_count,
           TO_JSON_STRING(ARRAY_AGG(DISTINCT organization_name IGNORE NULLS ORDER BY organization_name)) AS organization_names
+        FROM base
+        GROUP BY district_name, nhstrust_name, nhstrust_code, publisher, provider, is_activity, activity_or_facility
+    """
+
+
+def active_opportunities_summary_narrow_counts(
+    opportunities_table: str,
+    feeds_table: str,
+    reference_date: date | None = None,
+) -> str:
+    """Narrow active-opportunity counts per the same group as ``active_opportunities_summary``.
+
+    Computes ``opportunity_count_narrow``: ``Slot`` rows are excluded and instead
+    each Slot's **embedded (inline)** ``has_superEvent`` facility is credited once,
+    de-duplicated by superEvent ``@id`` within each output group. Bare ``@id``-string
+    superEvent references yield NULL (via ``JSON_VALUE(...,'$."@id"')``) and are
+    ignored, since those FacilityUse rows already appear as their own non-Slot rows.
+
+    Grouping keys and filters mirror ``active_opportunities_summary`` exactly so the
+    result can be joined back onto it one-to-one. Kept as a separate function to
+    avoid complicating the primary query.
+    """
+    reference_date_sql = (
+        f"DATE '{reference_date.isoformat()}'" if reference_date else "CURRENT_DATE()"
+    )
+    return f"""
+        WITH feeds_dedup AS (
+          SELECT dataset_url, publisher_name, provider
+          FROM `{feeds_table}`
+          QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY dataset_url ORDER BY last_access DESC
+          ) = 1
+        ),
+        base AS (
+          SELECT
+            o.district_name,
+            o.nhstrust_name,
+            o.nhstrust_code,
+            fd.publisher_name AS publisher,
+            fd.provider,
+            NOT COALESCE(
+              o.kind IN ('FacilityUse', 'IndividualFacilityUse', 'Slot'), FALSE
+            ) AS is_activity,
+            CASE
+              WHEN o.kind IN ('FacilityUse', 'IndividualFacilityUse', 'Slot')
+                THEN JSON_VALUE_ARRAY(o.facility)
+              ELSE JSON_VALUE_ARRAY(o.activity)
+            END AS activity_or_facility_arr,
+            o.kind AS kind,
+            JSON_VALUE(o.has_superEvent, '$."@id"') AS super_id
+          FROM `{opportunities_table}` AS o
+          LEFT JOIN feeds_dedup AS fd
+            ON o.dataset_url = fd.dataset_url
+          WHERE o.startDate >= TIMESTAMP({reference_date_sql})
+            AND o.district_name IS NOT NULL
+            AND TRIM(o.district_name) != ''
+            AND fd.publisher_name IS NOT NULL
+            AND TRIM(fd.publisher_name) != ''
+        )
+        SELECT
+          district_name,
+          nhstrust_name,
+          nhstrust_code,
+          publisher,
+          provider,
+          is_activity,
+          TO_JSON_STRING(activity_or_facility_arr) AS activity_or_facility,
+          COUNTIF(kind != 'Slot')
+            + COUNT(DISTINCT IF(kind = 'Slot', super_id, NULL)) AS opportunity_count_narrow
         FROM base
         GROUP BY district_name, nhstrust_name, nhstrust_code, publisher, provider, is_activity, activity_or_facility
     """

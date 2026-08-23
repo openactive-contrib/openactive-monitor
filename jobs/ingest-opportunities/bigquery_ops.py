@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import time
+from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
@@ -283,6 +284,50 @@ def get_last_ingestion_info_batch(feed_ids: list[str]) -> dict[str, tuple[str | 
     return cursor_by_feed_id
 
 
+def get_dataset_feed_opportunity_counts(dataset_url: str) -> dict[str, dict[str, int]]:
+    """Return per-feed opportunity counts for a dataset from the opportunities table.
+
+    For each ``feed_id`` under ``dataset_url`` this returns the total number of rows and the
+    number of future opportunities (``startDate >= TIMESTAMP(CURRENT_DATE())``, i.e. today's
+    midnight). Only the top-level ``startDate`` column is considered.
+
+    Returns:
+        Mapping of ``feed_id`` -> ``{"total": int, "future": int}``.
+    """
+    if not dataset_url:
+        return {}
+
+    table_id = f"{BIGQUERY_PROJECT}.{BIGQUERY_DATASET}.{OPPORTUNITIES_TABLE}"
+
+    query = f"""
+        SELECT
+          feed_id,
+          COUNT(*) AS total,
+          COUNTIF(startDate IS NOT NULL AND startDate >= TIMESTAMP(CURRENT_DATE())) AS future
+        FROM `{table_id}`
+        WHERE dataset_url = @dataset_url
+          AND feed_id IS NOT NULL
+        GROUP BY feed_id
+    """
+
+    client = bigquery.Client(project=BIGQUERY_PROJECT)
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("dataset_url", "STRING", dataset_url)
+        ]
+    )
+
+    rows = client.query(query, job_config=job_config).result()
+    counts_by_feed_id: dict[str, dict[str, int]] = {}
+    for row in rows:
+        counts_by_feed_id[row["feed_id"]] = {
+            "total": int(row["total"] or 0),
+            "future": int(row["future"] or 0),
+        }
+
+    return counts_by_feed_id
+
+
 def get_dataset_opportunities(
     dataset_url: str,
     required_data_ids: list[str] | None = None,
@@ -451,8 +496,13 @@ def delete_dataset_opportunities(
     now: datetime | None = None,
     base_delay_seconds: int = DEFAULT_DELETE_RETRY_BASE_SECONDS,
     max_delay_seconds: int = DEFAULT_DELETE_RETRY_MAX_SECONDS,
+    feed_actual_deletes: dict[str, int] | None = None,
 ) -> int:
-    """Delete opportunities rows by dataset_url + feed_id + id (ignores modified)."""
+    """Delete opportunities rows by dataset_url + feed_id + id (ignores modified).
+
+    When ``feed_actual_deletes`` is provided it is populated in place with the number of
+    rows actually removed from the table per ``feed_id`` (``num_dml_affected_rows``).
+    """
     if pending_deletes is None:
         pending_deletes = {}
     if now is None:
@@ -497,18 +547,32 @@ def delete_dataset_opportunities(
     total_deleted = 0
     deferred_keys: set[str] = set()
     batch_size = DELETE_BATCH_SIZE
-    sorted_keys = sorted(composite_keys)
 
-    for start in range(0, len(sorted_keys), batch_size):
-        logger.debug("Processing batch delete %d of %d", len(sorted_keys), batch_size)
-        batch_keys = sorted_keys[start:start + batch_size]
-        deleted_count, deferred_count = _delete_batch_with_streaming_buffer_fallback(
-            client,
-            query,
-            batch_keys,
-        )
-        total_deleted += deleted_count
-        deferred_keys.update(deferred_count)
+    # Group keys by feed_id so num_dml_affected_rows can be attributed to the correct feed.
+    keys_by_feed: dict[str, list[str]] = defaultdict(list)
+    for composite_key in composite_keys:
+        parsed = _parse_composite_key(composite_key)
+        feed_id = parsed[1] if parsed else ""
+        keys_by_feed[feed_id].append(composite_key)
+
+    for feed_id, feed_keys in keys_by_feed.items():
+        sorted_keys = sorted(feed_keys)
+        feed_deleted = 0
+        for start in range(0, len(sorted_keys), batch_size):
+            logger.debug("Processing batch delete %d of %d", len(sorted_keys), batch_size)
+            batch_keys = sorted_keys[start:start + batch_size]
+            deleted_count, deferred_count = _delete_batch_with_streaming_buffer_fallback(
+                client,
+                query,
+                batch_keys,
+            )
+            feed_deleted += deleted_count
+            deferred_keys.update(deferred_count)
+        total_deleted += feed_deleted
+        if feed_actual_deletes is not None:
+            feed_actual_deletes[feed_id] = feed_actual_deletes.get(feed_id, 0) + feed_deleted
+
+    sorted_keys = sorted(composite_keys)
 
     attempted_keys = set(sorted_keys)
     resolved_keys = attempted_keys - deferred_keys

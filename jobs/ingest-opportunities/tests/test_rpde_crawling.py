@@ -42,7 +42,8 @@ PROBLEMATIC_FEED_URLS = [
     # "https://salfordcommunityleisure-openactive.legendonlineservices.co.uk/api/facility-uses/events",
     # "https://sllandinspireall-openactive.legendonlineservices.co.uk/api/facility-uses/events",
     # "https://tendringcouncil-openactive.legendonlineservices.co.uk/api/sessions",
-    "https://opendata.leisurecloud.live/api/feeds/EveryoneActive-live-slots"
+    # "https://actihire.bookteq.com/api/open-active/slots",
+    "https://ashmoletrust.bookteq.com/api/open-active/slots",
 ]
 
 
@@ -77,6 +78,7 @@ def _crawl_feed(url: str) -> tuple[str, str | None]:
         last_url = _build_initial_url(url, after_timestamp, after_id, after_change_number)
         print(
             f"Feed {url} completed: {result.get('items_count')} items | "
+            f"status: {result.get('status')} "
             f"last accessed url={last_url} "
             f"(after_timestamp={after_timestamp}, after_id={after_id}, "
             f"after_change_number={after_change_number})"

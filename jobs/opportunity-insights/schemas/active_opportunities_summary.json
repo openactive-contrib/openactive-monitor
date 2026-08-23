@@ -3,6 +3,7 @@
   {"name": "publisher",            "type": "STRING",  "mode": "NULLABLE"},
   {"name": "provider",             "type": "STRING",  "mode": "NULLABLE"},
   {"name": "opportunity_count",    "type": "INTEGER", "mode": "NULLABLE"},
+  {"name": "opportunity_count_narrow", "type": "INTEGER", "mode": "NULLABLE", "description": "Like opportunity_count but excluding Slot rows; each Slot's embedded (inline) superEvent facility is credited once, de-duplicated by superEvent @id within the group."},
   {"name": "is_activity",          "type": "BOOL",    "mode": "NULLABLE", "description": "TRUE if activity_or_facility holds activities, FALSE if it holds facilities (FacilityUse/IndividualFacilityUse/Slot)"},
   {"name": "activity_or_facility", "type": "JSON",    "mode": "NULLABLE", "description": "JSON array of activity labels (or facility types for FacilityUse/IndividualFacilityUse/Slot)"},
   {"name": "organization_names",  "type": "JSON",    "mode": "NULLABLE", "description": "JSON array of distinct organization_name values for the group"},
