@@ -320,6 +320,137 @@ def _make_feed_id(url: str) -> str:
     )
 
 
+# Suffixes appended to a provider's sub-domain label on hosted OpenActive
+# endpoints (e.g. "strouddistrictcouncil-openactive.legendonlineservices.co.uk").
+_PUBLISHER_URL_SUFFIXES = ("-openactive", "-oa")
+
+
+def _publisher_from_dataset_url(url: str) -> str:
+    """Derive a fallback publisher name from a dataset URL.
+
+    Used when the dataset's JSON-LD provides no ``publisher.name``. Takes the
+    left-most sub-domain label of the host and strips common OpenActive
+    markers, e.g.::
+
+        https://strouddistrictcouncil-openactive.legendonlineservices.co.uk/OpenActive
+        -> "strouddistrictcouncil"
+
+    Returns an empty string when nothing usable can be extracted.
+    """
+    from urllib.parse import urlparse
+
+    try:
+        netloc = urlparse(url).netloc.lower()
+    except Exception:
+        return ""
+
+    if not netloc:
+        return ""
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+
+    # Left-most sub-domain label, without any port suffix.
+    label = netloc.split(".", 1)[0].split(":", 1)[0]
+
+    for suffix in _PUBLISHER_URL_SUFFIXES:
+        if label.endswith(suffix) and len(label) > len(suffix):
+            label = label[: -len(suffix)]
+            break
+
+    return label
+
+
+def _resolve_publisher_name(publisher_name: str, dataset_url: str) -> str:
+    """Return ``publisher_name`` if present, else a fallback from ``dataset_url``."""
+    if publisher_name and publisher_name.strip():
+        return publisher_name
+    return _publisher_from_dataset_url(dataset_url)
+
+
+def _labelled_publisher_name(name: str, dataset_url: str) -> str:
+    """Return ``"<name> (<sub-domain label>)"`` for a colliding dataset.
+
+    Falls back to the bare ``name`` when no label can be derived, or when the
+    label is already present (keeps the operation idempotent).
+    """
+    label = _publisher_from_dataset_url(dataset_url)
+    if label and f"({label})" not in name:
+        return f"{name} ({label})"
+    return name
+
+
+def _numbered_publisher_name(candidate: str, occurrence: int) -> str:
+    """Append an incremental number to a still-duplicate candidate name.
+
+    The first occurrence is returned unchanged; later ones get the number added
+    inside a trailing ``(...)`` group when present, else in a new one, e.g.
+    ``"Name (label)" -> "Name (label 2)"`` and ``"Name" -> "Name (2)"``.
+    """
+    if occurrence <= 1:
+        return candidate
+    if candidate.endswith(")"):
+        return f"{candidate[:-1]} {occurrence})"
+    return f"{candidate} ({occurrence})"
+
+
+def _colliding_publisher_names(frame: pd.DataFrame) -> set[str]:
+    """Non-blank names used by more than one distinct ``url`` in *frame*."""
+    non_blank = frame[frame["name"].str.strip() != ""]
+    distinct_urls = non_blank.groupby("name")["url"].nunique()
+    return set(distinct_urls[distinct_urls > 1].index)
+
+
+def _disambiguate_publisher_names(
+    publisher_names: pd.Series, dataset_urls: pd.Series
+) -> pd.Series:
+    """Make publisher names unique when shared by more than one dataset.
+
+    When the same non-blank ``publisher_name`` is used by more than one distinct
+    ``dataset_url``, each colliding row's name becomes
+    ``"<name> (<sub-domain label>)"`` (the label coming from
+    :func:`_publisher_from_dataset_url`) so the datasets stay distinguishable,
+    e.g. two "Coram's Fields" feeds hosted at ``coramsfields.*`` and
+    ``coramsfieldsindoorspaces.*``.
+
+    Two distinct dataset URLs can still yield the *same* sub-domain label (e.g.
+    ``southwarkcouncil.bookteq.com`` and ``southwarkcouncil-oa.leisurecloud.net``
+    both reduce to ``southwarkcouncil``). When that happens an incremental number
+    is appended so the names remain unique, e.g. ``"Southwark Council
+    (southwarkcouncil)"`` and ``"Southwark Council (southwarkcouncil 2)"``.
+
+    Feeds sharing a ``dataset_url`` keep an identical name. Names mapping to a
+    single ``dataset_url`` are returned unchanged. Numbering is deterministic
+    (dataset URLs are processed in sorted order), so repeated runs are stable.
+    """
+    names = publisher_names.fillna("").astype(str)
+    urls = dataset_urls.fillna("").astype(str)
+
+    frame = pd.DataFrame({"name": names, "url": urls})
+    colliding = _colliding_publisher_names(frame)
+
+    # One name per distinct colliding dataset_url (feeds that share a dataset_url
+    # must share a name); sorted so the incremental numbering is deterministic.
+    per_url = (
+        frame[frame["name"].isin(colliding)]
+        .drop_duplicates(subset="url")
+        .sort_values("url")
+    )
+
+    url_to_name: dict[str, str] = {}
+    occurrences: dict[str, int] = {}
+    for _, row in per_url.iterrows():
+        candidate = _labelled_publisher_name(row["name"], row["url"])
+        occurrences[candidate] = occurrences.get(candidate, 0) + 1
+        url_to_name[row["url"]] = _numbered_publisher_name(
+            candidate, occurrences[candidate]
+        )
+
+    return pd.Series(
+        [url_to_name.get(u, n) for n, u in zip(names, urls)],
+        index=publisher_names.index,
+    )
+
+
 def _extract_provider(url: str) -> str:
     """Extract the domain (provider) from a URL.
 
@@ -390,7 +521,9 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
                 "provider": provider,
                 "license_url": feed["license_url"],
                 "logo_url": feed["logo_url"],
-                "publisher_name": feed["publisher_name"],
+                "publisher_name": _resolve_publisher_name(
+                    feed["publisher_name"], feed["dataset_url"]
+                ),
                 "rpde_version": feed.get("rpde_version", ""),
                 "model_version": feed.get("model_version", ""),
                 "is_regular": bool(feed.get("is_regular", False)),
@@ -403,6 +536,10 @@ def _feeds_to_dataframe(feeds: list[dict]) -> pd.DataFrame:
     # main() collects preview first, then regular, so this preserves is_regular=True
     # when a feed appears in both catalogues.
     df = df.drop_duplicates(subset="id", keep="last").reset_index(drop=True)
+    # Disambiguate publisher names shared by more than one dataset.
+    df["publisher_name"] = _disambiguate_publisher_names(
+        df["publisher_name"], df["dataset_url"]
+    )
     return df
 
 
