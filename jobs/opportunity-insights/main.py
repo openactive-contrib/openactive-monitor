@@ -707,15 +707,21 @@ def _load_district_lookup(geo_dir: Path) -> dict[str, dict[str, Any]]:
 
 def _active_summary_group_key(rec: dict[str, Any]) -> tuple:
     """Grouping key shared by ``active_opportunities_summary`` and its narrow-count
-    query, used to join per-group ``opportunity_count_narrow`` back onto the rows."""
+    query, used to join per-group ``opportunity_count_narrow`` back onto the rows.
+
+    Missing values are normalised to ``None`` so keys match regardless of whether a
+    NULL surfaces from BigQuery as ``None`` or a pandas ``NaN``/``NA``.
+    """
+    def norm(v: Any) -> Any:
+        return None if bigquery_ops._is_missing_value(v) else v
     return (
-        rec.get("district_name"),
-        rec.get("nhstrust_name"),
-        rec.get("nhstrust_code"),
-        rec.get("publisher"),
-        rec.get("provider"),
-        rec.get("is_activity"),
-        rec.get("activity_or_facility"),
+        norm(rec.get("district_name")),
+        norm(rec.get("nhstrust_name")),
+        norm(rec.get("nhstrust_code")),
+        norm(rec.get("publisher")),
+        norm(rec.get("provider")),
+        norm(rec.get("is_activity")),
+        norm(rec.get("activity_or_facility")),
     )
 
 
