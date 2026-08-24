@@ -64,35 +64,56 @@ def per_feed_base_metrics(opportunities_table: str, reference_date: date | None 
             GROUP BY dataset_url, feed_id
           ),
           slot_super AS (
-            -- Inline (embedded) superEvent objects referenced by Slot rows.
-            -- has_superEvent is a STRING holding JSON; JSON_VALUE(...,'$."@id"')
-            -- yields the @id for an inline object and NULL for a bare @id string,
-            -- so this naturally selects only embedded superEvent objects.
+            -- A Slot's parent facility reference lives in the JSON ``has_superEvent``
+            -- column. In practice it is a scalar URI string (the facilityUse @id),
+            -- but it may also be an inline object (carrying an ``@id`` or ``id``) or
+            -- an array of those. Normalise to one row per referenced facility so both
+            -- the items-narrow (inline objects only) and future-narrow (all refs)
+            -- terms can be derived.
             SELECT
-              dataset_url,
-              feed_id,
-              JSON_VALUE(has_superEvent, '$."@id"') AS super_id,
-              startDate
-            FROM `{opportunities_table}`
-            WHERE feed_id IS NOT NULL
-              AND kind = 'Slot'
-              AND JSON_VALUE(has_superEvent, '$."@id"') IS NOT NULL
+              o.dataset_url,
+              o.feed_id,
+              o.startDate,
+              JSON_TYPE(ref) AS ref_type,
+              CASE JSON_TYPE(ref)
+                WHEN 'object' THEN COALESCE(
+                  JSON_VALUE(ref, '$."@id"'), JSON_VALUE(ref, '$.id')
+                )
+                WHEN 'string' THEN JSON_VALUE(ref)
+                ELSE NULL
+              END AS facility_ref
+            FROM `{opportunities_table}` AS o
+            LEFT JOIN UNNEST(
+              CASE JSON_TYPE(o.has_superEvent)
+                WHEN 'array' THEN JSON_QUERY_ARRAY(o.has_superEvent)
+                ELSE [o.has_superEvent]
+              END
+            ) AS ref
+            WHERE o.feed_id IS NOT NULL
+              AND o.kind = 'Slot'
           ),
           slot_super_agg AS (
             SELECT
               dataset_url,
               feed_id,
-              COUNT(DISTINCT super_id) AS num_super_items,
+              -- Items-narrow term: inline (object) superEvents only. Facilities
+              -- referenced by a string @id already exist as their own FacilityUse /
+              -- IndividualFacilityUse rows and are counted in num_items_nonslot, so
+              -- including them here would double-count.
+              COUNT(DISTINCT IF(ref_type = 'object', facility_ref, NULL)) AS num_super_items,
+              -- Future terms: any distinct facility referenced by a future Slot.
+              -- Facility rows carry no startDate, so they are absent from
+              -- num_future_nonslot and there is no double-count.
               COUNT(DISTINCT IF(
                 startDate IS NOT NULL
                 AND startDate >= TIMESTAMP({reference_date_sql}),
-                super_id, NULL
+                facility_ref, NULL
               )) AS num_future_super_items,
               COUNT(DISTINCT IF(
                 startDate IS NOT NULL
                 AND startDate >= TIMESTAMP({reference_date_sql})
                 AND startDate <  TIMESTAMP(DATE_ADD({reference_date_sql}, INTERVAL 7 DAY)),
-                super_id, NULL
+                facility_ref, NULL
               )) AS num_future_week_super_items
             FROM slot_super
             GROUP BY dataset_url, feed_id
@@ -465,10 +486,22 @@ def active_opportunities_summary_narrow_counts(
     """Narrow active-opportunity counts per the same group as ``active_opportunities_summary``.
 
     Computes ``opportunity_count_narrow``: ``Slot`` rows are excluded and instead
-    each Slot's **embedded (inline)** ``has_superEvent`` facility is credited once,
-    de-duplicated by superEvent ``@id`` within each output group. Bare ``@id``-string
-    superEvent references yield NULL (via ``JSON_VALUE(...,'$."@id"')``) and are
-    ignored, since those FacilityUse rows already appear as their own non-Slot rows.
+    each Slot's referenced facility (``FacilityUse`` / ``IndividualFacilityUse``) is
+    credited once, de-duplicated by facility ``@id`` within each output group. The
+    net effect for facility groups (``is_activity = FALSE``) is *the number of
+    distinct future FacilityUse / IndividualFacilityUse* — i.e. facilities that have
+    at least one future ``Slot`` — rather than the raw future ``Slot`` count.
+
+    A Slot's parent facility reference is stored in the JSON ``has_superEvent``
+    column (populated from ``facilityUse`` / ``superEvent`` during ingest). It may be
+    a JSON **array** of URI strings (the common shape), a scalar URI **string**, or
+    an inline **object** carrying an ``@id``. All three shapes are handled here; the
+    earlier ``JSON_VALUE(has_superEvent, '$."@id"')`` only matched inline objects and
+    so produced 0 for the array/string shapes.
+
+    ``FacilityUse`` / ``IndividualFacilityUse`` rows themselves carry no ``startDate``
+    and are therefore excluded by the future filter, which is why they must be
+    counted via their future Slots rather than directly.
 
     Grouping keys and filters mirror ``active_opportunities_summary`` exactly so the
     result can be joined back onto it one-to-one. Kept as a separate function to
@@ -501,7 +534,16 @@ def active_opportunities_summary_narrow_counts(
               ELSE JSON_VALUE_ARRAY(o.activity)
             END AS activity_or_facility_arr,
             o.kind AS kind,
-            JSON_VALUE(o.has_superEvent, '$."@id"') AS super_id
+            -- Normalise a Slot's facility reference(s) to an array of JSON values so
+            -- array / scalar-string / object shapes can all be handled uniformly.
+            CASE
+              WHEN o.kind = 'Slot' THEN
+                CASE JSON_TYPE(o.has_superEvent)
+                  WHEN 'array' THEN JSON_QUERY_ARRAY(o.has_superEvent)
+                  ELSE [o.has_superEvent]
+                END
+              ELSE []
+            END AS super_refs
           FROM `{opportunities_table}` AS o
           LEFT JOIN feeds_dedup AS fd
             ON o.dataset_url = fd.dataset_url
@@ -510,6 +552,27 @@ def active_opportunities_summary_narrow_counts(
             AND TRIM(o.district_name) != ''
             AND fd.publisher_name IS NOT NULL
             AND TRIM(fd.publisher_name) != ''
+        ),
+        exploded AS (
+          -- LEFT JOIN UNNEST keeps non-Slot rows (empty super_refs -> single NULL ref).
+          SELECT
+            district_name,
+            nhstrust_name,
+            nhstrust_code,
+            publisher,
+            provider,
+            is_activity,
+            activity_or_facility_arr,
+            kind,
+            CASE JSON_TYPE(super_ref)
+              WHEN 'object' THEN COALESCE(
+                JSON_VALUE(super_ref, '$."@id"'), JSON_VALUE(super_ref, '$.id')
+              )
+              WHEN 'string' THEN JSON_VALUE(super_ref)
+              ELSE NULL
+            END AS slot_facility_id
+          FROM base
+          LEFT JOIN UNNEST(super_refs) AS super_ref
         )
         SELECT
           district_name,
@@ -520,8 +583,8 @@ def active_opportunities_summary_narrow_counts(
           is_activity,
           TO_JSON_STRING(activity_or_facility_arr) AS activity_or_facility,
           COUNTIF(kind != 'Slot')
-            + COUNT(DISTINCT IF(kind = 'Slot', super_id, NULL)) AS opportunity_count_narrow
-        FROM base
+            + COUNT(DISTINCT slot_facility_id) AS opportunity_count_narrow
+        FROM exploded
         GROUP BY district_name, nhstrust_name, nhstrust_code, publisher, provider, is_activity, activity_or_facility
     """
 

@@ -73,8 +73,15 @@ facility once, de-duplicated by superEvent `@id` **within each feed**.
 
 The `active_opportunities_summary` table applies the same idea per output group in
 `opportunity_count_narrow` (a sibling of `opportunity_count`): `Slot` rows are
-excluded and each Slot's embedded superEvent facility is credited once,
-de-duplicated by superEvent `@id` within the group.
+excluded and instead each Slot's referenced facility (`FacilityUse` /
+`IndividualFacilityUse`, taken from the JSON `has_superEvent` reference) is credited
+once, de-duplicated by facility `@id` within the group. For facility groups
+(`is_activity = FALSE`) this yields the count of distinct **future** facilities —
+those with at least one future `Slot` — rather than the raw future `Slot` count
+(the facility rows themselves carry no `startDate`, so they can only be counted via
+their Slots). It is computed by a separate query and merged onto the rows, so the
+main summary query stays unchanged. No table migration is needed — that table is
+rewritten with `WRITE_TRUNCATE` each run.
 
 ## Files
 
