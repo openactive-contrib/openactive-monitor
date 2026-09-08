@@ -159,6 +159,9 @@ Append-only log of per-feed opportunity ingestion runs with cursor tracking.
 | `afterId` | STRING | RPDE cursor: afterId |
 | `afterChangeNumber` | INTEGER | RPDE cursor: afterChangeNumber |
 | `status` | STRING | `COMPLETE`, `ERROR`, or `WARNING` |
+| `error_code` | STRING | Groupable token for why the run did not complete: HTTP status as text (`"403"`, `"429"`, `"503"`, …) when the failure was an HTTP error, otherwise a symbolic token: `TIMEOUT`, `SSL_ERROR`, `CONNECTION_ERROR`, `REQUEST_FAILED`, `INVALID_JSON`, `MISSING_ITEMS`, `INVALID_ITEMS`, `SELF_LOOP`, `EMPTY_PAGE`, `BATCH_FAILED`, `NOT_PROCESSED`. `NULL` when `status = COMPLETE`. Numeric filtering on HTTP codes needs `SAFE_CAST(error_code AS INT64) >= 500`. |
+| `warning_message` | STRING | Human-readable detail — the failing feed URL and/or exception text, whitespace-collapsed and truncated to 300 chars. Populated for both `ERROR` and `WARNING`. `NULL` when `status = COMPLETE`. |
+
 
 ## Environment Variables
 

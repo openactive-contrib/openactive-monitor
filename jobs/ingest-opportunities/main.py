@@ -27,7 +27,7 @@ from bigquery_ops import (
     write_opportunity_ingestion_records,
 )
 from processing import DF_COLUMNS, denormalize_dataset, extract_rows
-from rpde import access_feed_url
+from rpde import access_feed_url, truncate_message
 from self_healing import (
     backfill_location_boundaries,
     backfill_nested_ifu_inheritance,
@@ -155,6 +155,8 @@ def _initialize_feed_states(dataset_url: str, dataset_feeds: list[dict[str, Any]
             "next_afterId": None,
             "next_afterChangeNumber": None,
             "status": None,
+            "error_code": None,
+            "warning_message": None,
             "updated": 0,
             "deleted": 0,
             "actual_deletes": 0,
@@ -196,7 +198,7 @@ def _collect_dataset_feed_rows(
 
         result = access_feed_url(dataset_feed, after_timestamp, after_id, after_change_number, PERSIST_CSV)
         if result is None:
-            raise RuntimeError(f"RPDE returned no result for feed {feed_id}")
+            raise RuntimeError(f"UNEXPECTED_ERROR: RPDE returned no result for feed {feed_id}")
 
         publisher_name = dataset_feed.get("publisher_name")
         updates, deletes = extract_rows(dataset_url, feed_id, result, publisher_name=publisher_name)
@@ -210,6 +212,8 @@ def _collect_dataset_feed_rows(
         feed_states[feed_id]["next_afterId"] = result.get("after_id")
         feed_states[feed_id]["next_afterChangeNumber"] = result.get("after_change_number")
         feed_states[feed_id]["status"] = result.get("status")
+        feed_states[feed_id]["error_code"] = result.get("error_code")
+        feed_states[feed_id]["warning_message"] = result.get("warning_message")
 
     return dataset_updates, dataset_deletes
 
@@ -425,6 +429,11 @@ def _fetch_facility_uses_for_unresolved_slots(
     return None
 
 
+# Recorded as warning_message when a feed's batch never ran because an earlier
+# batch in the same dataset raised, so the feed itself was never attempted.
+NOT_PROCESSED_MESSAGE = "feed batch did not run in this dataset run"
+
+
 def _build_ingestion_records(
     dataset_url: str,
     dataset_feeds: list[dict[str, Any]],
@@ -433,6 +442,7 @@ def _build_ingestion_records(
     failed_feed_ids: set[str],
     pending_deletes: dict[str, dict[str, Any]],
     pending_deletes_lock: threading.Lock,
+    batch_failure_message: str | None = None,
 ) -> list[dict[str, Any]]:
     """
     Build ingestion-summary rows based on per-feed batch outcomes.
@@ -445,6 +455,8 @@ def _build_ingestion_records(
         failed_feed_ids: Feed IDs for the batch that failed (safe fallback marks those as ERROR).
         pending_deletes: Shared map of deferred deletes, used to count per-feed pending deletes.
         pending_deletes_lock: Lock guarding pending_deletes.
+        batch_failure_message: Bounded summary of the exception that failed the batch, used as
+            warning_message for feeds in failed_feed_ids that have no failure detail of their own.
     Returns:
         List of opportunity_ingestion record dicts to write to BigQuery.
     """
@@ -491,8 +503,22 @@ def _build_ingestion_records(
                 "afterId": state.get("next_afterId"),
                 "afterChangeNumber": state.get("next_afterChangeNumber"),
                 "status": state.get("status"),
+                "error_code": state.get("error_code"),
+                "warning_message": state.get("warning_message"),
             }
         else:
+            # A failure detail collected by the feed's own RPDE traversal is more actionable
+            # than the batch-level exception, so it wins when present.
+            fallback_code = state.get("error_code")
+            fallback_message = state.get("warning_message")
+            if fallback_message is None:
+                if feed_id in failed_feed_ids and batch_failure_message:
+                    fallback_code = "BATCH_FAILED"
+                    fallback_message = batch_failure_message
+                else:
+                    fallback_code = "NOT_PROCESSED"
+                    fallback_message = NOT_PROCESSED_MESSAGE
+
             # Keep the previous cursor so consecutive runs retry from the last successful state.
             record = {
                 "dataset_id": dataset_url,
@@ -509,6 +535,8 @@ def _build_ingestion_records(
                 "afterId": state.get("previous_afterId"),
                 "afterChangeNumber": state.get("previous_afterChangeNumber"),
                 "status": "ERROR",
+                "error_code": fallback_code,
+                "warning_message": fallback_message,
             }
 
         records_to_write.append(record)
@@ -537,6 +565,7 @@ def _process_single_dataset(
         persisted_feed_ids: set[str] = set()
         failed_feed_ids: set[str] = set()
         current_batch_feed_ids: set[str] = set()
+        batch_failure_message: str | None = None
         feed_states = _initialize_feed_states(dataset_url, dataset_feeds)
 
         try:
@@ -570,8 +599,9 @@ def _process_single_dataset(
                 persisted_feed_ids.update(current_batch_feed_ids)
                 current_batch_feed_ids = set()
                 gc.collect()
-        except Exception:
+        except Exception as exc:
             failed_feed_ids.update(current_batch_feed_ids)
+            batch_failure_message = truncate_message(f"{type(exc).__name__}: {exc}")
             logger.exception(
                 "Dataset processing failed for %s; writing ERROR ingestion status and continuing",
                 dataset_url,
@@ -585,6 +615,7 @@ def _process_single_dataset(
                 failed_feed_ids,
                 pending_deletes,
                 pending_deletes_lock,
+                batch_failure_message=batch_failure_message,
             )
             try:
                 write_opportunity_ingestion_records(records_to_write)

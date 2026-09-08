@@ -17,6 +17,11 @@ RPDE_REQUEST_TIMEOUT = 30  # seconds
 # pagination trips provider-side rate limits (403/429), so wait between pages.
 RPDE_WAIT_BETWEEN_PAGES = float(os.getenv("RPDE_WAIT_BETWEEN_PAGES", "0.0"))  # seconds
 
+# Cap on the warning_message written to opportunity_ingestion. Long enough for a
+# cursor-bearing feed URL plus exception text, short enough to stay readable and to
+# bound accidental inclusion of provider WAF/HTML body text.
+MAX_WARNING_MESSAGE_LENGTH = 300
+
 # for debugging and development
 OPPORTUNITIES_OUTPUT_DIR = os.getenv("OPPORTUNITIES_OUTPUT_DIR", "./opportunities")
 
@@ -55,6 +60,33 @@ def _extract_cursor_from_url(url: str) -> tuple[str | None, str | None, int | No
     return after_timestamp, after_id, after_change_number
 
 
+def truncate_message(message: str) -> str:
+    """Collapse whitespace and cap length so warning_message stays bounded."""
+    collapsed = " ".join(message.split())
+    if len(collapsed) <= MAX_WARNING_MESSAGE_LENGTH:
+        return collapsed
+    return collapsed[: MAX_WARNING_MESSAGE_LENGTH - 3] + "..."
+
+
+def classify_request_exception(exc: requests.RequestException) -> str:
+    """Map a requests exception to an error_code token.
+
+    Returns the HTTP status as text when the exception carries a response,
+    otherwise a symbolic token. Order matters: ConnectTimeout subclasses both
+    ConnectionError and Timeout, and SSLError subclasses ConnectionError.
+    """
+    status_code = getattr(getattr(exc, "response", None), "status_code", None)
+    if isinstance(status_code, int):
+        return str(status_code)
+    if isinstance(exc, requests.Timeout):
+        return "TIMEOUT"
+    if isinstance(exc, requests.exceptions.SSLError):
+        return "SSL_ERROR"
+    if isinstance(exc, requests.ConnectionError):
+        return "CONNECTION_ERROR"
+    return "REQUEST_FAILED"
+
+
 def access_feed_url(
     feed: dict,
     after_timestamp: str | None,
@@ -71,7 +103,9 @@ def access_feed_url(
             after_change_number: Optional RPDE cursor parameter for incremental fetching for feeds using afterChangeNumber.
             persist_data: Whether to persist the fetched items to a file for debugging purposes. Defaults to False.
         Returns:
-            Dictionary with feed_id, feed_url, items_count, items list, and status. Returns None if an unexpected error occurs.
+            Dictionary with feed_id, feed_url, items_count, items list, status, cursor values and,
+            when the traversal did not complete, an error_code token plus a warning_message detail
+            (both None on COMPLETE). Returns None if an unexpected error occurs.
     """
     feed_id = feed["id"]
     feed_url = feed["url"]
@@ -82,6 +116,8 @@ def access_feed_url(
     items: list[dict] = []
     pages_fetched = 0
     status = "COMPLETE"
+    error_code: str | None = None
+    warning_message: str | None = None
     session = build_session()
     last_after_timestamp: str | None = None
     last_after_id: str | None = None
@@ -105,15 +141,26 @@ def access_feed_url(
             except requests.RequestException as exc:
                 logger.error("Failed to fetch %s: %s", current_url, exc)
                 status = "ERROR"
+                error_code = classify_request_exception(exc)
+                if error_code.isdigit():
+                    warning_message = truncate_message(f"HTTP {error_code} fetching {current_url}")
+                else:
+                    warning_message = truncate_message(
+                        f"{type(exc).__name__} fetching {current_url}: {exc}"
+                    )
                 break
             except (json.JSONDecodeError, ValueError) as exc:
                 logger.error("Failed to parse JSON from %s after retries: %s", current_url, exc)
                 status = "ERROR"
+                error_code = "INVALID_JSON"
+                warning_message = truncate_message(f"{type(exc).__name__}: {exc} at {current_url}")
                 break
 
             if "items" not in page_data:
                 logger.warning("RPDE page missing 'items' key: %s", current_url)
                 status = "ERROR"
+                error_code = "MISSING_ITEMS"
+                warning_message = truncate_message(f"RPDE page has no 'items' key at {current_url}")
                 break
 
             page_items = page_data.get("items", [])
@@ -122,6 +169,10 @@ def access_feed_url(
             else:
                 logger.warning("RPDE page has non-list 'items': %s", current_url)
                 status = "ERROR"
+                error_code = "INVALID_ITEMS"
+                warning_message = truncate_message(
+                    f"RPDE page 'items' is {type(page_items).__name__}, expected list at {current_url}"
+                )
                 break
             pages_fetched += 1
 
@@ -142,10 +193,18 @@ def access_feed_url(
             if next_url == current_url:
                 logger.error("RPDE self-loop with non-empty items at %s", current_url)
                 status = "WARNING"
+                error_code = "SELF_LOOP"
+                warning_message = truncate_message(
+                    f"next URL equals current URL with {len(page_items)} item(s) at {current_url}"
+                )
                 break
             if len(page_items) == 0:
                 logger.error("RPDE malformed self-loop without items %s", current_url)
                 status = "WARNING"
+                error_code = "EMPTY_PAGE"
+                warning_message = truncate_message(
+                    f"non-terminal page returned 0 items at {current_url}"
+                )
                 break
 
             url = next_url
@@ -174,6 +233,8 @@ def access_feed_url(
             "items_count": len(items),
             "items": items,
             "status": status,
+            "error_code": error_code,
+            "warning_message": warning_message,
             "after_timestamp": last_after_timestamp,
             "after_id": last_after_id,
             "after_change_number": last_after_change_number,
@@ -187,7 +248,9 @@ def access_feed_url(
         return result
     except Exception as exc:
         logger.error("Unexpected error fetching feed %s: %s", feed_id, exc, exc_info=True)
-        raise RuntimeError(f"RPDE returned no result for feed {feed_id}")
+        raise RuntimeError(
+            f"UNEXPECTED_ERROR: {type(exc).__name__} traversing feed {feed_id}: {exc}"
+        ) from exc
     finally:
         session.close()
 
