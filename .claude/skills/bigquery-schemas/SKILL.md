@@ -108,6 +108,8 @@ Append-only log of per-feed opportunity ingestion runs with cursor tracking.
 | `total_opportunities` | INTEGER | NULLABLE | Total rows in `opportunities` for this feed at the time the ingestion record was written |
 | `total_future_opportunities` | INTEGER | NULLABLE | Rows in `opportunities` for this feed whose top-level `startDate >= TIMESTAMP(CURRENT_DATE())` (today's midnight) at write time |
 | `status` | STRING | NULLABLE | `COMPLETE`, `ERROR`, or `WARNING`. On a mid-feed failure with partial progress the status is `ERROR` but the collected items and advanced cursor are still persisted, so the next run resumes. |
+| `error_code` | STRING | NULLABLE | Groupable token for why the run did not complete: HTTP status as text (`"403"`, `"429"`, `"503"`, …) when the failure was an HTTP error, otherwise a symbolic token: `TIMEOUT`, `SSL_ERROR`, `CONNECTION_ERROR`, `REQUEST_FAILED`, `INVALID_JSON`, `MISSING_ITEMS`, `INVALID_ITEMS`, `SELF_LOOP`, `EMPTY_PAGE`, `BATCH_FAILED`, `NOT_PROCESSED`. `NULL` when `status = COMPLETE`. HTTP-code range filters need `SAFE_CAST(error_code AS INT64)`. |
+| `warning_message` | STRING | NULLABLE | Human-readable detail — failing feed URL and/or exception text, whitespace-collapsed and truncated to 300 chars. Populated for both `ERROR` and `WARNING`; `NULL` on `COMPLETE`. Not backfilled, so a non-`COMPLETE` row with `NULL` here predates the migration. |
 
 ---
 
