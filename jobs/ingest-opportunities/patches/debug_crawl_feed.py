@@ -158,7 +158,7 @@ def crawl_feed(feed_url: str, output_dir: Path, stem: str) -> dict:
 
 def main() -> None:
     # Set the RPDE feed URL you want to crawl here.
-    feed_url = "https://serco-openactive.legendonlineservices.co.uk/api/facility-uses/events"
+    feed_url = "https://better-admin.org.uk/api/openactive/better/scheduled-sessions?afterTimestamp=1789431308&afterId=activity:90191153"
 
     stem = sanitise_filename(feed_url)
     result = crawl_feed(feed_url, DEBUG_OUTPUT_DIR, stem)

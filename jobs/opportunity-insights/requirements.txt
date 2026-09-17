@@ -8,3 +8,4 @@ click
 geopandas
 shapely
 requests
+uklookup

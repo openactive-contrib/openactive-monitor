@@ -43,7 +43,7 @@ PROBLEMATIC_FEED_URLS = [
     # "https://sllandinspireall-openactive.legendonlineservices.co.uk/api/facility-uses/events",
     # "https://tendringcouncil-openactive.legendonlineservices.co.uk/api/sessions",
     # "https://actihire.bookteq.com/api/open-active/slots",
-    "https://ashmoletrust.bookteq.com/api/open-active/slots",
+    "https://better-admin.org.uk/api/openactive/better/scheduled-sessions?afterTimestamp=1789431308&afterId=activity:90191153",
 ]
 
 

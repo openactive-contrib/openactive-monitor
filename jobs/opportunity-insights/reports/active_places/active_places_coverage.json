@@ -1,0 +1,5875 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-17T13:07:34+00:00",
+  "run_date": "2026-09-17",
+  "source": {
+    "opportunities_table": "openactive-monitor.openactive_analytics.opportunities",
+    "active_places_data_version": "2026-09-17 03:30:29",
+    "geography_scope": "England",
+    "excluded_kinds": [
+      "Slot"
+    ]
+  },
+  "parameters": {
+    "buffer_metres": 200.0,
+    "postcode_max_metres": 1000.0,
+    "name_max_metres": 500.0,
+    "name_threshold": 0.8,
+    "venue_cluster_metres": 50.0
+  },
+  "headline": {
+    "coverage_pct": 26.4,
+    "sites_total": 27857,
+    "sites_matched": 7351,
+    "sites_missing": 20506,
+    "local_authorities": 296,
+    "venues_total": 16405,
+    "venues_matched": 7840,
+    "venues_unmatched": 8565,
+    "venues_unmatched_pct": 52.2,
+    "pairs": 10034
+  },
+  "channels": {
+    "sites_by_proximity": 6762,
+    "sites_added_by_postcode": 503,
+    "sites_added_by_name": 86,
+    "name_pairs": 161,
+    "venues_rescued_by_name": 126,
+    "postcode_lift_pct": 7.4,
+    "name_median_similarity": 1.0,
+    "name_median_distance_metres": 310.2,
+    "breakdown": [
+      {
+        "method": "spatial",
+        "pairs": 5236,
+        "sites": 4407,
+        "venues": 4243,
+        "median_distance_metres": 97.9
+      },
+      {
+        "method": "spatial_and_postcode",
+        "pairs": 2641,
+        "sites": 2385,
+        "venues": 2361,
+        "median_distance_metres": 73.7
+      },
+      {
+        "method": "spatial_centroid_only",
+        "pairs": 1113,
+        "sites": 994,
+        "venues": 955,
+        "median_distance_metres": 146.6
+      },
+      {
+        "method": "postcode",
+        "pairs": 883,
+        "sites": 811,
+        "venues": 785,
+        "median_distance_metres": 301.7
+      },
+      {
+        "method": "name",
+        "pairs": 161,
+        "sites": 161,
+        "venues": 161,
+        "median_distance_metres": 310.2
+      }
+    ]
+  },
+  "distance_sensitivity": [
+    {
+      "threshold_metres": 25,
+      "sites_matched": 1676,
+      "coverage_pct": 6.0,
+      "is_configured_buffer": false
+    },
+    {
+      "threshold_metres": 50,
+      "sites_matched": 2601,
+      "coverage_pct": 9.3,
+      "is_configured_buffer": false
+    },
+    {
+      "threshold_metres": 100,
+      "sites_matched": 4086,
+      "coverage_pct": 14.7,
+      "is_configured_buffer": false
+    },
+    {
+      "threshold_metres": 200,
+      "sites_matched": 6762,
+      "coverage_pct": 24.3,
+      "is_configured_buffer": true
+    },
+    {
+      "threshold_metres": 250,
+      "sites_matched": 7943,
+      "coverage_pct": 28.5,
+      "is_configured_buffer": false
+    },
+    {
+      "threshold_metres": 500,
+      "sites_matched": 12936,
+      "coverage_pct": 46.4,
+      "is_configured_buffer": false
+    },
+    {
+      "threshold_metres": 1000,
+      "sites_matched": 19434,
+      "coverage_pct": 69.8,
+      "is_configured_buffer": false
+    }
+  ],
+  "coverage_by_region": [
+    {
+      "region_name": "South East",
+      "sites_total": 5186,
+      "sites_matched": 1263,
+      "sites_missing": 3923,
+      "coverage_pct": 24.4
+    },
+    {
+      "region_name": "North West",
+      "sites_total": 3550,
+      "sites_matched": 859,
+      "sites_missing": 2691,
+      "coverage_pct": 24.2
+    },
+    {
+      "region_name": "South West",
+      "sites_total": 3503,
+      "sites_matched": 897,
+      "sites_missing": 2606,
+      "coverage_pct": 25.6
+    },
+    {
+      "region_name": "East of England",
+      "sites_total": 3347,
+      "sites_matched": 935,
+      "sites_missing": 2412,
+      "coverage_pct": 27.9
+    },
+    {
+      "region_name": "Yorkshire and The Humber",
+      "sites_total": 3033,
+      "sites_matched": 682,
+      "sites_missing": 2351,
+      "coverage_pct": 22.5
+    },
+    {
+      "region_name": "London",
+      "sites_total": 2826,
+      "sites_matched": 1110,
+      "sites_missing": 1716,
+      "coverage_pct": 39.3
+    },
+    {
+      "region_name": "West Midlands",
+      "sites_total": 2609,
+      "sites_matched": 633,
+      "sites_missing": 1976,
+      "coverage_pct": 24.3
+    },
+    {
+      "region_name": "East Midlands",
+      "sites_total": 2494,
+      "sites_matched": 659,
+      "sites_missing": 1835,
+      "coverage_pct": 26.4
+    },
+    {
+      "region_name": "North East",
+      "sites_total": 1309,
+      "sites_matched": 313,
+      "sites_missing": 996,
+      "coverage_pct": 23.9
+    }
+  ],
+  "coverage_by_local_authority": [
+    {
+      "local_authority_code": "E07000063",
+      "local_authority_name": "Lewes",
+      "sites_total": 62,
+      "sites_matched": 2,
+      "sites_missing": 60,
+      "coverage_pct": 3.2,
+      "oa_venues": 6,
+      "oa_venues_unmatched": 4
+    },
+    {
+      "local_authority_code": "E07000200",
+      "local_authority_name": "Babergh",
+      "sites_total": 73,
+      "sites_matched": 5,
+      "sites_missing": 68,
+      "coverage_pct": 6.8,
+      "oa_venues": 14,
+      "oa_venues_unmatched": 7
+    },
+    {
+      "local_authority_code": "E07000034",
+      "local_authority_name": "Chesterfield",
+      "sites_total": 43,
+      "sites_matched": 3,
+      "sites_missing": 40,
+      "coverage_pct": 7.0,
+      "oa_venues": 22,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E07000079",
+      "local_authority_name": "Cotswold",
+      "sites_total": 92,
+      "sites_matched": 7,
+      "sites_missing": 85,
+      "coverage_pct": 7.6,
+      "oa_venues": 18,
+      "oa_venues_unmatched": 12
+    },
+    {
+      "local_authority_code": "E07000108",
+      "local_authority_name": "Dover",
+      "sites_total": 65,
+      "sites_matched": 6,
+      "sites_missing": 59,
+      "coverage_pct": 9.2,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 16
+    },
+    {
+      "local_authority_code": "E07000039",
+      "local_authority_name": "South Derbyshire",
+      "sites_total": 68,
+      "sites_matched": 7,
+      "sites_missing": 61,
+      "coverage_pct": 10.3,
+      "oa_venues": 21,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E08000031",
+      "local_authority_name": "Wolverhampton",
+      "sites_total": 77,
+      "sites_matched": 8,
+      "sites_missing": 69,
+      "coverage_pct": 10.4,
+      "oa_venues": 13,
+      "oa_venues_unmatched": 5
+    },
+    {
+      "local_authority_code": "E07000199",
+      "local_authority_name": "Tamworth",
+      "sites_total": 27,
+      "sites_matched": 3,
+      "sites_missing": 24,
+      "coverage_pct": 11.1,
+      "oa_venues": 5,
+      "oa_venues_unmatched": 3
+    },
+    {
+      "local_authority_code": "E07000038",
+      "local_authority_name": "North East Derbyshire",
+      "sites_total": 61,
+      "sites_matched": 7,
+      "sites_missing": 54,
+      "coverage_pct": 11.5,
+      "oa_venues": 10,
+      "oa_venues_unmatched": 3
+    },
+    {
+      "local_authority_code": "E07000033",
+      "local_authority_name": "Bolsover",
+      "sites_total": 52,
+      "sites_matched": 6,
+      "sites_missing": 46,
+      "coverage_pct": 11.5,
+      "oa_venues": 11,
+      "oa_venues_unmatched": 5
+    },
+    {
+      "local_authority_code": "E07000043",
+      "local_authority_name": "North Devon",
+      "sites_total": 68,
+      "sites_matched": 8,
+      "sites_missing": 60,
+      "coverage_pct": 11.8,
+      "oa_venues": 19,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E07000071",
+      "local_authority_name": "Colchester",
+      "sites_total": 92,
+      "sites_matched": 11,
+      "sites_missing": 81,
+      "coverage_pct": 12.0,
+      "oa_venues": 38,
+      "oa_venues_unmatched": 23
+    },
+    {
+      "local_authority_code": "E07000067",
+      "local_authority_name": "Braintree",
+      "sites_total": 92,
+      "sites_matched": 11,
+      "sites_missing": 81,
+      "coverage_pct": 12.0,
+      "oa_venues": 29,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E07000207",
+      "local_authority_name": "Elmbridge",
+      "sites_total": 90,
+      "sites_matched": 11,
+      "sites_missing": 79,
+      "coverage_pct": 12.2,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 12
+    },
+    {
+      "local_authority_code": "E07000075",
+      "local_authority_name": "Rochford",
+      "sites_total": 41,
+      "sites_matched": 5,
+      "sites_missing": 36,
+      "coverage_pct": 12.2,
+      "oa_venues": 9,
+      "oa_venues_unmatched": 5
+    },
+    {
+      "local_authority_code": "E07000228",
+      "local_authority_name": "Mid Sussex",
+      "sites_total": 120,
+      "sites_matched": 15,
+      "sites_missing": 105,
+      "coverage_pct": 12.5,
+      "oa_venues": 28,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E08000007",
+      "local_authority_name": "Stockport",
+      "sites_total": 157,
+      "sites_matched": 20,
+      "sites_missing": 137,
+      "coverage_pct": 12.7,
+      "oa_venues": 56,
+      "oa_venues_unmatched": 38
+    },
+    {
+      "local_authority_code": "E07000215",
+      "local_authority_name": "Tandridge",
+      "sites_total": 71,
+      "sites_matched": 9,
+      "sites_missing": 62,
+      "coverage_pct": 12.7,
+      "oa_venues": 14,
+      "oa_venues_unmatched": 6
+    },
+    {
+      "local_authority_code": "E08000015",
+      "local_authority_name": "Wirral",
+      "sites_total": 155,
+      "sites_matched": 20,
+      "sites_missing": 135,
+      "coverage_pct": 12.9,
+      "oa_venues": 64,
+      "oa_venues_unmatched": 41
+    },
+    {
+      "local_authority_code": "E07000082",
+      "local_authority_name": "Stroud",
+      "sites_total": 91,
+      "sites_matched": 12,
+      "sites_missing": 79,
+      "coverage_pct": 13.2,
+      "oa_venues": 28,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E08000005",
+      "local_authority_name": "Rochdale",
+      "sites_total": 76,
+      "sites_matched": 10,
+      "sites_missing": 66,
+      "coverage_pct": 13.2,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 14
+    },
+    {
+      "local_authority_code": "E07000170",
+      "local_authority_name": "Ashfield",
+      "sites_total": 53,
+      "sites_matched": 7,
+      "sites_missing": 46,
+      "coverage_pct": 13.2,
+      "oa_venues": 9,
+      "oa_venues_unmatched": 3
+    },
+    {
+      "local_authority_code": "E08000016",
+      "local_authority_name": "Barnsley",
+      "sites_total": 128,
+      "sites_matched": 17,
+      "sites_missing": 111,
+      "coverage_pct": 13.3,
+      "oa_venues": 39,
+      "oa_venues_unmatched": 21
+    },
+    {
+      "local_authority_code": "E06000021",
+      "local_authority_name": "Stoke-on-Trent",
+      "sites_total": 97,
+      "sites_matched": 13,
+      "sites_missing": 84,
+      "coverage_pct": 13.4,
+      "oa_venues": 31,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E08000036",
+      "local_authority_name": "Wakefield",
+      "sites_total": 178,
+      "sites_matched": 24,
+      "sites_missing": 154,
+      "coverage_pct": 13.5,
+      "oa_venues": 72,
+      "oa_venues_unmatched": 47
+    },
+    {
+      "local_authority_code": "E07000068",
+      "local_authority_name": "Brentwood",
+      "sites_total": 59,
+      "sites_matched": 8,
+      "sites_missing": 51,
+      "coverage_pct": 13.6,
+      "oa_venues": 25,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E07000198",
+      "local_authority_name": "Staffordshire Moorlands",
+      "sites_total": 59,
+      "sites_matched": 8,
+      "sites_missing": 51,
+      "coverage_pct": 13.6,
+      "oa_venues": 24,
+      "oa_venues_unmatched": 16
+    },
+    {
+      "local_authority_code": "E07000239",
+      "local_authority_name": "Wyre Forest",
+      "sites_total": 51,
+      "sites_matched": 7,
+      "sites_missing": 44,
+      "coverage_pct": 13.7,
+      "oa_venues": 11,
+      "oa_venues_unmatched": 3
+    },
+    {
+      "local_authority_code": "E07000064",
+      "local_authority_name": "Rother",
+      "sites_total": 65,
+      "sites_matched": 9,
+      "sites_missing": 56,
+      "coverage_pct": 13.8,
+      "oa_venues": 20,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E06000034",
+      "local_authority_name": "Thurrock",
+      "sites_total": 57,
+      "sites_matched": 8,
+      "sites_missing": 49,
+      "coverage_pct": 14.0,
+      "oa_venues": 14,
+      "oa_venues_unmatched": 7
+    },
+    {
+      "local_authority_code": "E06000053",
+      "local_authority_name": "Isles of Scilly",
+      "sites_total": 7,
+      "sites_matched": 1,
+      "sites_missing": 6,
+      "coverage_pct": 14.3,
+      "oa_venues": 1,
+      "oa_venues_unmatched": 0
+    },
+    {
+      "local_authority_code": "E07000111",
+      "local_authority_name": "Sevenoaks",
+      "sites_total": 97,
+      "sites_matched": 14,
+      "sites_missing": 83,
+      "coverage_pct": 14.4,
+      "oa_venues": 41,
+      "oa_venues_unmatched": 26
+    },
+    {
+      "local_authority_code": "E07000174",
+      "local_authority_name": "Mansfield",
+      "sites_total": 55,
+      "sites_matched": 8,
+      "sites_missing": 47,
+      "coverage_pct": 14.5,
+      "oa_venues": 10,
+      "oa_venues_unmatched": 3
+    },
+    {
+      "local_authority_code": "E07000146",
+      "local_authority_name": "King's Lynn and West Norfolk",
+      "sites_total": 102,
+      "sites_matched": 15,
+      "sites_missing": 87,
+      "coverage_pct": 14.7,
+      "oa_venues": 43,
+      "oa_venues_unmatched": 27
+    },
+    {
+      "local_authority_code": "E07000069",
+      "local_authority_name": "Castle Point",
+      "sites_total": 34,
+      "sites_matched": 5,
+      "sites_missing": 29,
+      "coverage_pct": 14.7,
+      "oa_venues": 11,
+      "oa_venues_unmatched": 5
+    },
+    {
+      "local_authority_code": "E07000196",
+      "local_authority_name": "South Staffordshire",
+      "sites_total": 73,
+      "sites_matched": 11,
+      "sites_missing": 62,
+      "coverage_pct": 15.1,
+      "oa_venues": 26,
+      "oa_venues_unmatched": 13
+    },
+    {
+      "local_authority_code": "E07000114",
+      "local_authority_name": "Thanet",
+      "sites_total": 58,
+      "sites_matched": 9,
+      "sites_missing": 49,
+      "coverage_pct": 15.5,
+      "oa_venues": 27,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E07000209",
+      "local_authority_name": "Guildford",
+      "sites_total": 93,
+      "sites_matched": 15,
+      "sites_missing": 78,
+      "coverage_pct": 16.1,
+      "oa_venues": 48,
+      "oa_venues_unmatched": 26
+    },
+    {
+      "local_authority_code": "E07000083",
+      "local_authority_name": "Tewkesbury",
+      "sites_total": 74,
+      "sites_matched": 12,
+      "sites_missing": 62,
+      "coverage_pct": 16.2,
+      "oa_venues": 34,
+      "oa_venues_unmatched": 22
+    },
+    {
+      "local_authority_code": "E06000009",
+      "local_authority_name": "Blackpool",
+      "sites_total": 49,
+      "sites_matched": 8,
+      "sites_missing": 41,
+      "coverage_pct": 16.3,
+      "oa_venues": 16,
+      "oa_venues_unmatched": 7
+    },
+    {
+      "local_authority_code": "E08000014",
+      "local_authority_name": "Sefton",
+      "sites_total": 128,
+      "sites_matched": 21,
+      "sites_missing": 107,
+      "coverage_pct": 16.4,
+      "oa_venues": 50,
+      "oa_venues_unmatched": 27
+    },
+    {
+      "local_authority_code": "E07000181",
+      "local_authority_name": "West Oxfordshire",
+      "sites_total": 97,
+      "sites_matched": 16,
+      "sites_missing": 81,
+      "coverage_pct": 16.5,
+      "oa_venues": 16,
+      "oa_venues_unmatched": 4
+    },
+    {
+      "local_authority_code": "E07000080",
+      "local_authority_name": "Forest of Dean",
+      "sites_total": 72,
+      "sites_matched": 12,
+      "sites_missing": 60,
+      "coverage_pct": 16.7,
+      "oa_venues": 24,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E07000076",
+      "local_authority_name": "Tendring",
+      "sites_total": 66,
+      "sites_matched": 11,
+      "sites_missing": 55,
+      "coverage_pct": 16.7,
+      "oa_venues": 40,
+      "oa_venues_unmatched": 31
+    },
+    {
+      "local_authority_code": "E08000013",
+      "local_authority_name": "St. Helens",
+      "sites_total": 89,
+      "sites_matched": 15,
+      "sites_missing": 74,
+      "coverage_pct": 16.9,
+      "oa_venues": 30,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E07000197",
+      "local_authority_name": "Stafford",
+      "sites_total": 83,
+      "sites_matched": 14,
+      "sites_missing": 69,
+      "coverage_pct": 16.9,
+      "oa_venues": 35,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E07000110",
+      "local_authority_name": "Maidstone",
+      "sites_total": 99,
+      "sites_matched": 17,
+      "sites_missing": 82,
+      "coverage_pct": 17.2,
+      "oa_venues": 41,
+      "oa_venues_unmatched": 24
+    },
+    {
+      "local_authority_code": "E06000049",
+      "local_authority_name": "Cheshire East",
+      "sites_total": 208,
+      "sites_matched": 36,
+      "sites_missing": 172,
+      "coverage_pct": 17.3,
+      "oa_venues": 73,
+      "oa_venues_unmatched": 34
+    },
+    {
+      "local_authority_code": "E06000051",
+      "local_authority_name": "Shropshire",
+      "sites_total": 217,
+      "sites_matched": 38,
+      "sites_missing": 179,
+      "coverage_pct": 17.5,
+      "oa_venues": 77,
+      "oa_venues_unmatched": 33
+    },
+    {
+      "local_authority_code": "E08000023",
+      "local_authority_name": "South Tyneside",
+      "sites_total": 62,
+      "sites_matched": 11,
+      "sites_missing": 51,
+      "coverage_pct": 17.7,
+      "oa_venues": 13,
+      "oa_venues_unmatched": 3
+    },
+    {
+      "local_authority_code": "E06000047",
+      "local_authority_name": "County Durham",
+      "sites_total": 309,
+      "sites_matched": 55,
+      "sites_missing": 254,
+      "coverage_pct": 17.8,
+      "oa_venues": 116,
+      "oa_venues_unmatched": 61
+    },
+    {
+      "local_authority_code": "E07000012",
+      "local_authority_name": "South Cambridgeshire",
+      "sites_total": 118,
+      "sites_matched": 21,
+      "sites_missing": 97,
+      "coverage_pct": 17.8,
+      "oa_venues": 43,
+      "oa_venues_unmatched": 23
+    },
+    {
+      "local_authority_code": "E07000171",
+      "local_authority_name": "Bassetlaw",
+      "sites_total": 78,
+      "sites_matched": 14,
+      "sites_missing": 64,
+      "coverage_pct": 17.9,
+      "oa_venues": 37,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E07000127",
+      "local_authority_name": "West Lancashire",
+      "sites_total": 61,
+      "sites_matched": 11,
+      "sites_missing": 50,
+      "coverage_pct": 18.0,
+      "oa_venues": 30,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E08000034",
+      "local_authority_name": "Kirklees",
+      "sites_total": 259,
+      "sites_matched": 47,
+      "sites_missing": 212,
+      "coverage_pct": 18.1,
+      "oa_venues": 96,
+      "oa_venues_unmatched": 48
+    },
+    {
+      "local_authority_code": "E07000044",
+      "local_authority_name": "South Hams",
+      "sites_total": 76,
+      "sites_matched": 14,
+      "sites_missing": 62,
+      "coverage_pct": 18.4,
+      "oa_venues": 26,
+      "oa_venues_unmatched": 15
+    },
+    {
+      "local_authority_code": "E07000010",
+      "local_authority_name": "Fenland",
+      "sites_total": 49,
+      "sites_matched": 9,
+      "sites_missing": 40,
+      "coverage_pct": 18.4,
+      "oa_venues": 11,
+      "oa_venues_unmatched": 3
+    },
+    {
+      "local_authority_code": "E07000192",
+      "local_authority_name": "Cannock Chase",
+      "sites_total": 38,
+      "sites_matched": 7,
+      "sites_missing": 31,
+      "coverage_pct": 18.4,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 14
+    },
+    {
+      "local_authority_code": "E07000074",
+      "local_authority_name": "Maldon",
+      "sites_total": 54,
+      "sites_matched": 10,
+      "sites_missing": 44,
+      "coverage_pct": 18.5,
+      "oa_venues": 14,
+      "oa_venues_unmatched": 5
+    },
+    {
+      "local_authority_code": "E08000033",
+      "local_authority_name": "Calderdale",
+      "sites_total": 139,
+      "sites_matched": 26,
+      "sites_missing": 113,
+      "coverage_pct": 18.7,
+      "oa_venues": 68,
+      "oa_venues_unmatched": 40
+    },
+    {
+      "local_authority_code": "E06000020",
+      "local_authority_name": "Telford and Wrekin",
+      "sites_total": 75,
+      "sites_matched": 14,
+      "sites_missing": 61,
+      "coverage_pct": 18.7,
+      "oa_venues": 21,
+      "oa_venues_unmatched": 9
+    },
+    {
+      "local_authority_code": "E07000227",
+      "local_authority_name": "Horsham",
+      "sites_total": 101,
+      "sites_matched": 19,
+      "sites_missing": 82,
+      "coverage_pct": 18.8,
+      "oa_venues": 42,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E07000089",
+      "local_authority_name": "Hart",
+      "sites_total": 64,
+      "sites_matched": 12,
+      "sites_missing": 52,
+      "coverage_pct": 18.8,
+      "oa_venues": 29,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E07000093",
+      "local_authority_name": "Test Valley",
+      "sites_total": 90,
+      "sites_matched": 17,
+      "sites_missing": 73,
+      "coverage_pct": 18.9,
+      "oa_venues": 48,
+      "oa_venues_unmatched": 32
+    },
+    {
+      "local_authority_code": "E07000037",
+      "local_authority_name": "High Peak",
+      "sites_total": 74,
+      "sites_matched": 14,
+      "sites_missing": 60,
+      "coverage_pct": 18.9,
+      "oa_venues": 33,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E07000107",
+      "local_authority_name": "Dartford",
+      "sites_total": 53,
+      "sites_matched": 10,
+      "sites_missing": 43,
+      "coverage_pct": 18.9,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 13
+    },
+    {
+      "local_authority_code": "E07000212",
+      "local_authority_name": "Runnymede",
+      "sites_total": 47,
+      "sites_matched": 9,
+      "sites_missing": 38,
+      "coverage_pct": 19.1,
+      "oa_venues": 19,
+      "oa_venues_unmatched": 9
+    },
+    {
+      "local_authority_code": "E07000203",
+      "local_authority_name": "Mid Suffolk",
+      "sites_total": 73,
+      "sites_matched": 14,
+      "sites_missing": 59,
+      "coverage_pct": 19.2,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 12
+    },
+    {
+      "local_authority_code": "E07000081",
+      "local_authority_name": "Gloucester",
+      "sites_total": 73,
+      "sites_matched": 14,
+      "sites_missing": 59,
+      "coverage_pct": 19.2,
+      "oa_venues": 21,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E07000036",
+      "local_authority_name": "Erewash",
+      "sites_total": 52,
+      "sites_matched": 10,
+      "sites_missing": 42,
+      "coverage_pct": 19.2,
+      "oa_venues": 22,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E07000120",
+      "local_authority_name": "Hyndburn",
+      "sites_total": 52,
+      "sites_matched": 10,
+      "sites_missing": 42,
+      "coverage_pct": 19.2,
+      "oa_venues": 19,
+      "oa_venues_unmatched": 9
+    },
+    {
+      "local_authority_code": "E07000077",
+      "local_authority_name": "Uttlesford",
+      "sites_total": 72,
+      "sites_matched": 14,
+      "sites_missing": 58,
+      "coverage_pct": 19.4,
+      "oa_venues": 19,
+      "oa_venues_unmatched": 7
+    },
+    {
+      "local_authority_code": "E06000033",
+      "local_authority_name": "Southend-on-Sea",
+      "sites_total": 62,
+      "sites_matched": 12,
+      "sites_missing": 50,
+      "coverage_pct": 19.4,
+      "oa_venues": 22,
+      "oa_venues_unmatched": 13
+    },
+    {
+      "local_authority_code": "E07000218",
+      "local_authority_name": "North Warwickshire",
+      "sites_total": 62,
+      "sites_matched": 12,
+      "sites_missing": 50,
+      "coverage_pct": 19.4,
+      "oa_venues": 17,
+      "oa_venues_unmatched": 7
+    },
+    {
+      "local_authority_code": "E06000025",
+      "local_authority_name": "South Gloucestershire",
+      "sites_total": 174,
+      "sites_matched": 34,
+      "sites_missing": 140,
+      "coverage_pct": 19.5,
+      "oa_venues": 51,
+      "oa_venues_unmatched": 21
+    },
+    {
+      "local_authority_code": "E07000244",
+      "local_authority_name": "East Suffolk",
+      "sites_total": 154,
+      "sites_matched": 30,
+      "sites_missing": 124,
+      "coverage_pct": 19.5,
+      "oa_venues": 50,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E08000010",
+      "local_authority_name": "Wigan",
+      "sites_total": 149,
+      "sites_matched": 29,
+      "sites_missing": 120,
+      "coverage_pct": 19.5,
+      "oa_venues": 71,
+      "oa_venues_unmatched": 44
+    },
+    {
+      "local_authority_code": "E07000112",
+      "local_authority_name": "Folkestone and Hythe",
+      "sites_total": 56,
+      "sites_matched": 11,
+      "sites_missing": 45,
+      "coverage_pct": 19.6,
+      "oa_venues": 24,
+      "oa_venues_unmatched": 14
+    },
+    {
+      "local_authority_code": "E07000090",
+      "local_authority_name": "Havant",
+      "sites_total": 46,
+      "sites_matched": 9,
+      "sites_missing": 37,
+      "coverage_pct": 19.6,
+      "oa_venues": 15,
+      "oa_venues_unmatched": 3
+    },
+    {
+      "local_authority_code": "E07000091",
+      "local_authority_name": "New Forest",
+      "sites_total": 111,
+      "sites_matched": 22,
+      "sites_missing": 89,
+      "coverage_pct": 19.8,
+      "oa_venues": 83,
+      "oa_venues_unmatched": 64
+    },
+    {
+      "local_authority_code": "E07000065",
+      "local_authority_name": "Wealden",
+      "sites_total": 111,
+      "sites_matched": 22,
+      "sites_missing": 89,
+      "coverage_pct": 19.8,
+      "oa_venues": 42,
+      "oa_venues_unmatched": 24
+    },
+    {
+      "local_authority_code": "E07000116",
+      "local_authority_name": "Tunbridge Wells",
+      "sites_total": 81,
+      "sites_matched": 16,
+      "sites_missing": 65,
+      "coverage_pct": 19.8,
+      "oa_venues": 25,
+      "oa_venues_unmatched": 13
+    },
+    {
+      "local_authority_code": "E08000017",
+      "local_authority_name": "Doncaster",
+      "sites_total": 166,
+      "sites_matched": 33,
+      "sites_missing": 133,
+      "coverage_pct": 19.9,
+      "oa_venues": 76,
+      "oa_venues_unmatched": 46
+    },
+    {
+      "local_authority_code": "E08000004",
+      "local_authority_name": "Oldham",
+      "sites_total": 105,
+      "sites_matched": 21,
+      "sites_missing": 84,
+      "coverage_pct": 20.0,
+      "oa_venues": 53,
+      "oa_venues_unmatched": 35
+    },
+    {
+      "local_authority_code": "E07000195",
+      "local_authority_name": "Newcastle-under-Lyme",
+      "sites_total": 65,
+      "sites_matched": 13,
+      "sites_missing": 52,
+      "coverage_pct": 20.0,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E07000041",
+      "local_authority_name": "Exeter",
+      "sites_total": 60,
+      "sites_matched": 12,
+      "sites_missing": 48,
+      "coverage_pct": 20.0,
+      "oa_venues": 35,
+      "oa_venues_unmatched": 21
+    },
+    {
+      "local_authority_code": "E07000092",
+      "local_authority_name": "Rushmoor",
+      "sites_total": 40,
+      "sites_matched": 8,
+      "sites_missing": 32,
+      "coverage_pct": 20.0,
+      "oa_venues": 21,
+      "oa_venues_unmatched": 13
+    },
+    {
+      "local_authority_code": "E08000037",
+      "local_authority_name": "Gateshead",
+      "sites_total": 99,
+      "sites_matched": 20,
+      "sites_missing": 79,
+      "coverage_pct": 20.2,
+      "oa_venues": 52,
+      "oa_venues_unmatched": 30
+    },
+    {
+      "local_authority_code": "E06000007",
+      "local_authority_name": "Warrington",
+      "sites_total": 103,
+      "sites_matched": 21,
+      "sites_missing": 82,
+      "coverage_pct": 20.4,
+      "oa_venues": 39,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E07000172",
+      "local_authority_name": "Broxtowe",
+      "sites_total": 49,
+      "sites_matched": 10,
+      "sites_missing": 39,
+      "coverage_pct": 20.4,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E07000224",
+      "local_authority_name": "Arun",
+      "sites_total": 78,
+      "sites_matched": 16,
+      "sites_missing": 62,
+      "coverage_pct": 20.5,
+      "oa_venues": 40,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E07000045",
+      "local_authority_name": "Teignbridge",
+      "sites_total": 102,
+      "sites_matched": 21,
+      "sites_missing": 81,
+      "coverage_pct": 20.6,
+      "oa_venues": 36,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E06000046",
+      "local_authority_name": "Isle of Wight",
+      "sites_total": 87,
+      "sites_matched": 18,
+      "sites_missing": 69,
+      "coverage_pct": 20.7,
+      "oa_venues": 51,
+      "oa_venues_unmatched": 31
+    },
+    {
+      "local_authority_code": "E07000177",
+      "local_authority_name": "Cherwell",
+      "sites_total": 101,
+      "sites_matched": 21,
+      "sites_missing": 80,
+      "coverage_pct": 20.8,
+      "oa_venues": 33,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E06000057",
+      "local_authority_name": "Northumberland",
+      "sites_total": 244,
+      "sites_matched": 51,
+      "sites_missing": 193,
+      "coverage_pct": 20.9,
+      "oa_venues": 111,
+      "oa_venues_unmatched": 57
+    },
+    {
+      "local_authority_code": "E08000018",
+      "local_authority_name": "Rotherham",
+      "sites_total": 129,
+      "sites_matched": 27,
+      "sites_missing": 102,
+      "coverage_pct": 20.9,
+      "oa_venues": 60,
+      "oa_venues_unmatched": 34
+    },
+    {
+      "local_authority_code": "E07000134",
+      "local_authority_name": "North West Leicestershire",
+      "sites_total": 67,
+      "sites_matched": 14,
+      "sites_missing": 53,
+      "coverage_pct": 20.9,
+      "oa_venues": 34,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E09000029",
+      "local_authority_name": "Sutton",
+      "sites_total": 76,
+      "sites_matched": 16,
+      "sites_missing": 60,
+      "coverage_pct": 21.1,
+      "oa_venues": 27,
+      "oa_venues_unmatched": 12
+    },
+    {
+      "local_authority_code": "E07000193",
+      "local_authority_name": "East Staffordshire",
+      "sites_total": 71,
+      "sites_matched": 15,
+      "sites_missing": 56,
+      "coverage_pct": 21.1,
+      "oa_venues": 32,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E07000245",
+      "local_authority_name": "West Suffolk",
+      "sites_total": 113,
+      "sites_matched": 24,
+      "sites_missing": 89,
+      "coverage_pct": 21.2,
+      "oa_venues": 46,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E07000214",
+      "local_authority_name": "Surrey Heath",
+      "sites_total": 47,
+      "sites_matched": 10,
+      "sites_missing": 37,
+      "coverage_pct": 21.3,
+      "oa_venues": 14,
+      "oa_venues_unmatched": 5
+    },
+    {
+      "local_authority_code": "E06000037",
+      "local_authority_name": "West Berkshire",
+      "sites_total": 126,
+      "sites_matched": 27,
+      "sites_missing": 99,
+      "coverage_pct": 21.4,
+      "oa_venues": 59,
+      "oa_venues_unmatched": 22
+    },
+    {
+      "local_authority_code": "E07000125",
+      "local_authority_name": "Rossendale",
+      "sites_total": 42,
+      "sites_matched": 9,
+      "sites_missing": 33,
+      "coverage_pct": 21.4,
+      "oa_venues": 16,
+      "oa_venues_unmatched": 8
+    },
+    {
+      "local_authority_code": "E08000011",
+      "local_authority_name": "Knowsley",
+      "sites_total": 42,
+      "sites_matched": 9,
+      "sites_missing": 33,
+      "coverage_pct": 21.4,
+      "oa_venues": 20,
+      "oa_venues_unmatched": 9
+    },
+    {
+      "local_authority_code": "E07000229",
+      "local_authority_name": "Worthing",
+      "sites_total": 42,
+      "sites_matched": 9,
+      "sites_missing": 33,
+      "coverage_pct": 21.4,
+      "oa_venues": 15,
+      "oa_venues_unmatched": 9
+    },
+    {
+      "local_authority_code": "E06000065",
+      "local_authority_name": "North Yorkshire",
+      "sites_total": 540,
+      "sites_matched": 117,
+      "sites_missing": 423,
+      "coverage_pct": 21.7,
+      "oa_venues": 271,
+      "oa_venues_unmatched": 158
+    },
+    {
+      "local_authority_code": "E06000054",
+      "local_authority_name": "Wiltshire",
+      "sites_total": 337,
+      "sites_matched": 73,
+      "sites_missing": 264,
+      "coverage_pct": 21.7,
+      "oa_venues": 145,
+      "oa_venues_unmatched": 72
+    },
+    {
+      "local_authority_code": "E08000022",
+      "local_authority_name": "North Tyneside",
+      "sites_total": 83,
+      "sites_matched": 18,
+      "sites_missing": 65,
+      "coverage_pct": 21.7,
+      "oa_venues": 35,
+      "oa_venues_unmatched": 16
+    },
+    {
+      "local_authority_code": "E06000031",
+      "local_authority_name": "Peterborough",
+      "sites_total": 73,
+      "sites_matched": 16,
+      "sites_missing": 57,
+      "coverage_pct": 21.9,
+      "oa_venues": 34,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E07000035",
+      "local_authority_name": "Derbyshire Dales",
+      "sites_total": 64,
+      "sites_matched": 14,
+      "sites_missing": 50,
+      "coverage_pct": 21.9,
+      "oa_venues": 51,
+      "oa_venues_unmatched": 32
+    },
+    {
+      "local_authority_code": "E06000024",
+      "local_authority_name": "North Somerset",
+      "sites_total": 127,
+      "sites_matched": 28,
+      "sites_missing": 99,
+      "coverage_pct": 22.0,
+      "oa_venues": 57,
+      "oa_venues_unmatched": 26
+    },
+    {
+      "local_authority_code": "E07000235",
+      "local_authority_name": "Malvern Hills",
+      "sites_total": 59,
+      "sites_matched": 13,
+      "sites_missing": 46,
+      "coverage_pct": 22.0,
+      "oa_venues": 36,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E06000019",
+      "local_authority_name": "Herefordshire, County of",
+      "sites_total": 113,
+      "sites_matched": 25,
+      "sites_missing": 88,
+      "coverage_pct": 22.1,
+      "oa_venues": 40,
+      "oa_venues_unmatched": 16
+    },
+    {
+      "local_authority_code": "E07000141",
+      "local_authority_name": "South Kesteven",
+      "sites_total": 86,
+      "sites_matched": 19,
+      "sites_missing": 67,
+      "coverage_pct": 22.1,
+      "oa_venues": 51,
+      "oa_venues_unmatched": 29
+    },
+    {
+      "local_authority_code": "E07000046",
+      "local_authority_name": "Torridge",
+      "sites_total": 54,
+      "sites_matched": 12,
+      "sites_missing": 42,
+      "coverage_pct": 22.2,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 14
+    },
+    {
+      "local_authority_code": "E07000072",
+      "local_authority_name": "Epping Forest",
+      "sites_total": 76,
+      "sites_matched": 17,
+      "sites_missing": 59,
+      "coverage_pct": 22.4,
+      "oa_venues": 42,
+      "oa_venues_unmatched": 27
+    },
+    {
+      "local_authority_code": "E07000194",
+      "local_authority_name": "Lichfield",
+      "sites_total": 58,
+      "sites_matched": 13,
+      "sites_missing": 45,
+      "coverage_pct": 22.4,
+      "oa_venues": 31,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E07000061",
+      "local_authority_name": "Eastbourne",
+      "sites_total": 49,
+      "sites_matched": 11,
+      "sites_missing": 38,
+      "coverage_pct": 22.4,
+      "oa_venues": 22,
+      "oa_venues_unmatched": 6
+    },
+    {
+      "local_authority_code": "E06000013",
+      "local_authority_name": "North Lincolnshire",
+      "sites_total": 93,
+      "sites_matched": 21,
+      "sites_missing": 72,
+      "coverage_pct": 22.6,
+      "oa_venues": 75,
+      "oa_venues_unmatched": 50
+    },
+    {
+      "local_authority_code": "E08000035",
+      "local_authority_name": "Leeds",
+      "sites_total": 437,
+      "sites_matched": 100,
+      "sites_missing": 337,
+      "coverage_pct": 22.9,
+      "oa_venues": 194,
+      "oa_venues_unmatched": 87
+    },
+    {
+      "local_authority_code": "E07000040",
+      "local_authority_name": "East Devon",
+      "sites_total": 118,
+      "sites_matched": 27,
+      "sites_missing": 91,
+      "coverage_pct": 22.9,
+      "oa_venues": 51,
+      "oa_venues_unmatched": 26
+    },
+    {
+      "local_authority_code": "E07000145",
+      "local_authority_name": "Great Yarmouth",
+      "sites_total": 48,
+      "sites_matched": 11,
+      "sites_missing": 37,
+      "coverage_pct": 22.9,
+      "oa_venues": 37,
+      "oa_venues_unmatched": 24
+    },
+    {
+      "local_authority_code": "E07000236",
+      "local_authority_name": "Redditch",
+      "sites_total": 35,
+      "sites_matched": 8,
+      "sites_missing": 27,
+      "coverage_pct": 22.9,
+      "oa_venues": 14,
+      "oa_venues_unmatched": 4
+    },
+    {
+      "local_authority_code": "E07000221",
+      "local_authority_name": "Stratford-on-Avon",
+      "sites_total": 117,
+      "sites_matched": 27,
+      "sites_missing": 90,
+      "coverage_pct": 23.1,
+      "oa_venues": 62,
+      "oa_venues_unmatched": 33
+    },
+    {
+      "local_authority_code": "E07000032",
+      "local_authority_name": "Amber Valley",
+      "sites_total": 65,
+      "sites_matched": 15,
+      "sites_missing": 50,
+      "coverage_pct": 23.1,
+      "oa_venues": 35,
+      "oa_venues_unmatched": 15
+    },
+    {
+      "local_authority_code": "E08000008",
+      "local_authority_name": "Tameside",
+      "sites_total": 99,
+      "sites_matched": 23,
+      "sites_missing": 76,
+      "coverage_pct": 23.2,
+      "oa_venues": 48,
+      "oa_venues_unmatched": 25
+    },
+    {
+      "local_authority_code": "E07000105",
+      "local_authority_name": "Ashford",
+      "sites_total": 82,
+      "sites_matched": 19,
+      "sites_missing": 63,
+      "coverage_pct": 23.2,
+      "oa_venues": 38,
+      "oa_venues_unmatched": 22
+    },
+    {
+      "local_authority_code": "E07000121",
+      "local_authority_name": "Lancaster",
+      "sites_total": 69,
+      "sites_matched": 16,
+      "sites_missing": 53,
+      "coverage_pct": 23.2,
+      "oa_venues": 43,
+      "oa_venues_unmatched": 25
+    },
+    {
+      "local_authority_code": "E07000173",
+      "local_authority_name": "Gedling",
+      "sites_total": 56,
+      "sites_matched": 13,
+      "sites_missing": 43,
+      "coverage_pct": 23.2,
+      "oa_venues": 14,
+      "oa_venues_unmatched": 5
+    },
+    {
+      "local_authority_code": "E09000008",
+      "local_authority_name": "Croydon",
+      "sites_total": 120,
+      "sites_matched": 28,
+      "sites_missing": 92,
+      "coverage_pct": 23.3,
+      "oa_venues": 55,
+      "oa_venues_unmatched": 22
+    },
+    {
+      "local_authority_code": "E06000006",
+      "local_authority_name": "Halton",
+      "sites_total": 60,
+      "sites_matched": 14,
+      "sites_missing": 46,
+      "coverage_pct": 23.3,
+      "oa_venues": 41,
+      "oa_venues_unmatched": 25
+    },
+    {
+      "local_authority_code": "E07000062",
+      "local_authority_name": "Hastings",
+      "sites_total": 30,
+      "sites_matched": 7,
+      "sites_missing": 23,
+      "coverage_pct": 23.3,
+      "oa_venues": 12,
+      "oa_venues_unmatched": 4
+    },
+    {
+      "local_authority_code": "E06000011",
+      "local_authority_name": "East Riding of Yorkshire",
+      "sites_total": 205,
+      "sites_matched": 48,
+      "sites_missing": 157,
+      "coverage_pct": 23.4,
+      "oa_venues": 157,
+      "oa_venues_unmatched": 104
+    },
+    {
+      "local_authority_code": "E06000050",
+      "local_authority_name": "Cheshire West and Chester",
+      "sites_total": 213,
+      "sites_matched": 50,
+      "sites_missing": 163,
+      "coverage_pct": 23.5,
+      "oa_venues": 127,
+      "oa_venues_unmatched": 72
+    },
+    {
+      "local_authority_code": "E09000003",
+      "local_authority_name": "Barnet",
+      "sites_total": 162,
+      "sites_matched": 38,
+      "sites_missing": 124,
+      "coverage_pct": 23.5,
+      "oa_venues": 86,
+      "oa_venues_unmatched": 43
+    },
+    {
+      "local_authority_code": "E07000175",
+      "local_authority_name": "Newark and Sherwood",
+      "sites_total": 89,
+      "sites_matched": 21,
+      "sites_missing": 68,
+      "coverage_pct": 23.6,
+      "oa_venues": 45,
+      "oa_venues_unmatched": 27
+    },
+    {
+      "local_authority_code": "E07000142",
+      "local_authority_name": "West Lindsey",
+      "sites_total": 55,
+      "sites_matched": 13,
+      "sites_missing": 42,
+      "coverage_pct": 23.6,
+      "oa_venues": 50,
+      "oa_venues_unmatched": 35
+    },
+    {
+      "local_authority_code": "E07000225",
+      "local_authority_name": "Chichester",
+      "sites_total": 93,
+      "sites_matched": 22,
+      "sites_missing": 71,
+      "coverage_pct": 23.7,
+      "oa_venues": 68,
+      "oa_venues_unmatched": 47
+    },
+    {
+      "local_authority_code": "E07000115",
+      "local_authority_name": "Tonbridge and Malling",
+      "sites_total": 88,
+      "sites_matched": 21,
+      "sites_missing": 67,
+      "coverage_pct": 23.9,
+      "oa_venues": 39,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E07000132",
+      "local_authority_name": "Hinckley and Bosworth",
+      "sites_total": 67,
+      "sites_matched": 16,
+      "sites_missing": 51,
+      "coverage_pct": 23.9,
+      "oa_venues": 33,
+      "oa_venues_unmatched": 21
+    },
+    {
+      "local_authority_code": "E06000060",
+      "local_authority_name": "Buckinghamshire",
+      "sites_total": 417,
+      "sites_matched": 100,
+      "sites_missing": 317,
+      "coverage_pct": 24.0,
+      "oa_venues": 194,
+      "oa_venues_unmatched": 92
+    },
+    {
+      "local_authority_code": "E07000180",
+      "local_authority_name": "Vale of White Horse",
+      "sites_total": 96,
+      "sites_matched": 23,
+      "sites_missing": 73,
+      "coverage_pct": 24.0,
+      "oa_venues": 42,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E06000027",
+      "local_authority_name": "Torbay",
+      "sites_total": 83,
+      "sites_matched": 20,
+      "sites_missing": 63,
+      "coverage_pct": 24.1,
+      "oa_venues": 33,
+      "oa_venues_unmatched": 16
+    },
+    {
+      "local_authority_code": "E07000117",
+      "local_authority_name": "Burnley",
+      "sites_total": 33,
+      "sites_matched": 8,
+      "sites_missing": 25,
+      "coverage_pct": 24.2,
+      "oa_venues": 18,
+      "oa_venues_unmatched": 8
+    },
+    {
+      "local_authority_code": "E08000028",
+      "local_authority_name": "Sandwell",
+      "sites_total": 86,
+      "sites_matched": 21,
+      "sites_missing": 65,
+      "coverage_pct": 24.4,
+      "oa_venues": 35,
+      "oa_venues_unmatched": 9
+    },
+    {
+      "local_authority_code": "E07000047",
+      "local_authority_name": "West Devon",
+      "sites_total": 53,
+      "sites_matched": 13,
+      "sites_missing": 40,
+      "coverage_pct": 24.5,
+      "oa_venues": 38,
+      "oa_venues_unmatched": 28
+    },
+    {
+      "local_authority_code": "E07000106",
+      "local_authority_name": "Canterbury",
+      "sites_total": 85,
+      "sites_matched": 21,
+      "sites_missing": 64,
+      "coverage_pct": 24.7,
+      "oa_venues": 43,
+      "oa_venues_unmatched": 25
+    },
+    {
+      "local_authority_code": "E08000024",
+      "local_authority_name": "Sunderland",
+      "sites_total": 108,
+      "sites_matched": 27,
+      "sites_missing": 81,
+      "coverage_pct": 25.0,
+      "oa_venues": 64,
+      "oa_venues_unmatched": 36
+    },
+    {
+      "local_authority_code": "E09000016",
+      "local_authority_name": "Havering",
+      "sites_total": 80,
+      "sites_matched": 20,
+      "sites_missing": 60,
+      "coverage_pct": 25.0,
+      "oa_venues": 58,
+      "oa_venues_unmatched": 30
+    },
+    {
+      "local_authority_code": "E07000008",
+      "local_authority_name": "Cambridge",
+      "sites_total": 68,
+      "sites_matched": 17,
+      "sites_missing": 51,
+      "coverage_pct": 25.0,
+      "oa_venues": 34,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E06000005",
+      "local_authority_name": "Darlington",
+      "sites_total": 60,
+      "sites_matched": 15,
+      "sites_missing": 45,
+      "coverage_pct": 25.0,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 8
+    },
+    {
+      "local_authority_code": "E07000122",
+      "local_authority_name": "Pendle",
+      "sites_total": 44,
+      "sites_matched": 11,
+      "sites_missing": 33,
+      "coverage_pct": 25.0,
+      "oa_venues": 24,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E06000017",
+      "local_authority_name": "Rutland",
+      "sites_total": 32,
+      "sites_matched": 8,
+      "sites_missing": 24,
+      "coverage_pct": 25.0,
+      "oa_venues": 15,
+      "oa_venues_unmatched": 9
+    },
+    {
+      "local_authority_code": "E08000032",
+      "local_authority_name": "Bradford",
+      "sites_total": 263,
+      "sites_matched": 66,
+      "sites_missing": 197,
+      "coverage_pct": 25.1,
+      "oa_venues": 140,
+      "oa_venues_unmatched": 76
+    },
+    {
+      "local_authority_code": "E06000063",
+      "local_authority_name": "Cumberland",
+      "sites_total": 214,
+      "sites_matched": 54,
+      "sites_missing": 160,
+      "coverage_pct": 25.2,
+      "oa_venues": 192,
+      "oa_venues_unmatched": 121
+    },
+    {
+      "local_authority_code": "E07000113",
+      "local_authority_name": "Swale",
+      "sites_total": 79,
+      "sites_matched": 20,
+      "sites_missing": 59,
+      "coverage_pct": 25.3,
+      "oa_venues": 40,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E08000001",
+      "local_authority_name": "Bolton",
+      "sites_total": 130,
+      "sites_matched": 33,
+      "sites_missing": 97,
+      "coverage_pct": 25.4,
+      "oa_venues": 66,
+      "oa_venues_unmatched": 23
+    },
+    {
+      "local_authority_code": "E07000042",
+      "local_authority_name": "Mid Devon",
+      "sites_total": 63,
+      "sites_matched": 16,
+      "sites_missing": 47,
+      "coverage_pct": 25.4,
+      "oa_venues": 19,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E06000035",
+      "local_authority_name": "Medway",
+      "sites_total": 106,
+      "sites_matched": 27,
+      "sites_missing": 79,
+      "coverage_pct": 25.5,
+      "oa_venues": 33,
+      "oa_venues_unmatched": 15
+    },
+    {
+      "local_authority_code": "E07000216",
+      "local_authority_name": "Waverley",
+      "sites_total": 94,
+      "sites_matched": 24,
+      "sites_missing": 70,
+      "coverage_pct": 25.5,
+      "oa_venues": 33,
+      "oa_venues_unmatched": 8
+    },
+    {
+      "local_authority_code": "E06000042",
+      "local_authority_name": "Milton Keynes",
+      "sites_total": 121,
+      "sites_matched": 31,
+      "sites_missing": 90,
+      "coverage_pct": 25.6,
+      "oa_venues": 93,
+      "oa_venues_unmatched": 57
+    },
+    {
+      "local_authority_code": "E06000040",
+      "local_authority_name": "Windsor and Maidenhead",
+      "sites_total": 109,
+      "sites_matched": 28,
+      "sites_missing": 81,
+      "coverage_pct": 25.7,
+      "oa_venues": 75,
+      "oa_venues_unmatched": 37
+    },
+    {
+      "local_authority_code": "E07000144",
+      "local_authority_name": "Broadland",
+      "sites_total": 74,
+      "sites_matched": 19,
+      "sites_missing": 55,
+      "coverage_pct": 25.7,
+      "oa_venues": 58,
+      "oa_venues_unmatched": 36
+    },
+    {
+      "local_authority_code": "E07000176",
+      "local_authority_name": "Rushcliffe",
+      "sites_total": 70,
+      "sites_matched": 18,
+      "sites_missing": 52,
+      "coverage_pct": 25.7,
+      "oa_venues": 45,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E07000066",
+      "local_authority_name": "Basildon",
+      "sites_total": 62,
+      "sites_matched": 16,
+      "sites_missing": 46,
+      "coverage_pct": 25.8,
+      "oa_venues": 24,
+      "oa_venues_unmatched": 12
+    },
+    {
+      "local_authority_code": "E08000027",
+      "local_authority_name": "Dudley",
+      "sites_total": 112,
+      "sites_matched": 29,
+      "sites_missing": 83,
+      "coverage_pct": 25.9,
+      "oa_venues": 41,
+      "oa_venues_unmatched": 12
+    },
+    {
+      "local_authority_code": "E06000058",
+      "local_authority_name": "Bournemouth, Christchurch and Poole",
+      "sites_total": 150,
+      "sites_matched": 39,
+      "sites_missing": 111,
+      "coverage_pct": 26.0,
+      "oa_venues": 95,
+      "oa_venues_unmatched": 53
+    },
+    {
+      "local_authority_code": "E09000006",
+      "local_authority_name": "Bromley",
+      "sites_total": 146,
+      "sites_matched": 38,
+      "sites_missing": 108,
+      "coverage_pct": 26.0,
+      "oa_venues": 83,
+      "oa_venues_unmatched": 43
+    },
+    {
+      "local_authority_code": "E07000140",
+      "local_authority_name": "South Holland",
+      "sites_total": 46,
+      "sites_matched": 12,
+      "sites_missing": 34,
+      "coverage_pct": 26.1,
+      "oa_venues": 28,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E08000006",
+      "local_authority_name": "Salford",
+      "sites_total": 99,
+      "sites_matched": 26,
+      "sites_missing": 73,
+      "coverage_pct": 26.3,
+      "oa_venues": 51,
+      "oa_venues_unmatched": 25
+    },
+    {
+      "local_authority_code": "E06000010",
+      "local_authority_name": "Kingston upon Hull, City of",
+      "sites_total": 102,
+      "sites_matched": 27,
+      "sites_missing": 75,
+      "coverage_pct": 26.5,
+      "oa_venues": 80,
+      "oa_venues_unmatched": 48
+    },
+    {
+      "local_authority_code": "E06000059",
+      "local_authority_name": "Dorset",
+      "sites_total": 248,
+      "sites_matched": 66,
+      "sites_missing": 182,
+      "coverage_pct": 26.6,
+      "oa_venues": 172,
+      "oa_venues_unmatched": 108
+    },
+    {
+      "local_authority_code": "E06000056",
+      "local_authority_name": "Central Bedfordshire",
+      "sites_total": 172,
+      "sites_matched": 46,
+      "sites_missing": 126,
+      "coverage_pct": 26.7,
+      "oa_venues": 104,
+      "oa_venues_unmatched": 53
+    },
+    {
+      "local_authority_code": "E06000064",
+      "local_authority_name": "Westmorland and Furness",
+      "sites_total": 224,
+      "sites_matched": 60,
+      "sites_missing": 164,
+      "coverage_pct": 26.8,
+      "oa_venues": 170,
+      "oa_venues_unmatched": 105
+    },
+    {
+      "local_authority_code": "E08000009",
+      "local_authority_name": "Trafford",
+      "sites_total": 126,
+      "sites_matched": 34,
+      "sites_missing": 92,
+      "coverage_pct": 27.0,
+      "oa_venues": 76,
+      "oa_venues_unmatched": 42
+    },
+    {
+      "local_authority_code": "E07000234",
+      "local_authority_name": "Bromsgrove",
+      "sites_total": 70,
+      "sites_matched": 19,
+      "sites_missing": 51,
+      "coverage_pct": 27.1,
+      "oa_venues": 33,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E07000084",
+      "local_authority_name": "Basingstoke and Deane",
+      "sites_total": 99,
+      "sites_matched": 27,
+      "sites_missing": 72,
+      "coverage_pct": 27.3,
+      "oa_venues": 72,
+      "oa_venues_unmatched": 44
+    },
+    {
+      "local_authority_code": "E07000213",
+      "local_authority_name": "Spelthorne",
+      "sites_total": 44,
+      "sites_matched": 12,
+      "sites_missing": 32,
+      "coverage_pct": 27.3,
+      "oa_venues": 20,
+      "oa_venues_unmatched": 8
+    },
+    {
+      "local_authority_code": "E07000143",
+      "local_authority_name": "Breckland",
+      "sites_total": 80,
+      "sites_matched": 22,
+      "sites_missing": 58,
+      "coverage_pct": 27.5,
+      "oa_venues": 55,
+      "oa_venues_unmatched": 32
+    },
+    {
+      "local_authority_code": "E06000004",
+      "local_authority_name": "Stockton-on-Tees",
+      "sites_total": 69,
+      "sites_matched": 19,
+      "sites_missing": 50,
+      "coverage_pct": 27.5,
+      "oa_venues": 54,
+      "oa_venues_unmatched": 35
+    },
+    {
+      "local_authority_code": "E07000118",
+      "local_authority_name": "Chorley",
+      "sites_total": 69,
+      "sites_matched": 19,
+      "sites_missing": 50,
+      "coverage_pct": 27.5,
+      "oa_venues": 48,
+      "oa_venues_unmatched": 28
+    },
+    {
+      "local_authority_code": "E08000029",
+      "local_authority_name": "Solihull",
+      "sites_total": 116,
+      "sites_matched": 32,
+      "sites_missing": 84,
+      "coverage_pct": 27.6,
+      "oa_venues": 63,
+      "oa_venues_unmatched": 32
+    },
+    {
+      "local_authority_code": "E07000085",
+      "local_authority_name": "East Hampshire",
+      "sites_total": 83,
+      "sites_matched": 23,
+      "sites_missing": 60,
+      "coverage_pct": 27.7,
+      "oa_venues": 27,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E07000237",
+      "local_authority_name": "Worcester",
+      "sites_total": 54,
+      "sites_matched": 15,
+      "sites_missing": 39,
+      "coverage_pct": 27.8,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E07000138",
+      "local_authority_name": "Lincoln",
+      "sites_total": 43,
+      "sites_matched": 12,
+      "sites_missing": 31,
+      "coverage_pct": 27.9,
+      "oa_venues": 48,
+      "oa_venues_unmatched": 28
+    },
+    {
+      "local_authority_code": "E06000022",
+      "local_authority_name": "Bath and North East Somerset",
+      "sites_total": 139,
+      "sites_matched": 39,
+      "sites_missing": 100,
+      "coverage_pct": 28.1,
+      "oa_venues": 75,
+      "oa_venues_unmatched": 34
+    },
+    {
+      "local_authority_code": "E08000002",
+      "local_authority_name": "Bury",
+      "sites_total": 85,
+      "sites_matched": 24,
+      "sites_missing": 61,
+      "coverage_pct": 28.2,
+      "oa_venues": 54,
+      "oa_venues_unmatched": 28
+    },
+    {
+      "local_authority_code": "E07000147",
+      "local_authority_name": "North Norfolk",
+      "sites_total": 74,
+      "sites_matched": 21,
+      "sites_missing": 53,
+      "coverage_pct": 28.4,
+      "oa_venues": 46,
+      "oa_venues_unmatched": 23
+    },
+    {
+      "local_authority_code": "E07000220",
+      "local_authority_name": "Rugby",
+      "sites_total": 67,
+      "sites_matched": 19,
+      "sites_missing": 48,
+      "coverage_pct": 28.4,
+      "oa_venues": 53,
+      "oa_venues_unmatched": 36
+    },
+    {
+      "local_authority_code": "E07000119",
+      "local_authority_name": "Fylde",
+      "sites_total": 49,
+      "sites_matched": 14,
+      "sites_missing": 35,
+      "coverage_pct": 28.6,
+      "oa_venues": 37,
+      "oa_venues_unmatched": 21
+    },
+    {
+      "local_authority_code": "E08000019",
+      "local_authority_name": "Sheffield",
+      "sites_total": 228,
+      "sites_matched": 66,
+      "sites_missing": 162,
+      "coverage_pct": 28.9,
+      "oa_venues": 160,
+      "oa_venues_unmatched": 79
+    },
+    {
+      "local_authority_code": "E07000070",
+      "local_authority_name": "Chelmsford",
+      "sites_total": 90,
+      "sites_matched": 26,
+      "sites_missing": 64,
+      "coverage_pct": 28.9,
+      "oa_venues": 46,
+      "oa_venues_unmatched": 21
+    },
+    {
+      "local_authority_code": "E06000030",
+      "local_authority_name": "Swindon",
+      "sites_total": 99,
+      "sites_matched": 29,
+      "sites_missing": 70,
+      "coverage_pct": 29.3,
+      "oa_venues": 74,
+      "oa_venues_unmatched": 35
+    },
+    {
+      "local_authority_code": "E07000222",
+      "local_authority_name": "Warwick",
+      "sites_total": 82,
+      "sites_matched": 24,
+      "sites_missing": 58,
+      "coverage_pct": 29.3,
+      "oa_venues": 71,
+      "oa_venues_unmatched": 43
+    },
+    {
+      "local_authority_code": "E07000219",
+      "local_authority_name": "Nuneaton and Bedworth",
+      "sites_total": 54,
+      "sites_matched": 16,
+      "sites_missing": 38,
+      "coverage_pct": 29.6,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E09000017",
+      "local_authority_name": "Hillingdon",
+      "sites_total": 114,
+      "sites_matched": 34,
+      "sites_missing": 80,
+      "coverage_pct": 29.8,
+      "oa_venues": 85,
+      "oa_venues_unmatched": 52
+    },
+    {
+      "local_authority_code": "E07000179",
+      "local_authority_name": "South Oxfordshire",
+      "sites_total": 127,
+      "sites_matched": 38,
+      "sites_missing": 89,
+      "coverage_pct": 29.9,
+      "oa_venues": 47,
+      "oa_venues_unmatched": 14
+    },
+    {
+      "local_authority_code": "E07000131",
+      "local_authority_name": "Harborough",
+      "sites_total": 60,
+      "sites_matched": 18,
+      "sites_missing": 42,
+      "coverage_pct": 30.0,
+      "oa_venues": 55,
+      "oa_venues_unmatched": 33
+    },
+    {
+      "local_authority_code": "E07000133",
+      "local_authority_name": "Melton",
+      "sites_total": 40,
+      "sites_matched": 12,
+      "sites_missing": 28,
+      "coverage_pct": 30.0,
+      "oa_venues": 25,
+      "oa_venues_unmatched": 12
+    },
+    {
+      "local_authority_code": "E07000136",
+      "local_authority_name": "Boston",
+      "sites_total": 33,
+      "sites_matched": 10,
+      "sites_missing": 23,
+      "coverage_pct": 30.3,
+      "oa_venues": 16,
+      "oa_venues_unmatched": 9
+    },
+    {
+      "local_authority_code": "E08000026",
+      "local_authority_name": "Coventry",
+      "sites_total": 102,
+      "sites_matched": 31,
+      "sites_missing": 71,
+      "coverage_pct": 30.4,
+      "oa_venues": 62,
+      "oa_venues_unmatched": 30
+    },
+    {
+      "local_authority_code": "E07000211",
+      "local_authority_name": "Reigate and Banstead",
+      "sites_total": 78,
+      "sites_matched": 24,
+      "sites_missing": 54,
+      "coverage_pct": 30.8,
+      "oa_venues": 47,
+      "oa_venues_unmatched": 24
+    },
+    {
+      "local_authority_code": "E06000055",
+      "local_authority_name": "Bedford",
+      "sites_total": 110,
+      "sites_matched": 34,
+      "sites_missing": 76,
+      "coverage_pct": 30.9,
+      "oa_venues": 68,
+      "oa_venues_unmatched": 34
+    },
+    {
+      "local_authority_code": "E06000036",
+      "local_authority_name": "Bracknell Forest",
+      "sites_total": 68,
+      "sites_matched": 21,
+      "sites_missing": 47,
+      "coverage_pct": 30.9,
+      "oa_venues": 37,
+      "oa_venues_unmatched": 14
+    },
+    {
+      "local_authority_code": "E09000020",
+      "local_authority_name": "Kensington and Chelsea",
+      "sites_total": 42,
+      "sites_matched": 13,
+      "sites_missing": 29,
+      "coverage_pct": 31.0,
+      "oa_venues": 13,
+      "oa_venues_unmatched": 2
+    },
+    {
+      "local_authority_code": "E09000010",
+      "local_authority_name": "Enfield",
+      "sites_total": 119,
+      "sites_matched": 37,
+      "sites_missing": 82,
+      "coverage_pct": 31.1,
+      "oa_venues": 77,
+      "oa_venues_unmatched": 40
+    },
+    {
+      "local_authority_code": "E07000130",
+      "local_authority_name": "Charnwood",
+      "sites_total": 93,
+      "sites_matched": 29,
+      "sites_missing": 64,
+      "coverage_pct": 31.2,
+      "oa_venues": 83,
+      "oa_venues_unmatched": 50
+    },
+    {
+      "local_authority_code": "E06000015",
+      "local_authority_name": "Derby",
+      "sites_total": 80,
+      "sites_matched": 25,
+      "sites_missing": 55,
+      "coverage_pct": 31.2,
+      "oa_venues": 60,
+      "oa_venues_unmatched": 34
+    },
+    {
+      "local_authority_code": "E07000011",
+      "local_authority_name": "Huntingdonshire",
+      "sites_total": 98,
+      "sites_matched": 31,
+      "sites_missing": 67,
+      "coverage_pct": 31.6,
+      "oa_venues": 49,
+      "oa_venues_unmatched": 24
+    },
+    {
+      "local_authority_code": "E09000025",
+      "local_authority_name": "Newham",
+      "sites_total": 82,
+      "sites_matched": 26,
+      "sites_missing": 56,
+      "coverage_pct": 31.7,
+      "oa_venues": 66,
+      "oa_venues_unmatched": 31
+    },
+    {
+      "local_authority_code": "E07000073",
+      "local_authority_name": "Harlow",
+      "sites_total": 41,
+      "sites_matched": 13,
+      "sites_missing": 28,
+      "coverage_pct": 31.7,
+      "oa_venues": 32,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E07000226",
+      "local_authority_name": "Crawley",
+      "sites_total": 47,
+      "sites_matched": 15,
+      "sites_missing": 32,
+      "coverage_pct": 31.9,
+      "oa_venues": 27,
+      "oa_venues_unmatched": 13
+    },
+    {
+      "local_authority_code": "E07000078",
+      "local_authority_name": "Cheltenham",
+      "sites_total": 50,
+      "sites_matched": 16,
+      "sites_missing": 34,
+      "coverage_pct": 32.0,
+      "oa_venues": 26,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E06000001",
+      "local_authority_name": "Hartlepool",
+      "sites_total": 50,
+      "sites_matched": 16,
+      "sites_missing": 34,
+      "coverage_pct": 32.0,
+      "oa_venues": 15,
+      "oa_venues_unmatched": 1
+    },
+    {
+      "local_authority_code": "E06000066",
+      "local_authority_name": "Somerset",
+      "sites_total": 443,
+      "sites_matched": 142,
+      "sites_missing": 301,
+      "coverage_pct": 32.1,
+      "oa_venues": 344,
+      "oa_venues_unmatched": 190
+    },
+    {
+      "local_authority_code": "E06000018",
+      "local_authority_name": "Nottingham",
+      "sites_total": 109,
+      "sites_matched": 35,
+      "sites_missing": 74,
+      "coverage_pct": 32.1,
+      "oa_venues": 70,
+      "oa_venues_unmatched": 33
+    },
+    {
+      "local_authority_code": "E06000038",
+      "local_authority_name": "Reading",
+      "sites_total": 56,
+      "sites_matched": 18,
+      "sites_missing": 38,
+      "coverage_pct": 32.1,
+      "oa_venues": 23,
+      "oa_venues_unmatched": 5
+    },
+    {
+      "local_authority_code": "E08000030",
+      "local_authority_name": "Walsall",
+      "sites_total": 90,
+      "sites_matched": 29,
+      "sites_missing": 61,
+      "coverage_pct": 32.2,
+      "oa_venues": 42,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E07000129",
+      "local_authority_name": "Blaby",
+      "sites_total": 59,
+      "sites_matched": 19,
+      "sites_missing": 40,
+      "coverage_pct": 32.2,
+      "oa_venues": 34,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E06000023",
+      "local_authority_name": "Bristol, City of",
+      "sites_total": 160,
+      "sites_matched": 52,
+      "sites_missing": 108,
+      "coverage_pct": 32.5,
+      "oa_venues": 108,
+      "oa_venues_unmatched": 57
+    },
+    {
+      "local_authority_code": "E07000009",
+      "local_authority_name": "East Cambridgeshire",
+      "sites_total": 52,
+      "sites_matched": 17,
+      "sites_missing": 35,
+      "coverage_pct": 32.7,
+      "oa_venues": 17,
+      "oa_venues_unmatched": 5
+    },
+    {
+      "local_authority_code": "E09000015",
+      "local_authority_name": "Harrow",
+      "sites_total": 79,
+      "sites_matched": 26,
+      "sites_missing": 53,
+      "coverage_pct": 32.9,
+      "oa_venues": 56,
+      "oa_venues_unmatched": 30
+    },
+    {
+      "local_authority_code": "E06000045",
+      "local_authority_name": "Southampton",
+      "sites_total": 73,
+      "sites_matched": 24,
+      "sites_missing": 49,
+      "coverage_pct": 32.9,
+      "oa_venues": 66,
+      "oa_venues_unmatched": 39
+    },
+    {
+      "local_authority_code": "E07000094",
+      "local_authority_name": "Winchester",
+      "sites_total": 103,
+      "sites_matched": 34,
+      "sites_missing": 69,
+      "coverage_pct": 33.0,
+      "oa_venues": 85,
+      "oa_venues_unmatched": 49
+    },
+    {
+      "local_authority_code": "E07000238",
+      "local_authority_name": "Wychavon",
+      "sites_total": 94,
+      "sites_matched": 31,
+      "sites_missing": 63,
+      "coverage_pct": 33.0,
+      "oa_venues": 44,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E09000005",
+      "local_authority_name": "Brent",
+      "sites_total": 87,
+      "sites_matched": 29,
+      "sites_missing": 58,
+      "coverage_pct": 33.3,
+      "oa_venues": 52,
+      "oa_venues_unmatched": 26
+    },
+    {
+      "local_authority_code": "E06000012",
+      "local_authority_name": "North East Lincolnshire",
+      "sites_total": 66,
+      "sites_matched": 22,
+      "sites_missing": 44,
+      "coverage_pct": 33.3,
+      "oa_venues": 55,
+      "oa_venues_unmatched": 26
+    },
+    {
+      "local_authority_code": "E06000003",
+      "local_authority_name": "Redcar and Cleveland",
+      "sites_total": 63,
+      "sites_matched": 21,
+      "sites_missing": 42,
+      "coverage_pct": 33.3,
+      "oa_venues": 40,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E06000043",
+      "local_authority_name": "Brighton and Hove",
+      "sites_total": 107,
+      "sites_matched": 36,
+      "sites_missing": 71,
+      "coverage_pct": 33.6,
+      "oa_venues": 56,
+      "oa_venues_unmatched": 29
+    },
+    {
+      "local_authority_code": "E06000002",
+      "local_authority_name": "Middlesbrough",
+      "sites_total": 50,
+      "sites_matched": 17,
+      "sites_missing": 33,
+      "coverage_pct": 34.0,
+      "oa_venues": 47,
+      "oa_venues_unmatched": 27
+    },
+    {
+      "local_authority_code": "E08000012",
+      "local_authority_name": "Liverpool",
+      "sites_total": 154,
+      "sites_matched": 53,
+      "sites_missing": 101,
+      "coverage_pct": 34.4,
+      "oa_venues": 114,
+      "oa_venues_unmatched": 61
+    },
+    {
+      "local_authority_code": "E07000149",
+      "local_authority_name": "South Norfolk",
+      "sites_total": 96,
+      "sites_matched": 33,
+      "sites_missing": 63,
+      "coverage_pct": 34.4,
+      "oa_venues": 66,
+      "oa_venues_unmatched": 28
+    },
+    {
+      "local_authority_code": "E07000086",
+      "local_authority_name": "Eastleigh",
+      "sites_total": 61,
+      "sites_matched": 21,
+      "sites_missing": 40,
+      "coverage_pct": 34.4,
+      "oa_venues": 47,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E06000062",
+      "local_authority_name": "West Northamptonshire",
+      "sites_total": 232,
+      "sites_matched": 80,
+      "sites_missing": 152,
+      "coverage_pct": 34.5,
+      "oa_venues": 228,
+      "oa_venues_unmatched": 128
+    },
+    {
+      "local_authority_code": "E06000061",
+      "local_authority_name": "North Northamptonshire",
+      "sites_total": 177,
+      "sites_matched": 61,
+      "sites_missing": 116,
+      "coverage_pct": 34.5,
+      "oa_venues": 152,
+      "oa_venues_unmatched": 87
+    },
+    {
+      "local_authority_code": "E09000002",
+      "local_authority_name": "Barking and Dagenham",
+      "sites_total": 46,
+      "sites_matched": 16,
+      "sites_missing": 30,
+      "coverage_pct": 34.8,
+      "oa_venues": 27,
+      "oa_venues_unmatched": 14
+    },
+    {
+      "local_authority_code": "E07000126",
+      "local_authority_name": "South Ribble",
+      "sites_total": 63,
+      "sites_matched": 22,
+      "sites_missing": 41,
+      "coverage_pct": 34.9,
+      "oa_venues": 46,
+      "oa_venues_unmatched": 23
+    },
+    {
+      "local_authority_code": "E07000124",
+      "local_authority_name": "Ribble Valley",
+      "sites_total": 57,
+      "sites_matched": 20,
+      "sites_missing": 37,
+      "coverage_pct": 35.1,
+      "oa_venues": 36,
+      "oa_venues_unmatched": 16
+    },
+    {
+      "local_authority_code": "E07000128",
+      "local_authority_name": "Wyre",
+      "sites_total": 48,
+      "sites_matched": 17,
+      "sites_missing": 31,
+      "coverage_pct": 35.4,
+      "oa_venues": 35,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E09000026",
+      "local_authority_name": "Redbridge",
+      "sites_total": 93,
+      "sites_matched": 33,
+      "sites_missing": 60,
+      "coverage_pct": 35.5,
+      "oa_venues": 51,
+      "oa_venues_unmatched": 25
+    },
+    {
+      "local_authority_code": "E07000088",
+      "local_authority_name": "Gosport",
+      "sites_total": 28,
+      "sites_matched": 10,
+      "sites_missing": 18,
+      "coverage_pct": 35.7,
+      "oa_venues": 18,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E06000041",
+      "local_authority_name": "Wokingham",
+      "sites_total": 86,
+      "sites_matched": 31,
+      "sites_missing": 55,
+      "coverage_pct": 36.0,
+      "oa_venues": 61,
+      "oa_venues_unmatched": 26
+    },
+    {
+      "local_authority_code": "E07000210",
+      "local_authority_name": "Mole Valley",
+      "sites_total": 58,
+      "sites_matched": 21,
+      "sites_missing": 37,
+      "coverage_pct": 36.2,
+      "oa_venues": 43,
+      "oa_venues_unmatched": 21
+    },
+    {
+      "local_authority_code": "E06000052",
+      "local_authority_name": "Cornwall",
+      "sites_total": 394,
+      "sites_matched": 143,
+      "sites_missing": 251,
+      "coverage_pct": 36.3,
+      "oa_venues": 523,
+      "oa_venues_unmatched": 339
+    },
+    {
+      "local_authority_code": "E07000109",
+      "local_authority_name": "Gravesham",
+      "sites_total": 55,
+      "sites_matched": 20,
+      "sites_missing": 35,
+      "coverage_pct": 36.4,
+      "oa_venues": 37,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E06000026",
+      "local_authority_name": "Plymouth",
+      "sites_total": 96,
+      "sites_matched": 35,
+      "sites_missing": 61,
+      "coverage_pct": 36.5,
+      "oa_venues": 73,
+      "oa_venues_unmatched": 36
+    },
+    {
+      "local_authority_code": "E09000027",
+      "local_authority_name": "Richmond upon Thames",
+      "sites_total": 103,
+      "sites_matched": 38,
+      "sites_missing": 65,
+      "coverage_pct": 36.9,
+      "oa_venues": 92,
+      "oa_venues_unmatched": 40
+    },
+    {
+      "local_authority_code": "E07000223",
+      "local_authority_name": "Adur",
+      "sites_total": 27,
+      "sites_matched": 10,
+      "sites_missing": 17,
+      "coverage_pct": 37.0,
+      "oa_venues": 19,
+      "oa_venues_unmatched": 11
+    },
+    {
+      "local_authority_code": "E09000013",
+      "local_authority_name": "Hammersmith and Fulham",
+      "sites_total": 48,
+      "sites_matched": 18,
+      "sites_missing": 30,
+      "coverage_pct": 37.5,
+      "oa_venues": 35,
+      "oa_venues_unmatched": 12
+    },
+    {
+      "local_authority_code": "E06000016",
+      "local_authority_name": "Leicester",
+      "sites_total": 101,
+      "sites_matched": 38,
+      "sites_missing": 63,
+      "coverage_pct": 37.6,
+      "oa_venues": 82,
+      "oa_venues_unmatched": 37
+    },
+    {
+      "local_authority_code": "E07000137",
+      "local_authority_name": "East Lindsey",
+      "sites_total": 85,
+      "sites_matched": 32,
+      "sites_missing": 53,
+      "coverage_pct": 37.6,
+      "oa_venues": 122,
+      "oa_venues_unmatched": 87
+    },
+    {
+      "local_authority_code": "E06000008",
+      "local_authority_name": "Blackburn with Darwen",
+      "sites_total": 60,
+      "sites_matched": 23,
+      "sites_missing": 37,
+      "coverage_pct": 38.3,
+      "oa_venues": 49,
+      "oa_venues_unmatched": 23
+    },
+    {
+      "local_authority_code": "E08000021",
+      "local_authority_name": "Newcastle upon Tyne",
+      "sites_total": 112,
+      "sites_matched": 43,
+      "sites_missing": 69,
+      "coverage_pct": 38.4,
+      "oa_venues": 85,
+      "oa_venues_unmatched": 44
+    },
+    {
+      "local_authority_code": "E06000039",
+      "local_authority_name": "Slough",
+      "sites_total": 44,
+      "sites_matched": 17,
+      "sites_missing": 27,
+      "coverage_pct": 38.6,
+      "oa_venues": 36,
+      "oa_venues_unmatched": 13
+    },
+    {
+      "local_authority_code": "E08000025",
+      "local_authority_name": "Birmingham",
+      "sites_total": 305,
+      "sites_matched": 118,
+      "sites_missing": 187,
+      "coverage_pct": 38.7,
+      "oa_venues": 292,
+      "oa_venues_unmatched": 145
+    },
+    {
+      "local_authority_code": "E07000139",
+      "local_authority_name": "North Kesteven",
+      "sites_total": 75,
+      "sites_matched": 29,
+      "sites_missing": 46,
+      "coverage_pct": 38.7,
+      "oa_venues": 70,
+      "oa_venues_unmatched": 35
+    },
+    {
+      "local_authority_code": "E07000087",
+      "local_authority_name": "Fareham",
+      "sites_total": 49,
+      "sites_matched": 19,
+      "sites_missing": 30,
+      "coverage_pct": 38.8,
+      "oa_venues": 30,
+      "oa_venues_unmatched": 10
+    },
+    {
+      "local_authority_code": "E07000202",
+      "local_authority_name": "Ipswich",
+      "sites_total": 49,
+      "sites_matched": 19,
+      "sites_missing": 30,
+      "coverage_pct": 38.8,
+      "oa_venues": 54,
+      "oa_venues_unmatched": 28
+    },
+    {
+      "local_authority_code": "E09000018",
+      "local_authority_name": "Hounslow",
+      "sites_total": 96,
+      "sites_matched": 38,
+      "sites_missing": 58,
+      "coverage_pct": 39.6,
+      "oa_venues": 68,
+      "oa_venues_unmatched": 31
+    },
+    {
+      "local_authority_code": "E07000135",
+      "local_authority_name": "Oadby and Wigston",
+      "sites_total": 25,
+      "sites_matched": 10,
+      "sites_missing": 15,
+      "coverage_pct": 40.0,
+      "oa_venues": 17,
+      "oa_venues_unmatched": 7
+    },
+    {
+      "local_authority_code": "E07000217",
+      "local_authority_name": "Woking",
+      "sites_total": 57,
+      "sites_matched": 23,
+      "sites_missing": 34,
+      "coverage_pct": 40.4,
+      "oa_venues": 41,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E08000003",
+      "local_authority_name": "Manchester",
+      "sites_total": 181,
+      "sites_matched": 74,
+      "sites_missing": 107,
+      "coverage_pct": 40.9,
+      "oa_venues": 147,
+      "oa_venues_unmatched": 58
+    },
+    {
+      "local_authority_code": "E06000014",
+      "local_authority_name": "York",
+      "sites_total": 100,
+      "sites_matched": 41,
+      "sites_missing": 59,
+      "coverage_pct": 41.0,
+      "oa_venues": 104,
+      "oa_venues_unmatched": 58
+    },
+    {
+      "local_authority_code": "E07000208",
+      "local_authority_name": "Epsom and Ewell",
+      "sites_total": 39,
+      "sites_matched": 16,
+      "sites_missing": 23,
+      "coverage_pct": 41.0,
+      "oa_venues": 28,
+      "oa_venues_unmatched": 9
+    },
+    {
+      "local_authority_code": "E09000021",
+      "local_authority_name": "Kingston upon Thames",
+      "sites_total": 70,
+      "sites_matched": 29,
+      "sites_missing": 41,
+      "coverage_pct": 41.4,
+      "oa_venues": 49,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E09000001",
+      "local_authority_name": "City of London",
+      "sites_total": 29,
+      "sites_matched": 12,
+      "sites_missing": 17,
+      "coverage_pct": 41.4,
+      "oa_venues": 10,
+      "oa_venues_unmatched": 3
+    },
+    {
+      "local_authority_code": "E07000178",
+      "local_authority_name": "Oxford",
+      "sites_total": 74,
+      "sites_matched": 31,
+      "sites_missing": 43,
+      "coverage_pct": 41.9,
+      "oa_venues": 52,
+      "oa_venues_unmatched": 19
+    },
+    {
+      "local_authority_code": "E09000022",
+      "local_authority_name": "Lambeth",
+      "sites_total": 88,
+      "sites_matched": 37,
+      "sites_missing": 51,
+      "coverage_pct": 42.0,
+      "oa_venues": 61,
+      "oa_venues_unmatched": 26
+    },
+    {
+      "local_authority_code": "E07000123",
+      "local_authority_name": "Preston",
+      "sites_total": 57,
+      "sites_matched": 24,
+      "sites_missing": 33,
+      "coverage_pct": 42.1,
+      "oa_venues": 57,
+      "oa_venues_unmatched": 32
+    },
+    {
+      "local_authority_code": "E09000004",
+      "local_authority_name": "Bexley",
+      "sites_total": 80,
+      "sites_matched": 34,
+      "sites_missing": 46,
+      "coverage_pct": 42.5,
+      "oa_venues": 73,
+      "oa_venues_unmatched": 37
+    },
+    {
+      "local_authority_code": "E07000099",
+      "local_authority_name": "North Hertfordshire",
+      "sites_total": 103,
+      "sites_matched": 44,
+      "sites_missing": 59,
+      "coverage_pct": 42.7,
+      "oa_venues": 96,
+      "oa_venues_unmatched": 48
+    },
+    {
+      "local_authority_code": "E07000240",
+      "local_authority_name": "St Albans",
+      "sites_total": 95,
+      "sites_matched": 41,
+      "sites_missing": 54,
+      "coverage_pct": 43.2,
+      "oa_venues": 133,
+      "oa_venues_unmatched": 80
+    },
+    {
+      "local_authority_code": "E07000242",
+      "local_authority_name": "East Hertfordshire",
+      "sites_total": 103,
+      "sites_matched": 45,
+      "sites_missing": 58,
+      "coverage_pct": 43.7,
+      "oa_venues": 105,
+      "oa_venues_unmatched": 57
+    },
+    {
+      "local_authority_code": "E09000030",
+      "local_authority_name": "Tower Hamlets",
+      "sites_total": 70,
+      "sites_matched": 31,
+      "sites_missing": 39,
+      "coverage_pct": 44.3,
+      "oa_venues": 73,
+      "oa_venues_unmatched": 29
+    },
+    {
+      "local_authority_code": "E09000007",
+      "local_authority_name": "Camden",
+      "sites_total": 69,
+      "sites_matched": 31,
+      "sites_missing": 38,
+      "coverage_pct": 44.9,
+      "oa_venues": 58,
+      "oa_venues_unmatched": 25
+    },
+    {
+      "local_authority_code": "E07000098",
+      "local_authority_name": "Hertsmere",
+      "sites_total": 64,
+      "sites_matched": 29,
+      "sites_missing": 35,
+      "coverage_pct": 45.3,
+      "oa_venues": 69,
+      "oa_venues_unmatched": 32
+    },
+    {
+      "local_authority_code": "E09000032",
+      "local_authority_name": "Wandsworth",
+      "sites_total": 99,
+      "sites_matched": 45,
+      "sites_missing": 54,
+      "coverage_pct": 45.5,
+      "oa_venues": 92,
+      "oa_venues_unmatched": 43
+    },
+    {
+      "local_authority_code": "E09000023",
+      "local_authority_name": "Lewisham",
+      "sites_total": 68,
+      "sites_matched": 31,
+      "sites_missing": 37,
+      "coverage_pct": 45.6,
+      "oa_venues": 63,
+      "oa_venues_unmatched": 25
+    },
+    {
+      "local_authority_code": "E06000032",
+      "local_authority_name": "Luton",
+      "sites_total": 48,
+      "sites_matched": 22,
+      "sites_missing": 26,
+      "coverage_pct": 45.8,
+      "oa_venues": 45,
+      "oa_venues_unmatched": 17
+    },
+    {
+      "local_authority_code": "E07000096",
+      "local_authority_name": "Dacorum",
+      "sites_total": 98,
+      "sites_matched": 45,
+      "sites_missing": 53,
+      "coverage_pct": 45.9,
+      "oa_venues": 119,
+      "oa_venues_unmatched": 68
+    },
+    {
+      "local_authority_code": "E09000019",
+      "local_authority_name": "Islington",
+      "sites_total": 62,
+      "sites_matched": 29,
+      "sites_missing": 33,
+      "coverage_pct": 46.8,
+      "oa_venues": 49,
+      "oa_venues_unmatched": 18
+    },
+    {
+      "local_authority_code": "E07000241",
+      "local_authority_name": "Welwyn Hatfield",
+      "sites_total": 57,
+      "sites_matched": 27,
+      "sites_missing": 30,
+      "coverage_pct": 47.4,
+      "oa_venues": 87,
+      "oa_venues_unmatched": 49
+    },
+    {
+      "local_authority_code": "E09000011",
+      "local_authority_name": "Greenwich",
+      "sites_total": 107,
+      "sites_matched": 51,
+      "sites_missing": 56,
+      "coverage_pct": 47.7,
+      "oa_venues": 97,
+      "oa_venues_unmatched": 40
+    },
+    {
+      "local_authority_code": "E09000028",
+      "local_authority_name": "Southwark",
+      "sites_total": 99,
+      "sites_matched": 48,
+      "sites_missing": 51,
+      "coverage_pct": 48.5,
+      "oa_venues": 93,
+      "oa_venues_unmatched": 20
+    },
+    {
+      "local_authority_code": "E07000095",
+      "local_authority_name": "Broxbourne",
+      "sites_total": 34,
+      "sites_matched": 17,
+      "sites_missing": 17,
+      "coverage_pct": 50.0,
+      "oa_venues": 49,
+      "oa_venues_unmatched": 28
+    },
+    {
+      "local_authority_code": "E09000009",
+      "local_authority_name": "Ealing",
+      "sites_total": 104,
+      "sites_matched": 53,
+      "sites_missing": 51,
+      "coverage_pct": 51.0,
+      "oa_venues": 108,
+      "oa_venues_unmatched": 49
+    },
+    {
+      "local_authority_code": "E07000103",
+      "local_authority_name": "Watford",
+      "sites_total": 41,
+      "sites_matched": 21,
+      "sites_missing": 20,
+      "coverage_pct": 51.2,
+      "oa_venues": 49,
+      "oa_venues_unmatched": 22
+    },
+    {
+      "local_authority_code": "E06000044",
+      "local_authority_name": "Portsmouth",
+      "sites_total": 76,
+      "sites_matched": 39,
+      "sites_missing": 37,
+      "coverage_pct": 51.3,
+      "oa_venues": 76,
+      "oa_venues_unmatched": 38
+    },
+    {
+      "local_authority_code": "E09000024",
+      "local_authority_name": "Merton",
+      "sites_total": 92,
+      "sites_matched": 50,
+      "sites_missing": 42,
+      "coverage_pct": 54.3,
+      "oa_venues": 93,
+      "oa_venues_unmatched": 39
+    },
+    {
+      "local_authority_code": "E07000243",
+      "local_authority_name": "Stevenage",
+      "sites_total": 33,
+      "sites_matched": 18,
+      "sites_missing": 15,
+      "coverage_pct": 54.5,
+      "oa_venues": 47,
+      "oa_venues_unmatched": 24
+    },
+    {
+      "local_authority_code": "E07000102",
+      "local_authority_name": "Three Rivers",
+      "sites_total": 47,
+      "sites_matched": 26,
+      "sites_missing": 21,
+      "coverage_pct": 55.3,
+      "oa_venues": 91,
+      "oa_venues_unmatched": 58
+    },
+    {
+      "local_authority_code": "E07000148",
+      "local_authority_name": "Norwich",
+      "sites_total": 50,
+      "sites_matched": 29,
+      "sites_missing": 21,
+      "coverage_pct": 58.0,
+      "oa_venues": 98,
+      "oa_venues_unmatched": 59
+    },
+    {
+      "local_authority_code": "E09000031",
+      "local_authority_name": "Waltham Forest",
+      "sites_total": 77,
+      "sites_matched": 45,
+      "sites_missing": 32,
+      "coverage_pct": 58.4,
+      "oa_venues": 75,
+      "oa_venues_unmatched": 24
+    },
+    {
+      "local_authority_code": "E09000012",
+      "local_authority_name": "Hackney",
+      "sites_total": 51,
+      "sites_matched": 31,
+      "sites_missing": 20,
+      "coverage_pct": 60.8,
+      "oa_venues": 53,
+      "oa_venues_unmatched": 14
+    },
+    {
+      "local_authority_code": "E09000033",
+      "local_authority_name": "Westminster",
+      "sites_total": 89,
+      "sites_matched": 55,
+      "sites_missing": 34,
+      "coverage_pct": 61.8,
+      "oa_venues": 96,
+      "oa_venues_unmatched": 36
+    },
+    {
+      "local_authority_code": "E09000014",
+      "local_authority_name": "Haringey",
+      "sites_total": 79,
+      "sites_matched": 50,
+      "sites_missing": 29,
+      "coverage_pct": 63.3,
+      "oa_venues": 75,
+      "oa_venues_unmatched": 26
+    }
+  ],
+  "coverage_by_ownership": [
+    {
+      "group": "Local Authority",
+      "sites_total": 9958,
+      "sites_matched": 2758,
+      "sites_missing": 7200,
+      "coverage_pct": 27.7
+    },
+    {
+      "group": "Commercial",
+      "sites_total": 5455,
+      "sites_matched": 1229,
+      "sites_missing": 4226,
+      "coverage_pct": 22.5
+    },
+    {
+      "group": "Education",
+      "sites_total": 4977,
+      "sites_matched": 1873,
+      "sites_missing": 3104,
+      "coverage_pct": 37.6
+    },
+    {
+      "group": "Sports Club",
+      "sites_total": 4740,
+      "sites_matched": 842,
+      "sites_missing": 3898,
+      "coverage_pct": 17.8
+    },
+    {
+      "group": "Community Organisation",
+      "sites_total": 1720,
+      "sites_matched": 403,
+      "sites_missing": 1317,
+      "coverage_pct": 23.4
+    },
+    {
+      "group": "Others",
+      "sites_total": 1001,
+      "sites_matched": 246,
+      "sites_missing": 755,
+      "coverage_pct": 24.6
+    },
+    {
+      "group": "Not Known",
+      "sites_total": 6,
+      "sites_matched": 0,
+      "sites_missing": 6,
+      "coverage_pct": 0.0
+    }
+  ],
+  "coverage_by_management": [
+    {
+      "group": "Others",
+      "sites_total": 10055,
+      "sites_matched": 1901,
+      "sites_missing": 8154,
+      "coverage_pct": 18.9
+    },
+    {
+      "group": "Local Authority",
+      "sites_total": 6163,
+      "sites_matched": 1413,
+      "sites_missing": 4750,
+      "coverage_pct": 22.9
+    },
+    {
+      "group": "Commercial",
+      "sites_total": 5576,
+      "sites_matched": 1631,
+      "sites_missing": 3945,
+      "coverage_pct": 29.3
+    },
+    {
+      "group": "Education",
+      "sites_total": 4487,
+      "sites_matched": 1627,
+      "sites_missing": 2860,
+      "coverage_pct": 36.3
+    },
+    {
+      "group": "Trust",
+      "sites_total": 1568,
+      "sites_matched": 778,
+      "sites_missing": 790,
+      "coverage_pct": 49.6
+    },
+    {
+      "group": "Not Known",
+      "sites_total": 8,
+      "sites_matched": 1,
+      "sites_missing": 7,
+      "coverage_pct": 12.5
+    }
+  ],
+  "coverage_by_facility_type": [
+    {
+      "facility_type_code": "5",
+      "sites_total": 15227,
+      "sites_matched": 3126,
+      "sites_missing": 12101,
+      "coverage_pct": 20.5
+    },
+    {
+      "facility_type_code": "6",
+      "sites_total": 6456,
+      "sites_matched": 2860,
+      "sites_missing": 3596,
+      "coverage_pct": 44.3
+    },
+    {
+      "facility_type_code": "2",
+      "sites_total": 6107,
+      "sites_matched": 2611,
+      "sites_missing": 3496,
+      "coverage_pct": 42.8
+    },
+    {
+      "facility_type_code": "17",
+      "sites_total": 5146,
+      "sites_matched": 1674,
+      "sites_missing": 3472,
+      "coverage_pct": 32.5
+    },
+    {
+      "facility_type_code": "12",
+      "sites_total": 4556,
+      "sites_matched": 2277,
+      "sites_missing": 2279,
+      "coverage_pct": 50.0
+    },
+    {
+      "facility_type_code": "8",
+      "sites_total": 3874,
+      "sites_matched": 1791,
+      "sites_missing": 2083,
+      "coverage_pct": 46.2
+    },
+    {
+      "facility_type_code": "7",
+      "sites_total": 2942,
+      "sites_matched": 1368,
+      "sites_missing": 1574,
+      "coverage_pct": 46.5
+    },
+    {
+      "facility_type_code": "9",
+      "sites_total": 1854,
+      "sites_matched": 438,
+      "sites_missing": 1416,
+      "coverage_pct": 23.6
+    },
+    {
+      "facility_type_code": "13",
+      "sites_total": 1160,
+      "sites_matched": 586,
+      "sites_missing": 574,
+      "coverage_pct": 50.5
+    },
+    {
+      "facility_type_code": "18",
+      "sites_total": 670,
+      "sites_matched": 154,
+      "sites_missing": 516,
+      "coverage_pct": 23.0
+    },
+    {
+      "facility_type_code": "20",
+      "sites_total": 398,
+      "sites_matched": 157,
+      "sites_missing": 241,
+      "coverage_pct": 39.4
+    },
+    {
+      "facility_type_code": "1",
+      "sites_total": 329,
+      "sites_matched": 211,
+      "sites_missing": 118,
+      "coverage_pct": 64.1
+    },
+    {
+      "facility_type_code": "4",
+      "sites_total": 298,
+      "sites_matched": 125,
+      "sites_missing": 173,
+      "coverage_pct": 41.9
+    },
+    {
+      "facility_type_code": "3",
+      "sites_total": 288,
+      "sites_matched": 114,
+      "sites_missing": 174,
+      "coverage_pct": 39.6
+    },
+    {
+      "facility_type_code": "11",
+      "sites_total": 43,
+      "sites_matched": 11,
+      "sites_missing": 32,
+      "coverage_pct": 25.6
+    },
+    {
+      "facility_type_code": "10",
+      "sites_total": 38,
+      "sites_matched": 24,
+      "sites_missing": 14,
+      "coverage_pct": 63.2
+    }
+  ],
+  "publishers": [
+    {
+      "publisher": "British Cycling",
+      "ap_sites_covered": 2631,
+      "oa_venues": 2493,
+      "local_authorities": 279
+    },
+    {
+      "publisher": "England Netball",
+      "ap_sites_covered": 2228,
+      "oa_venues": 1786,
+      "local_authorities": 289
+    },
+    {
+      "publisher": "Playwaze",
+      "ap_sites_covered": 1210,
+      "oa_venues": 1130,
+      "local_authorities": 211
+    },
+    {
+      "publisher": "Played",
+      "ap_sites_covered": 752,
+      "oa_venues": 625,
+      "local_authorities": 222
+    },
+    {
+      "publisher": "Open Sessions",
+      "ap_sites_covered": 567,
+      "oa_venues": 466,
+      "local_authorities": 110
+    },
+    {
+      "publisher": "Bookwhen",
+      "ap_sites_covered": 381,
+      "oa_venues": 310,
+      "local_authorities": 159
+    },
+    {
+      "publisher": "British Triathlon",
+      "ap_sites_covered": 353,
+      "oa_venues": 278,
+      "local_authorities": 154
+    },
+    {
+      "publisher": "GLL",
+      "ap_sites_covered": 303,
+      "oa_venues": 202,
+      "local_authorities": 59
+    },
+    {
+      "publisher": "Everyone Active",
+      "ap_sites_covered": 292,
+      "oa_venues": 194,
+      "local_authorities": 62
+    },
+    {
+      "publisher": "Better",
+      "ap_sites_covered": 287,
+      "oa_venues": 203,
+      "local_authorities": 54
+    },
+    {
+      "publisher": "Good Gym",
+      "ap_sites_covered": 241,
+      "oa_venues": 195,
+      "local_authorities": 63
+    },
+    {
+      "publisher": "Exercise Anywhere",
+      "ap_sites_covered": 152,
+      "oa_venues": 131,
+      "local_authorities": 59
+    },
+    {
+      "publisher": "Schools Plus Ltd",
+      "ap_sites_covered": 125,
+      "oa_venues": 107,
+      "local_authorities": 56
+    },
+    {
+      "publisher": "Places Leisure",
+      "ap_sites_covered": 114,
+      "oa_venues": 76,
+      "local_authorities": 29
+    },
+    {
+      "publisher": "SportSuite",
+      "ap_sites_covered": 98,
+      "oa_venues": 71,
+      "local_authorities": 21
+    },
+    {
+      "publisher": "Lawn Tennis Association",
+      "ap_sites_covered": 87,
+      "oa_venues": 69,
+      "local_authorities": 57
+    },
+    {
+      "publisher": "TeamUp",
+      "ap_sites_covered": 73,
+      "oa_venues": 64,
+      "local_authorities": 39
+    },
+    {
+      "publisher": "Serco Leisure",
+      "ap_sites_covered": 60,
+      "oa_venues": 45,
+      "local_authorities": 13
+    },
+    {
+      "publisher": "Parkwood Leisure Ltd, its subsidiaries and partner organisations",
+      "ap_sites_covered": 59,
+      "oa_venues": 43,
+      "local_authorities": 23
+    },
+    {
+      "publisher": "Courtside Hubs CIC",
+      "ap_sites_covered": 52,
+      "oa_venues": 42,
+      "local_authorities": 14
+    },
+    {
+      "publisher": "Our Parks",
+      "ap_sites_covered": 40,
+      "oa_venues": 29,
+      "local_authorities": 19
+    },
+    {
+      "publisher": "Halo",
+      "ap_sites_covered": 31,
+      "oa_venues": 17,
+      "local_authorities": 7
+    },
+    {
+      "publisher": "Actihire",
+      "ap_sites_covered": 28,
+      "oa_venues": 26,
+      "local_authorities": 21
+    },
+    {
+      "publisher": "Everyone Active (data)",
+      "ap_sites_covered": 26,
+      "oa_venues": 15,
+      "local_authorities": 11
+    },
+    {
+      "publisher": "Upshot",
+      "ap_sites_covered": 26,
+      "oa_venues": 24,
+      "local_authorities": 12
+    },
+    {
+      "publisher": "Matthew Arnold Sports Centre",
+      "ap_sites_covered": 20,
+      "oa_venues": 14,
+      "local_authorities": 14
+    },
+    {
+      "publisher": "LED Community Leisure Ltd",
+      "ap_sites_covered": 17,
+      "oa_venues": 12,
+      "local_authorities": 3
+    },
+    {
+      "publisher": "Waltham Forest Council",
+      "ap_sites_covered": 16,
+      "oa_venues": 11,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Brimhams Active",
+      "ap_sites_covered": 13,
+      "oa_venues": 8,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Huntingdonshire District Council",
+      "ap_sites_covered": 13,
+      "oa_venues": 5,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Everyone Active (dev)",
+      "ap_sites_covered": 11,
+      "oa_venues": 5,
+      "local_authorities": 5
+    },
+    {
+      "publisher": "Active Tameside",
+      "ap_sites_covered": 11,
+      "oa_venues": 7,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "LRSO",
+      "ap_sites_covered": 11,
+      "oa_venues": 10,
+      "local_authorities": 6
+    },
+    {
+      "publisher": "London Borough of Ealing Council",
+      "ap_sites_covered": 11,
+      "oa_venues": 8,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Oldham Community Leisure",
+      "ap_sites_covered": 11,
+      "oa_venues": 6,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "SLL and InspireAll",
+      "ap_sites_covered": 11,
+      "oa_venues": 8,
+      "local_authorities": 4
+    },
+    {
+      "publisher": "<unknown>",
+      "ap_sites_covered": 11,
+      "oa_venues": 9,
+      "local_authorities": 6
+    },
+    {
+      "publisher": "Haringey Council",
+      "ap_sites_covered": 10,
+      "oa_venues": 9,
+      "local_authorities": 2
+    },
+    {
+      "publisher": "PlayFootball",
+      "ap_sites_covered": 10,
+      "oa_venues": 6,
+      "local_authorities": 2
+    },
+    {
+      "publisher": "Southwark Council",
+      "ap_sites_covered": 9,
+      "oa_venues": 7,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "London Borough of Tower Hamlets",
+      "ap_sites_covered": 9,
+      "oa_venues": 6,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Birmingham City Council",
+      "ap_sites_covered": 9,
+      "oa_venues": 7,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Lampton Leisure",
+      "ap_sites_covered": 8,
+      "oa_venues": 6,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "gmcommunitylettings",
+      "ap_sites_covered": 8,
+      "oa_venues": 6,
+      "local_authorities": 4
+    },
+    {
+      "publisher": "activenottingham",
+      "ap_sites_covered": 8,
+      "oa_venues": 5,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Active Luton",
+      "ap_sites_covered": 8,
+      "oa_venues": 5,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Rivers Fitness",
+      "ap_sites_covered": 7,
+      "oa_venues": 4,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Active Hartlepool",
+      "ap_sites_covered": 7,
+      "oa_venues": 5,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Chelmsford City Sports",
+      "ap_sites_covered": 6,
+      "oa_venues": 4,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "School Enterprises Ltd",
+      "ap_sites_covered": 6,
+      "oa_venues": 5,
+      "local_authorities": 4
+    },
+    {
+      "publisher": "Tendring Leisure",
+      "ap_sites_covered": 6,
+      "oa_venues": 3,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Teignbridge Leisure",
+      "ap_sites_covered": 5,
+      "oa_venues": 3,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Stowe Enterprises Ltd",
+      "ap_sites_covered": 5,
+      "oa_venues": 4,
+      "local_authorities": 2
+    },
+    {
+      "publisher": "Plymouth Active",
+      "ap_sites_covered": 5,
+      "oa_venues": 3,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "BwD Leisure",
+      "ap_sites_covered": 4,
+      "oa_venues": 3,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Leisure SK",
+      "ap_sites_covered": 4,
+      "oa_venues": 3,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "University of Bristol",
+      "ap_sites_covered": 4,
+      "oa_venues": 3,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Earlsdon Rugby Club",
+      "ap_sites_covered": 4,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "NXT Level Sport & Education Ltd",
+      "ap_sites_covered": 4,
+      "oa_venues": 3,
+      "local_authorities": 2
+    },
+    {
+      "publisher": "Colchester Leisure World",
+      "ap_sites_covered": 3,
+      "oa_venues": 3,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Derby Active",
+      "ap_sites_covered": 3,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "QH Memorial Sports Ground - River Pitches",
+      "ap_sites_covered": 3,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Reading Rugby Club",
+      "ap_sites_covered": 3,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Gravesham Legend Sports Ltd",
+      "ap_sites_covered": 3,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Castlepoint",
+      "ap_sites_covered": 3,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Orchard Learning Alliance",
+      "ap_sites_covered": 3,
+      "oa_venues": 3,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Football 567",
+      "ap_sites_covered": 3,
+      "oa_venues": 2,
+      "local_authorities": 2
+    },
+    {
+      "publisher": "Barrow Park Leisure Centre",
+      "ap_sites_covered": 3,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Danbury Parish Council",
+      "ap_sites_covered": 3,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Larkhall Sports Club",
+      "ap_sites_covered": 3,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Awesome CIC",
+      "ap_sites_covered": 2,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Woolmer Hill Sports Association",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Your Leisure",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Sports IQ LTD",
+      "ap_sites_covered": 2,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Wells Cathedral School",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Appleby Frodingham Sports Club",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Pomphrey Hill Community Sports Association",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Redbridge Sports Centre",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "The Downside Settlement",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Priory Federation of Academies",
+      "ap_sites_covered": 2,
+      "oa_venues": 2,
+      "local_authorities": 2
+    },
+    {
+      "publisher": "The Woodroffe School",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "salfordcommunityleisure",
+      "ap_sites_covered": 2,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Enfield Drill Hall Sports Club",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Bolder Academy",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Broughton Town Council",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Oxford University",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Liberty Leisure",
+      "ap_sites_covered": 2,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Didcot Town Council",
+      "ap_sites_covered": 2,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "JMO Sports Limited",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Mark Allen",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Coram's Fields",
+      "ap_sites_covered": 2,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Manchester Communication Academy",
+      "ap_sites_covered": 2,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "ID Verde Charnwood",
+      "ap_sites_covered": 2,
+      "oa_venues": 2,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Prees Sports and Social Club",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Water Lilies Swimming School Ltd",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Kingsway Park High School",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Vision Redbridge",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Ice Leisure",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Hythe Cricket & Squash Club",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Wellington College",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "West Wight Sports and Community",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "The Hub - Rise Community",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Wycliffe College",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Wymondham Town United FC",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Harborne Cricket Club",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "lsbuactive",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Debdale Park Sports & Recreation Club",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Courts Club",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Langley Grange Pool",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Spalding United Football Club",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Bishop Challoner Sports Centre",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Blue Flames Sporting Club Limited",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Chauncy School",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Old Northamptonians Association",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Bedford Town Football Club",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "March was Town FC Estover CIC",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Ashmole Trust",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "The Black Prince Trust",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "St Cuthbert Mayne School",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "St George's School, Harpenden",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Stanley Primary School",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Loughborough University",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Sunbury Cricket Club",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Featherstone Sports Centre Trust",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    },
+    {
+      "publisher": "Princes Park Youth Football Club",
+      "ap_sites_covered": 1,
+      "oa_venues": 1,
+      "local_authorities": 1
+    }
+  ],
+  "coordinate_provenance": {
+    "diagnostic_available": true,
+    "centroid_points": 5667,
+    "centroid_points_pct": 31.3,
+    "centroid_venues": 5196,
+    "top_centroid_publisher": "British Cycling",
+    "centroid_pct_excluding_top_publisher": 6.4,
+    "by_publisher": [
+      {
+        "publisher": "British Cycling",
+        "points": 7523,
+        "centroid_points": 4992,
+        "centroid_pct": 66.4
+      },
+      {
+        "publisher": "Playwaze",
+        "points": 2416,
+        "centroid_points": 72,
+        "centroid_pct": 3.0
+      },
+      {
+        "publisher": "England Netball",
+        "points": 2246,
+        "centroid_points": 13,
+        "centroid_pct": 0.6
+      },
+      {
+        "publisher": "Open Sessions",
+        "points": 941,
+        "centroid_points": 128,
+        "centroid_pct": 13.6
+      },
+      {
+        "publisher": "Played",
+        "points": 861,
+        "centroid_points": 27,
+        "centroid_pct": 3.1
+      },
+      {
+        "publisher": "Bookwhen",
+        "points": 730,
+        "centroid_points": 19,
+        "centroid_pct": 2.6
+      },
+      {
+        "publisher": "Exercise Anywhere",
+        "points": 544,
+        "centroid_points": 45,
+        "centroid_pct": 8.3
+      },
+      {
+        "publisher": "Good Gym",
+        "points": 475,
+        "centroid_points": 147,
+        "centroid_pct": 30.9
+      },
+      {
+        "publisher": "British Triathlon",
+        "points": 447,
+        "centroid_points": 4,
+        "centroid_pct": 0.9
+      },
+      {
+        "publisher": "Better",
+        "points": 220,
+        "centroid_points": 16,
+        "centroid_pct": 7.3
+      },
+      {
+        "publisher": "GLL",
+        "points": 215,
+        "centroid_points": 4,
+        "centroid_pct": 1.9
+      },
+      {
+        "publisher": "Everyone Active",
+        "points": 214,
+        "centroid_points": 11,
+        "centroid_pct": 5.1
+      },
+      {
+        "publisher": "TeamUp",
+        "points": 148,
+        "centroid_points": 1,
+        "centroid_pct": 0.7
+      },
+      {
+        "publisher": "Schools Plus Ltd",
+        "points": 145,
+        "centroid_points": 1,
+        "centroid_pct": 0.7
+      },
+      {
+        "publisher": "SportSuite",
+        "points": 129,
+        "centroid_points": 101,
+        "centroid_pct": 78.3
+      },
+      {
+        "publisher": "Places Leisure",
+        "points": 78,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Lawn Tennis Association",
+        "points": 78,
+        "centroid_points": 6,
+        "centroid_pct": 7.7
+      },
+      {
+        "publisher": "Our Parks",
+        "points": 54,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Serco Leisure",
+        "points": 54,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Parkwood Leisure Ltd, its subsidiaries and partner organisations",
+        "points": 53,
+        "centroid_points": 8,
+        "centroid_pct": 15.1
+      },
+      {
+        "publisher": "Courtside Hubs CIC",
+        "points": 52,
+        "centroid_points": 1,
+        "centroid_pct": 1.9
+      },
+      {
+        "publisher": "Upshot",
+        "points": 45,
+        "centroid_points": 45,
+        "centroid_pct": 100.0
+      },
+      {
+        "publisher": "Actihire",
+        "points": 32,
+        "centroid_points": 1,
+        "centroid_pct": 3.1
+      },
+      {
+        "publisher": "<unknown>",
+        "points": 19,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Halo",
+        "points": 19,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "LED Community Leisure Ltd",
+        "points": 16,
+        "centroid_points": 1,
+        "centroid_pct": 6.2
+      },
+      {
+        "publisher": "LRSO",
+        "points": 16,
+        "centroid_points": 1,
+        "centroid_pct": 6.2
+      },
+      {
+        "publisher": "Matthew Arnold Sports Centre",
+        "points": 15,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Everyone Active (data)",
+        "points": 15,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Waltham Forest Council",
+        "points": 13,
+        "centroid_points": 3,
+        "centroid_pct": 23.1
+      },
+      {
+        "publisher": "Lampton Leisure",
+        "points": 12,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Haringey Council",
+        "points": 12,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "London Borough of Ealing Council",
+        "points": 10,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Orchard Learning Alliance",
+        "points": 9,
+        "centroid_points": 1,
+        "centroid_pct": 11.1
+      },
+      {
+        "publisher": "University of Bristol",
+        "points": 9,
+        "centroid_points": 9,
+        "centroid_pct": 100.0
+      },
+      {
+        "publisher": "SLL and InspireAll",
+        "points": 8,
+        "centroid_points": 1,
+        "centroid_pct": 12.5
+      },
+      {
+        "publisher": "Southwark Council",
+        "points": 8,
+        "centroid_points": 1,
+        "centroid_pct": 12.5
+      },
+      {
+        "publisher": "NXT Level Sport & Education Ltd",
+        "points": 8,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Chelmsford City Sports",
+        "points": 8,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Brimhams Active",
+        "points": 8,
+        "centroid_points": 1,
+        "centroid_pct": 12.5
+      },
+      {
+        "publisher": "Active Tameside",
+        "points": 8,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "gmcommunitylettings",
+        "points": 8,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "School Enterprises Ltd",
+        "points": 7,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "PlayFootball",
+        "points": 7,
+        "centroid_points": 1,
+        "centroid_pct": 14.3
+      },
+      {
+        "publisher": "Birmingham City Council",
+        "points": 7,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Oldham Community Leisure",
+        "points": 6,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "London Borough of Tower Hamlets",
+        "points": 6,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Leisure SK",
+        "points": 5,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Everyone Active (dev)",
+        "points": 5,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Active Hartlepool",
+        "points": 5,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Active Luton",
+        "points": 5,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Huntingdonshire District Council",
+        "points": 5,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Basingstoke Wellbeing",
+        "points": 5,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "activenottingham",
+        "points": 5,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Teignbridge Leisure",
+        "points": 5,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Stowe Enterprises Ltd",
+        "points": 4,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Rivers Fitness",
+        "points": 4,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Tendring Leisure",
+        "points": 3,
+        "centroid_points": 1,
+        "centroid_pct": 33.3
+      },
+      {
+        "publisher": "Colchester Leisure World",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "salfordcommunityleisure",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Ashmole Trust",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Plymouth Active",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Your Leisure",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "BwD Leisure",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Water Lilies Swimming School Ltd",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Football 567",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Derby Active",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Didcot Town Council",
+        "points": 3,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Castlepoint",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "ID Verde Charnwood",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Langley Grange Pool",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Sports IQ LTD",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Awesome CIC",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Priory Federation of Academies",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Liberty Leisure",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Vision Redbridge",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Coram's Fields",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "East Midlands Academy Trust",
+        "points": 2,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Larkhall Sports Club",
+        "points": 2,
+        "centroid_points": 1,
+        "centroid_pct": 50.0
+      },
+      {
+        "publisher": "Spalding United Football Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "The Woodroffe School",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "lsbuactive",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "The Hub - Rise Community",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Wells Cathedral School",
+        "points": 1,
+        "centroid_points": 1,
+        "centroid_pct": 100.0
+      },
+      {
+        "publisher": "West Heath Primary School",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "St Cuthbert Mayne School",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Wycliffe College",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Woolmer Hill Sports Association",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Wellington College",
+        "points": 1,
+        "centroid_points": 1,
+        "centroid_pct": 100.0
+      },
+      {
+        "publisher": "The Black Prince Trust ",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "St George's School, Harpenden",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "West Wight Sports and Community",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Stanley Primary School",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Sunbury Cricket Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "The Downside Settlement",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Wymondham Town United FC",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "100% TO THE TOP CIC",
+        "points": 1,
+        "centroid_points": 1,
+        "centroid_pct": 100.0
+      },
+      {
+        "publisher": "Redbridge Sports Centre",
+        "points": 1,
+        "centroid_points": 1,
+        "centroid_pct": 100.0
+      },
+      {
+        "publisher": "Harborne Cricket Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Featherstone Sports Centre Trust",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Enfield Drill Hall Sports Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Earlsdon Rugby Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Debdale Park Sports & Recreation Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Danbury Parish Council",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Courts Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Chauncy School",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Broughton Town Council ",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Brea Avalon LLP",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Bolder Academy",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Blue Flames Sporting Club Limited",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Bishop Challoner Sports Centre",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Bedford Town Football Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Barrow Park Leisure Centre",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Appleby Frodingham Sports Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Gravesham Legend Sports Ltd",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Harpur Hill Sports Centre CIC",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Reading Rugby Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Hythe Cricket & Squash Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "QH Memorial Sports Ground - River Pitches",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Princes Park Youth Football Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Prees Sports and Social Club",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Precision Football Arena",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Pomphrey Hill Community Sports Association",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Oxford University",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Old Northamptonians Association",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Marston Moretaine Playing Fields",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Mark Allen",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "March was Town FC Estover CIC",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Manchester Communication Academy",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Loughborough University",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Kingsway Park High School",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "JMO Sports Limited",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "Ice Leisure",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      },
+      {
+        "publisher": "strouddistrictcouncil",
+        "points": 1,
+        "centroid_points": 0,
+        "centroid_pct": 0.0
+      }
+    ]
+  },
+  "unmatched": {
+    "venues_by_district": [
+      {
+        "district_name": "Cornwall",
+        "unmatched_venues": 339,
+        "opportunity_count": 2473
+      },
+      {
+        "district_name": "Somerset",
+        "unmatched_venues": 190,
+        "opportunity_count": 2240
+      },
+      {
+        "district_name": "North Yorkshire",
+        "unmatched_venues": 158,
+        "opportunity_count": 961
+      },
+      {
+        "district_name": "Birmingham",
+        "unmatched_venues": 145,
+        "opportunity_count": 3079
+      },
+      {
+        "district_name": "West Northamptonshire",
+        "unmatched_venues": 128,
+        "opportunity_count": 4342
+      },
+      {
+        "district_name": "Cumberland",
+        "unmatched_venues": 121,
+        "opportunity_count": 754
+      },
+      {
+        "district_name": "Dorset",
+        "unmatched_venues": 108,
+        "opportunity_count": 3373
+      },
+      {
+        "district_name": "Westmorland and Furness",
+        "unmatched_venues": 105,
+        "opportunity_count": 499
+      },
+      {
+        "district_name": "East Riding of Yorkshire",
+        "unmatched_venues": 104,
+        "opportunity_count": 1361
+      },
+      {
+        "district_name": "Buckinghamshire",
+        "unmatched_venues": 92,
+        "opportunity_count": 1183
+      },
+      {
+        "district_name": "North Northamptonshire",
+        "unmatched_venues": 87,
+        "opportunity_count": 3192
+      },
+      {
+        "district_name": "Leeds",
+        "unmatched_venues": 87,
+        "opportunity_count": 1934
+      },
+      {
+        "district_name": "East Lindsey",
+        "unmatched_venues": 87,
+        "opportunity_count": 13947
+      },
+      {
+        "district_name": "St Albans",
+        "unmatched_venues": 80,
+        "opportunity_count": 2873
+      },
+      {
+        "district_name": "Sheffield",
+        "unmatched_venues": 79,
+        "opportunity_count": 4242
+      },
+      {
+        "district_name": "Bradford",
+        "unmatched_venues": 76,
+        "opportunity_count": 464
+      },
+      {
+        "district_name": "Cheshire West and Chester",
+        "unmatched_venues": 72,
+        "opportunity_count": 3055
+      },
+      {
+        "district_name": "Wiltshire",
+        "unmatched_venues": 72,
+        "opportunity_count": 701
+      },
+      {
+        "district_name": "Dacorum",
+        "unmatched_venues": 68,
+        "opportunity_count": 244
+      },
+      {
+        "district_name": "New Forest",
+        "unmatched_venues": 64,
+        "opportunity_count": 515
+      },
+      {
+        "district_name": "Liverpool",
+        "unmatched_venues": 61,
+        "opportunity_count": 1261
+      },
+      {
+        "district_name": "County Durham",
+        "unmatched_venues": 61,
+        "opportunity_count": 5446
+      },
+      {
+        "district_name": "Norwich",
+        "unmatched_venues": 59,
+        "opportunity_count": 354
+      },
+      {
+        "district_name": "Manchester",
+        "unmatched_venues": 58,
+        "opportunity_count": 12313
+      },
+      {
+        "district_name": "Three Rivers",
+        "unmatched_venues": 58,
+        "opportunity_count": 753
+      },
+      {
+        "district_name": "York",
+        "unmatched_venues": 58,
+        "opportunity_count": 1668
+      },
+      {
+        "district_name": "Northumberland",
+        "unmatched_venues": 57,
+        "opportunity_count": 469
+      },
+      {
+        "district_name": "Bristol, City of",
+        "unmatched_venues": 57,
+        "opportunity_count": 419
+      },
+      {
+        "district_name": "Milton Keynes",
+        "unmatched_venues": 57,
+        "opportunity_count": 692
+      },
+      {
+        "district_name": "East Hertfordshire",
+        "unmatched_venues": 57,
+        "opportunity_count": 441
+      },
+      {
+        "district_name": "Central Bedfordshire",
+        "unmatched_venues": 53,
+        "opportunity_count": 2923
+      },
+      {
+        "district_name": "Bournemouth, Christchurch and Poole",
+        "unmatched_venues": 53,
+        "opportunity_count": 1379
+      },
+      {
+        "district_name": "Hillingdon",
+        "unmatched_venues": 52,
+        "opportunity_count": 1965
+      },
+      {
+        "district_name": "Charnwood",
+        "unmatched_venues": 50,
+        "opportunity_count": 1729
+      },
+      {
+        "district_name": "North Lincolnshire",
+        "unmatched_venues": 50,
+        "opportunity_count": 466
+      },
+      {
+        "district_name": "Winchester",
+        "unmatched_venues": 49,
+        "opportunity_count": 376
+      },
+      {
+        "district_name": "Ealing",
+        "unmatched_venues": 49,
+        "opportunity_count": 875
+      },
+      {
+        "district_name": "Welwyn Hatfield",
+        "unmatched_venues": 49,
+        "opportunity_count": 365
+      },
+      {
+        "district_name": "Kingston upon Hull, City of",
+        "unmatched_venues": 48,
+        "opportunity_count": 393
+      },
+      {
+        "district_name": "Kirklees",
+        "unmatched_venues": 48,
+        "opportunity_count": 555
+      },
+      {
+        "district_name": "North Hertfordshire",
+        "unmatched_venues": 48,
+        "opportunity_count": 221
+      },
+      {
+        "district_name": "Chichester",
+        "unmatched_venues": 47,
+        "opportunity_count": 530
+      },
+      {
+        "district_name": "Wakefield",
+        "unmatched_venues": 47,
+        "opportunity_count": 997
+      },
+      {
+        "district_name": "Doncaster",
+        "unmatched_venues": 46,
+        "opportunity_count": 150
+      },
+      {
+        "district_name": "Basingstoke and Deane",
+        "unmatched_venues": 44,
+        "opportunity_count": 3374
+      },
+      {
+        "district_name": "Newcastle upon Tyne",
+        "unmatched_venues": 44,
+        "opportunity_count": 561
+      },
+      {
+        "district_name": "Wigan",
+        "unmatched_venues": 44,
+        "opportunity_count": 1673
+      },
+      {
+        "district_name": "Barnet",
+        "unmatched_venues": 43,
+        "opportunity_count": 2994
+      },
+      {
+        "district_name": "Wandsworth",
+        "unmatched_venues": 43,
+        "opportunity_count": 333
+      },
+      {
+        "district_name": "Bromley",
+        "unmatched_venues": 43,
+        "opportunity_count": 491
+      }
+    ],
+    "venues_by_publisher": [
+      {
+        "publisher": "British Cycling",
+        "unmatched_venues": 4903,
+        "opportunity_count": 47627
+      },
+      {
+        "publisher": "Playwaze",
+        "unmatched_venues": 1206,
+        "opportunity_count": 92881
+      },
+      {
+        "publisher": "Open Sessions",
+        "unmatched_venues": 450,
+        "opportunity_count": 2305
+      },
+      {
+        "publisher": "England Netball",
+        "unmatched_venues": 426,
+        "opportunity_count": 14540
+      },
+      {
+        "publisher": "Bookwhen",
+        "unmatched_venues": 411,
+        "opportunity_count": 4279
+      },
+      {
+        "publisher": "Exercise Anywhere",
+        "unmatched_venues": 397,
+        "opportunity_count": 1867
+      },
+      {
+        "publisher": "Good Gym",
+        "unmatched_venues": 279,
+        "opportunity_count": 995
+      },
+      {
+        "publisher": "Played",
+        "unmatched_venues": 218,
+        "opportunity_count": 8844
+      },
+      {
+        "publisher": "British Triathlon",
+        "unmatched_venues": 156,
+        "opportunity_count": 672
+      },
+      {
+        "publisher": "TeamUp",
+        "unmatched_venues": 79,
+        "opportunity_count": 38484
+      },
+      {
+        "publisher": "SportSuite",
+        "unmatched_venues": 55,
+        "opportunity_count": 107
+      },
+      {
+        "publisher": "Schools Plus Ltd",
+        "unmatched_venues": 37,
+        "opportunity_count": 684
+      },
+      {
+        "publisher": "Our Parks",
+        "unmatched_venues": 25,
+        "opportunity_count": 1045
+      },
+      {
+        "publisher": "Upshot",
+        "unmatched_venues": 21,
+        "opportunity_count": 1367
+      },
+      {
+        "publisher": "GLL",
+        "unmatched_venues": 13,
+        "opportunity_count": 3541
+      },
+      {
+        "publisher": "Better",
+        "unmatched_venues": 11,
+        "opportunity_count": 2191
+      },
+      {
+        "publisher": "Courtside Hubs CIC",
+        "unmatched_venues": 10,
+        "opportunity_count": 155
+      },
+      {
+        "publisher": "Lawn Tennis Association",
+        "unmatched_venues": 9,
+        "opportunity_count": 237
+      },
+      {
+        "publisher": "Everyone Active",
+        "unmatched_venues": 7,
+        "opportunity_count": 3932
+      },
+      {
+        "publisher": "Orchard Learning Alliance",
+        "unmatched_venues": 6,
+        "opportunity_count": 28
+      },
+      {
+        "publisher": "Actihire",
+        "unmatched_venues": 6,
+        "opportunity_count": 236
+      },
+      {
+        "publisher": "LRSO",
+        "unmatched_venues": 6,
+        "opportunity_count": 117
+      },
+      {
+        "publisher": "Basingstoke Wellbeing",
+        "unmatched_venues": 5,
+        "opportunity_count": 9
+      },
+      {
+        "publisher": "NXT Level Sport & Education Ltd",
+        "unmatched_venues": 5,
+        "opportunity_count": 65
+      },
+      {
+        "publisher": "Haringey Council",
+        "unmatched_venues": 3,
+        "opportunity_count": 3
+      },
+      {
+        "publisher": "Parkwood Leisure Ltd, its subsidiaries and partner organisations",
+        "unmatched_venues": 3,
+        "opportunity_count": 8031
+      },
+      {
+        "publisher": "University of Bristol",
+        "unmatched_venues": 3,
+        "opportunity_count": 66
+      },
+      {
+        "publisher": "Serco Leisure",
+        "unmatched_venues": 3,
+        "opportunity_count": 3561
+      },
+      {
+        "publisher": "Places Leisure",
+        "unmatched_venues": 2,
+        "opportunity_count": 105
+      },
+      {
+        "publisher": "Teignbridge Leisure",
+        "unmatched_venues": 2,
+        "opportunity_count": 1532
+      },
+      {
+        "publisher": "School Enterprises Ltd",
+        "unmatched_venues": 2,
+        "opportunity_count": 48
+      },
+      {
+        "publisher": "Waltham Forest Council",
+        "unmatched_venues": 2,
+        "opportunity_count": 15
+      },
+      {
+        "publisher": "London Borough of Ealing Council",
+        "unmatched_venues": 2,
+        "opportunity_count": 12
+      },
+      {
+        "publisher": "LED Community Leisure Ltd",
+        "unmatched_venues": 2,
+        "opportunity_count": 229
+      },
+      {
+        "publisher": "Water Lilies Swimming School Ltd",
+        "unmatched_venues": 2,
+        "opportunity_count": 4
+      },
+      {
+        "publisher": "East Midlands Academy Trust",
+        "unmatched_venues": 2,
+        "opportunity_count": 25
+      },
+      {
+        "publisher": "Your Leisure",
+        "unmatched_venues": 2,
+        "opportunity_count": 514
+      },
+      {
+        "publisher": "gmcommunitylettings",
+        "unmatched_venues": 2,
+        "opportunity_count": 26
+      },
+      {
+        "publisher": "Ashmole Trust",
+        "unmatched_venues": 2,
+        "opportunity_count": 32
+      },
+      {
+        "publisher": "Vision Redbridge",
+        "unmatched_venues": 1,
+        "opportunity_count": 417
+      },
+      {
+        "publisher": "West Heath Primary School",
+        "unmatched_venues": 1,
+        "opportunity_count": 30
+      },
+      {
+        "publisher": "salfordcommunityleisure",
+        "unmatched_venues": 1,
+        "opportunity_count": 144
+      },
+      {
+        "publisher": "100% TO THE TOP CIC",
+        "unmatched_venues": 1,
+        "opportunity_count": 2
+      },
+      {
+        "publisher": "Matthew Arnold Sports Centre",
+        "unmatched_venues": 1,
+        "opportunity_count": 10
+      },
+      {
+        "publisher": "Southwark Council",
+        "unmatched_venues": 1,
+        "opportunity_count": 4
+      },
+      {
+        "publisher": "Precision Football Arena",
+        "unmatched_venues": 1,
+        "opportunity_count": 2
+      },
+      {
+        "publisher": "PlayFootball",
+        "unmatched_venues": 1,
+        "opportunity_count": 544
+      },
+      {
+        "publisher": "Marston Moretaine Playing Fields",
+        "unmatched_venues": 1,
+        "opportunity_count": 4
+      },
+      {
+        "publisher": "Langley Grange Pool",
+        "unmatched_venues": 1,
+        "opportunity_count": 6
+      },
+      {
+        "publisher": "Harpur Hill Sports Centre CIC",
+        "unmatched_venues": 1,
+        "opportunity_count": 31
+      },
+      {
+        "publisher": "Halo",
+        "unmatched_venues": 1,
+        "opportunity_count": 150
+      },
+      {
+        "publisher": "Football 567",
+        "unmatched_venues": 1,
+        "opportunity_count": 1
+      },
+      {
+        "publisher": "Didcot Town Council",
+        "unmatched_venues": 1,
+        "opportunity_count": 12
+      },
+      {
+        "publisher": "Derby Active",
+        "unmatched_venues": 1,
+        "opportunity_count": 2
+      },
+      {
+        "publisher": "Brea Avalon LLP",
+        "unmatched_venues": 1,
+        "opportunity_count": 13
+      },
+      {
+        "publisher": "strouddistrictcouncil",
+        "unmatched_venues": 1,
+        "opportunity_count": 1296
+      }
+    ],
+    "top_venues": [
+      {
+        "venue_name": "Squirrels Bar Squash Court A",
+        "publisher": "Playwaze",
+        "district_name": "Manchester",
+        "opportunity_count": 9572,
+        "nearest_site_name": "UNIVERSITY OF MANCHESTER (ARMITAGE SPORTS CENTRE)",
+        "nearest_site_metres": 357.9
+      },
+      {
+        "venue_name": "Cherry Dance Studio 1 | Client Venue TBC | EveryBody Fit GYM | Indoor- Main Black Mat Space | Stroud Green School",
+        "publisher": "British Cycling|TeamUp",
+        "district_name": "Bexley",
+        "opportunity_count": 5940,
+        "nearest_site_name": "PLANET TURF CROSSWAYS ARENA",
+        "nearest_site_metres": 255.6
+      },
+      {
+        "venue_name": "EAST COAST FITNESS | EAST COAST FITNESS (INDOORS) | EAST COAST FITNESS (OUTDOORS)",
+        "publisher": "TeamUp",
+        "district_name": "County Durham",
+        "opportunity_count": 5055,
+        "nearest_site_name": "BRUCES GYM",
+        "nearest_site_metres": 602.4
+      },
+      {
+        "venue_name": "Oval - studio 1 | Oval - studio 2",
+        "publisher": "TeamUp",
+        "district_name": "Lambeth",
+        "opportunity_count": 4418,
+        "nearest_site_name": "REAY PRIMARY SCHOOL",
+        "nearest_site_metres": 245.4
+      },
+      {
+        "venue_name": "Fundamentals Introduction | Level 1-2. Technique | Level 2-3. Flow. | Level 3-4. Advance | Private lesson | Women only",
+        "publisher": "TeamUp",
+        "district_name": "Cambridge",
+        "opportunity_count": 3360,
+        "nearest_site_name": "NCI SPORTS AND SOCIAL CLUB",
+        "nearest_site_metres": 686.3
+      },
+      {
+        "venue_name": "Fullam Ketch Fitness",
+        "publisher": "Playwaze",
+        "district_name": "Sheffield",
+        "opportunity_count": 3195,
+        "nearest_site_name": "SNAP FITNESS (STOCKSBRIDGE)",
+        "nearest_site_metres": 240.4
+      },
+      {
+        "venue_name": "David Ross Sports Village",
+        "publisher": "Playwaze",
+        "district_name": "Nottingham",
+        "opportunity_count": 3099,
+        "nearest_site_name": "NOTTINGHAM TENNIS CENTRE",
+        "nearest_site_metres": 541.6
+      },
+      {
+        "venue_name": "Koala Klubs (Dereham)",
+        "publisher": "Parkwood Leisure Ltd, its subsidiaries and partner organisations|Played",
+        "district_name": "Breckland",
+        "opportunity_count": 3085,
+        "nearest_site_name": "DEREHAM LEISURE CENTRE",
+        "nearest_site_metres": 261.2
+      },
+      {
+        "venue_name": "",
+        "publisher": "Serco Leisure",
+        "district_name": "Basingstoke and Deane",
+        "opportunity_count": 2945,
+        "nearest_site_name": "PLANET ICE BASINGSTOKE",
+        "nearest_site_metres": 244.8
+      },
+      {
+        "venue_name": "",
+        "publisher": "Parkwood Leisure Ltd, its subsidiaries and partner organisations",
+        "district_name": "Amber Valley",
+        "opportunity_count": 2630,
+        "nearest_site_name": "HORSLEY LODGE GOLF CLUB",
+        "nearest_site_metres": 1211.9
+      },
+      {
+        "venue_name": "",
+        "publisher": "Parkwood Leisure Ltd, its subsidiaries and partner organisations",
+        "district_name": "Cheshire West and Chester",
+        "opportunity_count": 2316,
+        "nearest_site_name": "THE NESTON CLUB",
+        "nearest_site_metres": 877.0
+      },
+      {
+        "venue_name": "The Queen's Diamond Jubilee Centre, Rugby",
+        "publisher": "England Netball|GLL",
+        "district_name": "Rugby",
+        "opportunity_count": 1664,
+        "nearest_site_name": "RUGBY SCHOOL SPORTS CENTRE",
+        "nearest_site_metres": 230.3
+      },
+      {
+        "venue_name": "Hamble Tennis Club, Park Road, Frinton, FR6 7YY",
+        "publisher": "Playwaze",
+        "district_name": "Tendring",
+        "opportunity_count": 1481,
+        "nearest_site_name": "SPARKLE LADIES GYM",
+        "nearest_site_metres": 249.4
+      },
+      {
+        "venue_name": "Swinton and Pendlebury Leisure Centre",
+        "publisher": "England Netball",
+        "district_name": "Salford",
+        "opportunity_count": 1475,
+        "nearest_site_name": "MUSCLE & FITNESS GYM",
+        "nearest_site_metres": 558.8
+      },
+      {
+        "venue_name": "",
+        "publisher": "Teignbridge Leisure",
+        "district_name": "Teignbridge",
+        "opportunity_count": 1472,
+        "nearest_site_name": "SHALDON APPROACH GOLF COURSE",
+        "nearest_site_metres": 206.3
+      },
+      {
+        "venue_name": "re:new Mind + Body at your Gym",
+        "publisher": "Playwaze",
+        "district_name": "East Lindsey",
+        "opportunity_count": 1435,
+        "nearest_site_name": "WOODHALL SPA JUBILEE PARK",
+        "nearest_site_metres": 505.0
+      },
+      {
+        "venue_name": "Queen Alexandra College",
+        "publisher": "Playwaze",
+        "district_name": "Birmingham",
+        "opportunity_count": 1394,
+        "nearest_site_name": "HARBORNE POOL AND FITNESS CENTRE",
+        "nearest_site_metres": 458.2
+      },
+      {
+        "venue_name": "The Fox Den",
+        "publisher": "TeamUp",
+        "district_name": "Wokingham",
+        "opportunity_count": 1381,
+        "nearest_site_name": "THE EMMBROOK SCHOOL",
+        "nearest_site_metres": 291.4
+      },
+      {
+        "venue_name": "Empower Fitness Studio",
+        "publisher": "Playwaze",
+        "district_name": "East Lindsey",
+        "opportunity_count": 1314,
+        "nearest_site_name": "ALFORD SQUASH CLUB",
+        "nearest_site_metres": 340.2
+      },
+      {
+        "venue_name": "",
+        "publisher": "strouddistrictcouncil",
+        "district_name": "Stroud",
+        "opportunity_count": 1296,
+        "nearest_site_name": "ACTIVE LIFESTYLES DURSLEY",
+        "nearest_site_metres": 409.6
+      },
+      {
+        "venue_name": "St Mark's Church, Queensway, Wellingborough, UK | St Marks Church",
+        "publisher": "Playwaze",
+        "district_name": "North Northamptonshire",
+        "opportunity_count": 1267,
+        "nearest_site_name": "GLAMIS HALL",
+        "nearest_site_metres": 421.2
+      },
+      {
+        "venue_name": "King George Playing Field",
+        "publisher": "Everyone Active",
+        "district_name": "Barnet",
+        "opportunity_count": 1216,
+        "nearest_site_name": "OLD COURTHOUSE RECREATION GROUND",
+        "nearest_site_metres": 316.2
+      },
+      {
+        "venue_name": "Lincolnshire",
+        "publisher": "Playwaze",
+        "district_name": "Boston",
+        "opportunity_count": 1198,
+        "nearest_site_name": "SWINESHEAD FOOTBALL FIELD",
+        "nearest_site_metres": 399.9
+      },
+      {
+        "venue_name": "Tribe Fitness York",
+        "publisher": "TeamUp",
+        "district_name": "York",
+        "opportunity_count": 1138,
+        "nearest_site_name": "MELODIE PARK",
+        "nearest_site_metres": 323.9
+      },
+      {
+        "venue_name": "WeTrain Group Fitness",
+        "publisher": "TeamUp",
+        "district_name": "St Albans",
+        "opportunity_count": 1114,
+        "nearest_site_name": "HARPENDEN CRICKET CLUB",
+        "nearest_site_metres": 481.8
+      },
+      {
+        "venue_name": "Boston",
+        "publisher": "Playwaze",
+        "district_name": "Boston",
+        "opportunity_count": 1077,
+        "nearest_site_name": "DANNY FLEAR CENTRE",
+        "nearest_site_metres": 1673.3
+      },
+      {
+        "venue_name": "Sierra Lima CrossFit",
+        "publisher": "TeamUp",
+        "district_name": "Wigan",
+        "opportunity_count": 1017,
+        "nearest_site_name": "F Y GYM",
+        "nearest_site_metres": 1114.4
+      },
+      {
+        "venue_name": "The PT Studio  @ Hedenham",
+        "publisher": "TeamUp",
+        "district_name": "South Norfolk",
+        "opportunity_count": 1010,
+        "nearest_site_name": "EARSHAM PLAYING FIELD",
+        "nearest_site_metres": 1665.9
+      },
+      {
+        "venue_name": "The University of Manchester, Oxford Road, Manchester, UK",
+        "publisher": "Playwaze",
+        "district_name": "Manchester",
+        "opportunity_count": 1006,
+        "nearest_site_name": "MANCHESTER AQUATICS CENTRE",
+        "nearest_site_metres": 244.7
+      },
+      {
+        "venue_name": "CrossFit Loughborough",
+        "publisher": "TeamUp",
+        "district_name": "Charnwood",
+        "opportunity_count": 1004,
+        "nearest_site_name": "LIMEHURST ACADEMY",
+        "nearest_site_metres": 516.0
+      },
+      {
+        "venue_name": "Fireball Loxford",
+        "publisher": "Played",
+        "district_name": "Redbridge",
+        "opportunity_count": 984,
+        "nearest_site_name": "LOXFORD PARK",
+        "nearest_site_metres": 201.2
+      },
+      {
+        "venue_name": "Home",
+        "publisher": "Playwaze",
+        "district_name": "Sunderland",
+        "opportunity_count": 980,
+        "nearest_site_name": "BARLEY MOW PARK",
+        "nearest_site_metres": 306.8
+      },
+      {
+        "venue_name": "South Kesteven",
+        "publisher": "Playwaze",
+        "district_name": "South Kesteven",
+        "opportunity_count": 971,
+        "nearest_site_name": "CHARLES READ ACADEMY",
+        "nearest_site_metres": 2926.8
+      },
+      {
+        "venue_name": "South Holland",
+        "publisher": "Playwaze",
+        "district_name": "South Holland",
+        "opportunity_count": 964,
+        "nearest_site_name": "CEKHIRA AVENUE (MOULTON CHAPEL FC)",
+        "nearest_site_metres": 1971.4
+      },
+      {
+        "venue_name": "Kennet Leisure Centre",
+        "publisher": "Everyone Active",
+        "district_name": "West Berkshire",
+        "opportunity_count": 960,
+        "nearest_site_name": "KENNET SCHOOL",
+        "nearest_site_metres": 1147.7
+      },
+      {
+        "venue_name": "Essex, UK",
+        "publisher": "Playwaze",
+        "district_name": "Basildon",
+        "opportunity_count": 955,
+        "nearest_site_name": "MOPSIES PARK",
+        "nearest_site_metres": 203.1
+      },
+      {
+        "venue_name": "East Lindsey",
+        "publisher": "Playwaze",
+        "district_name": "East Lindsey",
+        "opportunity_count": 955,
+        "nearest_site_name": "WOODTHORPE HALL GOLF CLUB",
+        "nearest_site_metres": 4091.8
+      },
+      {
+        "venue_name": "West Lindsey",
+        "publisher": "Playwaze",
+        "district_name": "West Lindsey",
+        "opportunity_count": 926,
+        "nearest_site_name": "NEWTOFT PLAYING FIELD",
+        "nearest_site_metres": 2467.0
+      },
+      {
+        "venue_name": "Rothwell Parish Hall",
+        "publisher": "Playwaze",
+        "district_name": "Leeds",
+        "opportunity_count": 917,
+        "nearest_site_name": "BODYMANIA FITNESS CENTRE",
+        "nearest_site_metres": 252.9
+      },
+      {
+        "venue_name": "Coast FIT",
+        "publisher": "TeamUp",
+        "district_name": "Torbay",
+        "opportunity_count": 906,
+        "nearest_site_name": "PUREGYM (TORQUAY BRIDGE RETAIL PARK)",
+        "nearest_site_metres": 470.7
+      },
+      {
+        "venue_name": "Post Office Yard",
+        "publisher": "TeamUp",
+        "district_name": "Uttlesford",
+        "opportunity_count": 861,
+        "nearest_site_name": "TALBERDS LEY TENNIS COURTS",
+        "nearest_site_metres": 420.8
+      },
+      {
+        "venue_name": "Potterhanworth Pavillion",
+        "publisher": "Playwaze",
+        "district_name": "North Kesteven",
+        "opportunity_count": 854,
+        "nearest_site_name": "SCOPWICK VILLAGE HALL",
+        "nearest_site_metres": 3832.2
+      },
+      {
+        "venue_name": "Central Wellness Community Interest Company",
+        "publisher": "Playwaze",
+        "district_name": "Lincoln",
+        "opportunity_count": 854,
+        "nearest_site_name": "PUREGYM (LINCOLN ST MARKS CENTRE)",
+        "nearest_site_metres": 436.4
+      },
+      {
+        "venue_name": "Frampton Marsh Nature Reserve",
+        "publisher": "Playwaze",
+        "district_name": "Boston",
+        "opportunity_count": 827,
+        "nearest_site_name": "FISHTOFT PLAYING FIELD",
+        "nearest_site_metres": 3572.0
+      },
+      {
+        "venue_name": "Petersfield, UK",
+        "publisher": "Playwaze",
+        "district_name": "East Hampshire",
+        "opportunity_count": 800,
+        "nearest_site_name": "PETERSFIELD LIDO",
+        "nearest_site_metres": 592.2
+      },
+      {
+        "venue_name": "Butlins Ln, Roade, Northampton NN7 2PU, UK",
+        "publisher": "Playwaze",
+        "district_name": "West Northamptonshire",
+        "opportunity_count": 800,
+        "nearest_site_name": "ROADE RECREATION GROUND",
+        "nearest_site_metres": 393.9
+      },
+      {
+        "venue_name": "AMS @ The Barn",
+        "publisher": "TeamUp",
+        "district_name": "Horsham",
+        "opportunity_count": 799,
+        "nearest_site_name": "RUDGWICK PRIMARY SCHOOL",
+        "nearest_site_metres": 1093.9
+      },
+      {
+        "venue_name": "Abington Bowling Club",
+        "publisher": "Playwaze",
+        "district_name": "West Northamptonshire",
+        "opportunity_count": 781,
+        "nearest_site_name": "OLD NORTHAMPTONIANS ASSOCIATION",
+        "nearest_site_metres": 270.4
+      },
+      {
+        "venue_name": "Winchmore Hill, London, UK",
+        "publisher": "Playwaze",
+        "district_name": "Enfield",
+        "opportunity_count": 776,
+        "nearest_site_name": "WINCHMORE HILL SPORTS CLUB",
+        "nearest_site_metres": 364.0
+      },
+      {
+        "venue_name": "Cotlandswick Lc",
+        "publisher": "Everyone Active",
+        "district_name": "St Albans",
+        "opportunity_count": 775,
+        "nearest_site_name": "MORRIS PLAYING FIELDS",
+        "nearest_site_metres": 445.5
+      }
+    ]
+  },
+  "data_quality": {
+    "oa_points_fetched": 19507,
+    "excluded_out_of_gb_envelope": 47,
+    "excluded_other_country": 1215,
+    "excluded_unknown_country": 133,
+    "oa_points_in_scope": 18112,
+    "oa_venues_after_clustering": 16405,
+    "max_cluster_diameter_metres": 105.3903,
+    "clusters_over_250m": 0,
+    "points_with_postcode": 11924,
+    "points_with_name": 8315
+  }
+}
