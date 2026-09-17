@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
+import numpy as np
 import pandas as pd
 
 from .analysis import MIN_SITES_FOR_RANKING, CoverageResults
@@ -20,6 +21,9 @@ def _is_numeric_column(name: str, series: pd.Series) -> bool:
 def _format_cell(value: object) -> str:
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return "_null_"
+    if isinstance(value, (bool, np.bool_)):
+        # bool subclasses int, so this must come first or flags render as 0/1.
+        return "**←**" if value else ""
     if isinstance(value, float):
         return f"{value:,.1f}"
     if isinstance(value, (int, pd.Int64Dtype().type)):
@@ -86,7 +90,9 @@ and `Accessibility Type Group (Text)` != `Private`, joined to their sites, exclu
 Spatial proximity alone accounts for {stats['spatial_only_sites']:,} of those
 ({stats['spatial_only_pct']}%). The postcode channel adds {stats['postcode_added_sites']:,} sites
 that no venue comes within {buffer_metres:g}m of but whose postcode a venue shares, and the
-last-resort name channel adds {stats['name_added_sites']:,} more. The extra channels exist because
+last-resort name channel adds {stats['name_added_sites']:,} more. The name channel also attaches
+{stats['name_rescued_venues']:,} otherwise-unmatched venues to sites the other channels had already
+found, which does not move the site figure but does reduce the apparent OpenActive-side gap. The extra channels exist because
 {stats['centroid_points_pct']}% of OpenActive points are postcode centroids rather than surveyed
 coordinates, so distance alone systematically misses real matches; see **Match channels** below.
 
@@ -108,15 +114,17 @@ Read the other way round, the OpenActive data is mostly *not* Active Places esta
 | Sites matched by proximity alone | {stats['spatial_only_sites']:,} |
 | Sites added by the postcode channel | {stats['postcode_added_sites']:,} |
 | Sites added by the name channel | {stats['name_added_sites']:,} |
+| Venues additionally rescued by the name channel | {stats['name_rescued_venues']:,} |
 | Local authorities covered by the universe | {stats['local_authorities']:,} |
 """)
 
     # --- distance sensitivity --------------------------------------------------
     sensitivity = results.distance_sensitivity
-    at_100 = sensitivity.loc[sensitivity["threshold_metres"] == 100, "coverage_pct"]
-    at_250 = sensitivity.loc[sensitivity["threshold_metres"] == 250, "coverage_pct"]
-    at_100_text = f"{at_100.iloc[0]:g}" if len(at_100) else "n/a"
-    at_250_text = f"{at_250.iloc[0]:g}" if len(at_250) else "n/a"
+    at_buffer = sensitivity.loc[sensitivity["threshold_metres"] == buffer_metres, "coverage_pct"]
+    wider = sensitivity[sensitivity["threshold_metres"] > buffer_metres]
+    at_buffer_text = f"{at_buffer.iloc[0]:g}" if len(at_buffer) else "n/a"
+    wider_metres = wider["threshold_metres"].iloc[0] if len(wider) else buffer_metres
+    wider_text = f"{wider['coverage_pct'].iloc[0]:g}" if len(wider) else "n/a"
 
     if stats["centroid_diagnostic"]:
         centroid_sentence = (
@@ -139,6 +147,7 @@ number of OpenActive venues sit *near* an Active Places site without sitting *on
         'threshold_metres': 'Threshold (m)',
         'sites_matched': 'Sites matched',
         'coverage_pct': 'Coverage %',
+        'is_configured_buffer': 'In use',
     })}
 That gradient is the single most important caveat in this report. Two things cause it, and they pull
 in the same direction.
@@ -419,7 +428,7 @@ chain across dense areas, so cluster spread is checked: the widest cluster spans
     sections.append(f"""## Caveats
 
 - **The {buffer_metres:g}m threshold drives the spatial channel.** Spatial-only coverage is
-  {at_100_text}% at 100m and {at_250_text}% at 250m. Treat {stats['coverage_pct']}% as a lower bound on true coverage, not a
+  {at_buffer_text}% at the {buffer_metres:g}m in use, rising to {wider_text}% at {wider_metres:g}m. Treat {stats['coverage_pct']}% as a lower bound on true coverage, not a
   precise measurement, and see the sensitivity section above for why the two datasets disagree at
   this scale.
 - **The name channel is the weakest evidence here.** It is applied last, only to records the other

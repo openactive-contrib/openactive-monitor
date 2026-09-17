@@ -21,7 +21,7 @@ import pandas as pd
 
 import bigquery_ops
 
-from . import analysis, centroids, matching, oa_data, report, venues as venues_module
+from . import analysis, centroids, dashboard, matching, oa_data, report, venues as venues_module
 from .ap_data import load_active_places_sites, load_place_tokens, read_data_version
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ DEFAULT_DATA_DIR = JOB_ROOT / "data" / "active_places"
 DEFAULT_OUTPUT_DIR = JOB_ROOT / "reports" / "active_places"
 
 REPORT_FILENAME = "active_places_coverage.md"
+DASHBOARD_FILENAME = "active_places_coverage.json"
 
 
 def _configure_logging(verbose: bool) -> None:
@@ -158,14 +159,23 @@ def run(data_dir: Path,
     report_path.write_text(markdown, encoding="utf-8")
     logger.info("Wrote %s", report_path)
 
+    payload = dashboard.build_payload(
+        results, england_points, scope_counts, data_version,
+        bigquery_ops.table_id(bigquery_ops.OPPORTUNITIES_TABLE), diameters, cluster_metres,
+    )
+    dashboard.validate_payload(payload, len(sites))
+    dashboard.write_payload(payload, output_dir / DASHBOARD_FILENAME)
+
     stats = results.stats
     print(
         f"\n✓ {stats['coverage_pct']}% of Active Places sites "
         f"({stats['sites_matched']:,}/{stats['sites_total']:,}) are in the OpenActive data\n"
         f"  {stats['spatial_only_pct']}% within {buffer_metres:g}m, "
         f"plus {stats['postcode_added_sites']:,} sharing a postcode "
-        f"and {stats['name_added_sites']:,} on name\n"
-        f"  Report: {report_path}"
+        f"and {stats['name_added_sites']:,} on name "
+        f"({stats['name_rescued_venues']:,} venues also rescued by name)\n"
+        f"  Report: {report_path}\n"
+        f"  Dashboard JSON: {output_dir / DASHBOARD_FILENAME}"
     )
 
 

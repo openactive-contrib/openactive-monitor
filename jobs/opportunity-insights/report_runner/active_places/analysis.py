@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 DISTANCE_BUCKETS = (25, 50, 100, 250, 500, 1000)
 
+# Rows kept for the dashboard's "what to chase next" panel; the report shows fewer.
+TOP_UNMATCHED_VENUES = 50
+
 # Local authorities below this many sites are excluded from the "worst coverage"
 # ranking, where a handful of sites makes the percentage meaningless.
 MIN_SITES_FOR_RANKING = 20
@@ -183,7 +186,7 @@ def build_results(sites: pd.DataFrame,
     )[["site_name", "oa_location_names", "local_authority_name",
        "distance_metres", "name_similarity"]]
 
-    top_unmatched_venues = unmatched_venues.nlargest(25, "oa_opportunity_count")[[
+    top_unmatched_venues = unmatched_venues.nlargest(TOP_UNMATCHED_VENUES, "oa_opportunity_count")[[
         "oa_location_names", "oa_publisher_names", "district_name",
         "oa_opportunity_count", "nearest_ap_site_name", "nearest_ap_site_metres",
     ]]
@@ -217,18 +220,28 @@ def build_results(sites: pd.DataFrame,
     match_methods["median_distance_metres"] = match_methods["median_distance_metres"].round(1)
 
     name_pairs = pairs[pairs["match_method"] == "name"]
-    name_added_sites = int(name_pairs["site_idx"].nunique())
 
+    # These three must be additive, because a dashboard plots them as a waterfall.
+    # A name pair may attach to a site some other channel already matched — its job
+    # there was to rescue the *venue* — so only genuinely new sites are counted.
     spatial_sites = set(pairs.loc[pairs["spatial_match"], "site_idx"])
+    postcode_sites = set(pairs.loc[pairs["postcode_match"], "site_idx"]).difference(spatial_sites)
+    name_sites = set(name_pairs["site_idx"]).difference(spatial_sites | postcode_sites)
     spatial_only_sites = len(spatial_sites)
-    postcode_added_sites = len(
-        set(pairs.loc[pairs["postcode_match"], "site_idx"]).difference(spatial_sites)
-    )
+    postcode_added_sites = len(postcode_sites)
+    name_added_sites = len(name_sites)
+
+    stronger_venues = set(pairs.loc[pairs["match_method"] != "name", "venue_idx"])
+    name_rescued_venues = len(set(name_pairs["venue_idx"]).difference(stronger_venues))
 
     # --- distance sensitivity --------------------------------------------------
+    # Whole numbers stay ints so they render as "200" rather than "200.0".
+    thresholds = sorted(set(DISTANCE_BUCKETS) | {buffer_metres})
+    thresholds = [int(t) if float(t).is_integer() else t for t in thresholds]
     sensitivity = pd.DataFrame({
-        "threshold_metres": list(DISTANCE_BUCKETS),
-        "sites_matched": [int((nearest_venue_m <= t).sum()) for t in DISTANCE_BUCKETS],
+        "threshold_metres": thresholds,
+        "sites_matched": [int((nearest_venue_m <= t).sum()) for t in thresholds],
+        "is_configured_buffer": [float(t) == float(buffer_metres) for t in thresholds],
     })
     sensitivity["coverage_pct"] = (100 * sensitivity["sites_matched"] / len(sites)).round(1)
 
@@ -287,7 +300,9 @@ def build_results(sites: pd.DataFrame,
         "postcode_max_metres": postcode_max_metres,
         "name_max_metres": name_max_metres,
         "name_threshold": name_threshold,
+        "name_pairs": len(name_pairs),
         "name_added_sites": name_added_sites,
+        "name_rescued_venues": name_rescued_venues,
         "name_median_similarity": round(float(name_pairs["name_similarity"].median()), 2)
         if len(name_pairs) else 0.0,
         "name_median_distance": round(float(name_pairs["distance_metres"].median()), 1)

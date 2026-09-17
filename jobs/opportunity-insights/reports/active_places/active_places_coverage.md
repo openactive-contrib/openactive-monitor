@@ -15,7 +15,9 @@
 Spatial proximity alone accounts for 6,762 of those
 (24.3%). The postcode channel adds 503 sites
 that no venue comes within 200m of but whose postcode a venue shares, and the
-last-resort name channel adds 161 more. The extra channels exist because
+last-resort name channel adds 86 more. The name channel also attaches
+126 otherwise-unmatched venues to sites the other channels had already
+found, which does not move the site figure but does reduce the apparent OpenActive-side gap. The extra channels exist because
 31.3% of OpenActive points are postcode centroids rather than surveyed
 coordinates, so distance alone systematically misses real matches; see **Match channels** below.
 
@@ -34,7 +36,8 @@ Read the other way round, the OpenActive data is mostly *not* Active Places esta
 | Site–venue pairs (both channels) | 10,034 |
 | Sites matched by proximity alone | 6,762 |
 | Sites added by the postcode channel | 503 |
-| Sites added by the name channel | 161 |
+| Sites added by the name channel | 86 |
+| Venues additionally rescued by the name channel | 126 |
 | Local authorities covered by the universe | 296 |
 
 ## How sensitive is this to the 200m threshold?
@@ -43,14 +46,15 @@ This table isolates the **spatial** channel — it counts sites by distance to t
 venue, ignoring postcode agreement — so it shows what the threshold alone buys. Very sensitive. Coverage roughly doubles between 100m and 250m and doubles again by 1km, which means a large
 number of OpenActive venues sit *near* an Active Places site without sitting *on* it.
 
-| Threshold (m) | Sites matched | Coverage % |
-|---:|---:|---:|
-| 25 | 1,676 | 6.0 |
-| 50 | 2,601 | 9.3 |
-| 100 | 4,086 | 14.7 |
-| 250 | 7,943 | 28.5 |
-| 500 | 12,936 | 46.4 |
-| 1,000 | 19,434 | 69.8 |
+| Threshold (m) | Sites matched | Coverage % | In use |
+|---:|---:|---:|---:|
+| 25 | 1,676 | 6.0 |  |
+| 50 | 2,601 | 9.3 |  |
+| 100 | 4,086 | 14.7 |  |
+| 200 | 6,762 | 24.3 | **←** |
+| 250 | 7,943 | 28.5 |  |
+| 500 | 12,936 | 46.4 |  |
+| 1,000 | 19,434 | 69.8 |  |
 
 That gradient is the single most important caveat in this report. Two things cause it, and they pull
 in the same direction.
@@ -467,7 +471,7 @@ chain across dense areas, so cluster spread is checked: the widest cluster spans
 ## Caveats
 
 - **The 200m threshold drives the spatial channel.** Spatial-only coverage is
-  14.7% at 100m and 28.5% at 250m. Treat 26.4% as a lower bound on true coverage, not a
+  24.3% at the 200m in use, rising to 28.5% at 250m. Treat 26.4% as a lower bound on true coverage, not a
   precise measurement, and see the sensitivity section above for why the two datasets disagree at
   this scale.
 - **The name channel is the weakest evidence here.** It is applied last, only to records the other

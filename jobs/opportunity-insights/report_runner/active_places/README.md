@@ -109,10 +109,33 @@ Three choices are load-bearing and easy to get wrong if this is ever rewritten:
 | File | Contents |
 |---|---|
 | `active_places_coverage.md` | The narrative report |
+| `active_places_coverage.json` | Dashboard payload — see below |
 | `site_oa_mapping.csv` | One row per (site, venue) pair, with `match_method` and primary-pair flags |
 | `unmatched_sites.csv` | Active Places sites with no venue in range, plus how near the nearest was |
 | `unmatched_oa_venues.csv` | OpenActive venues with no Active Places site in range |
 | `coverage_by_local_authority.csv` | Per-LA totals, matched, missing and coverage % |
+
+### Dashboard JSON
+
+`active_places_coverage.json` (~150 KB) is the same run reduced to the figures a dashboard plots.
+Both it and the markdown come from one set of results, so they cannot drift apart — the run asserts
+the payload's headline and per-authority totals against the site universe before writing it.
+
+| Key | For |
+|---|---|
+| `schema_version`, `generated_at`, `run_date` | Version guard; `run_date` keys the run, so appending payloads gives a coverage trend |
+| `source`, `parameters` | Which data and which thresholds produced these numbers |
+| `headline` | The KPI tiles |
+| `channels` | Waterfall of how coverage was reached, plus a per-method breakdown |
+| `distance_sensitivity` | The threshold curve, with `is_configured_buffer` marking the operating point |
+| `coverage_by_local_authority` | **All 296 authorities**, worst first, each with its ONS code — a choropleth needs every area or the map has holes |
+| `coverage_by_region` / `_ownership` / `_management` / `_facility_type` | Breakdown bars |
+| `publishers` | Who accounts for the coverage |
+| `coordinate_provenance` | Why coverage is a floor, split by publisher |
+| `unmatched` | "What to chase next" panels: top 50 venues, plus district and publisher rollups |
+| `data_quality` | What was excluded before matching, so the denominator is auditable |
+
+Numbers are numbers, never strings; anything missing is `null`, never `NaN`, which is not valid JSON.
 
 Both venue-bearing CSVs carry two columns for manual investigation:
 
