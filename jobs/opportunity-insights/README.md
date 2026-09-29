@@ -27,6 +27,45 @@ To skip the QA step (e.g. when iterating on the analytic queries), pass
 `--skip-quality`. To create the `feed_quality` table on first run, pass
 `--init-tables` (existing behaviour).
 
+## Custom-property detection
+
+After the QA step, the job detects properties that feeds publish but that are
+not in the OpenActive schema, and writes one row per sampled
+`(dataset_url, feed_id)` to `custom_properties` (full overwrite per run, current
+state only). The logic lives in
+`report_runner/taxonomy_adherence/custom_properties.py`.
+
+- **Known properties:** terms of the official `https://openactive.io/ns/oa.jsonld`
+  context (fetched at runtime with the same helpers the taxonomy adherence
+  report uses, in `report_runner/taxonomy_adherence/openactive_vocab.py`), plus
+  the model fields in `field_usage/model_spec.py` and a small supplement of OA
+  model fields it lacks. If the fetch fails, the job falls back to the local
+  catalog and records `vocab_source = 'model_spec (fallback)'`.
+- **Sampling:** up to `CUSTOM_PROPERTIES_SAMPLES_PER_KIND` (default 500) random
+  `json_data` rows per `(dataset_url, feed_id, kind)`. Each payload is walked
+  with `field_usage/walker.py`, so every key is attributed to the `@type` of the
+  object it sits on (e.g. a custom key inside `location` is attributed to `Place`).
+- **Classification (`property_kind`):** `beta` (`beta:` namespace), `prefixed`
+  (any other namespace or full URI, e.g. `britishcycling:terrain`), and
+  `unprefixed` (a bare unknown key, e.g. a schema.org property that isn't in the
+  OA model).
+- The properties are stored in the REPEATED RECORD `custom_properties`, one entry
+  per `(property, entity_type)`, so new properties never need schema changes.
+  Feeds with no custom properties are still written, with an empty array.
+
+Most frequently used custom properties:
+
+```sql
+SELECT cp.property, cp.property_kind,
+       COUNT(DISTINCT feed_id) AS feeds, COUNT(DISTINCT dataset_url) AS datasets,
+       SUM(cp.occurrences) AS occurrences, ARRAY_AGG(DISTINCT cp.entity_type) AS entity_types
+FROM `openactive-monitor.openactive_analytics.custom_properties`, UNNEST(custom_properties) cp
+GROUP BY 1, 2 ORDER BY feeds DESC;
+```
+
+Pass `--skip-custom-properties` to bypass this step. Create the table on first
+run with `--init-tables`.
+
 ## Homepage metrics export
 
 After the data-quality step, the job writes a small JSON file

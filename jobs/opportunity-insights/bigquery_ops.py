@@ -50,6 +50,7 @@ FEED_QUALITY_TABLE = os.getenv("BQ_FEED_QUALITY_TABLE", "feed_quality")
 ACTIVE_OPPORTUNITIES_SUMMARY_TABLE = os.getenv(
     "BQ_ACTIVE_OPPORTUNITIES_SUMMARY_TABLE", "active_opportunities_summary"
 )
+CUSTOM_PROPERTIES_TABLE = os.getenv("BQ_CUSTOM_PROPERTIES_TABLE", "custom_properties")
 
 MERGE_RETRY_MAX_ATTEMPTS = 5
 MERGE_RETRY_BASE_SECONDS = 5
@@ -68,6 +69,7 @@ _TABLE_CONFIGS: dict[str, tuple[str, list[str], str | None]] = {
     INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE: ("insight_sport_discipline_master.json", ["run_date"],                            "run_date"),
     FEED_QUALITY_TABLE:                    ("feed_quality.json",                   ["dataset_url", "feed_id", "grade"],     None),
     ACTIVE_OPPORTUNITIES_SUMMARY_TABLE:    ("active_opportunities_summary.json",  ["district_name", "provider"],           None),
+    CUSTOM_PROPERTIES_TABLE:               ("custom_properties.json",             ["dataset_url", "feed_id"],              None),
 }
 
 _FEED_INSIGHTS_MERGE_KEYS = ("run_date", "feed_id")
@@ -299,6 +301,24 @@ def write_active_opportunities_summary(rows: list[dict[str, Any]]) -> None:
     _load_job(
         prepared,
         table_id(ACTIVE_OPPORTUNITIES_SUMMARY_TABLE),
+        schema,
+        bigquery.WriteDisposition.WRITE_TRUNCATE,
+    )
+
+
+def write_custom_properties(rows: list[dict[str, Any]]) -> None:
+    """Replace the entire ``custom_properties`` table with ``rows`` (WRITE_TRUNCATE).
+
+    Current-state table (one row per sampled feed). The nested
+    ``custom_properties`` RECORD list is passed through as-is, so callers must
+    build it from native ``str`` / ``int`` / ``float`` values.
+    """
+    schema_file, _, _ = _TABLE_CONFIGS[CUSTOM_PROPERTIES_TABLE]
+    schema = _load_schema_json(schema_file)
+    prepared = _prepare_rows(rows, schema)
+    _load_job(
+        prepared,
+        table_id(CUSTOM_PROPERTIES_TABLE),
         schema,
         bigquery.WriteDisposition.WRITE_TRUNCATE,
     )
