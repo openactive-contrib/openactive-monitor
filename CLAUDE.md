@@ -162,6 +162,21 @@ Append-only log of per-feed opportunity ingestion runs with cursor tracking.
 | `error_code` | STRING | Groupable token for why the run did not complete: HTTP status as text (`"403"`, `"429"`, `"503"`, …) when the failure was an HTTP error, otherwise a symbolic token: `TIMEOUT`, `SSL_ERROR`, `CONNECTION_ERROR`, `REQUEST_FAILED`, `INVALID_JSON`, `MISSING_ITEMS`, `INVALID_ITEMS`, `SELF_LOOP`, `EMPTY_PAGE`, `BATCH_FAILED`, `NOT_PROCESSED`. `NULL` when `status = COMPLETE`. Numeric filtering on HTTP codes needs `SAFE_CAST(error_code AS INT64) >= 500`. |
 | `warning_message` | STRING | Human-readable detail — the failing feed URL and/or exception text, whitespace-collapsed and truncated to 300 chars. Populated for both `ERROR` and `WARNING`. `NULL` when `status = COMPLETE`. |
 
+### Table: `custom_properties`
+Current-state table (WRITE_TRUNCATE each `opportunity-insights` run): properties published by each feed that aren't in the OpenActive schema (`oa.jsonld` terms ∪ `field_usage/model_spec.py`), taken from a random `json_data` sample per `(dataset_url, feed_id, kind)`. One row per sampled feed. Built by `jobs/opportunity-insights/report_runner/taxonomy_adherence/custom_properties.py`.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `dataset_url`, `dataset_name`, `publisher_name` | STRING | Dataset/publisher (metadata from `feeds`) |
+| `feed_id`, `feed_url`, `feed_type` | STRING | Feed identity (metadata from `feeds`) |
+| `is_regular` | BOOL | From `feeds` |
+| `sampled_items` | INTEGER | Opportunity rows sampled for the feed |
+| `num_custom_properties` | INTEGER | Distinct custom property names |
+| `num_custom_property_usages` | INTEGER | Distinct `(entity_type, property)` pairs |
+| `custom_properties` | RECORD REPEATED | `property`, `property_kind` (`beta` / `prefixed` / `unprefixed`), `namespace`, `entity_type` (owning object's `@type`), `occurrences`, `entity_instances`, `presence_pct`. Query with `UNNEST(custom_properties)`. |
+| `vocab_source` | STRING | `oa.jsonld+model_spec` or `model_spec (fallback)` |
+| `last_assessed` | TIMESTAMP | Run timestamp |
+
 
 ## Environment Variables
 
@@ -177,6 +192,8 @@ All BigQuery jobs require these environment variables (loaded via `.env` or Clou
 | `BQ_OPPORTUNITIES_TABLE` | BigQuery opportunities table name — `opportunities` |
 | `INGEST_MAX_WORKERS` | Thread pool size for parallel dataset processing (default: `4`) |
 | `OPPORTUNITY_CSV_OUTPUT_DIR` | Debug CSV output directory (default: `./opportunities/csv`) |
+| `BQ_CUSTOM_PROPERTIES_TABLE` | opportunity-insights custom_properties table name — `custom_properties` |
+| `CUSTOM_PROPERTIES_SAMPLES_PER_KIND` | Random `json_data` samples per (dataset, feed, kind) for custom-property detection (default: `500`) |
 
 ## Development Setup
 

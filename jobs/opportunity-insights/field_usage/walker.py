@@ -12,6 +12,7 @@ object *instance* so the aggregator can count field presence per instance.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from typing import Any
 
@@ -67,6 +68,21 @@ def _walk_object(
         # scalars / strings (e.g. URI references) are leaves — nothing to yield
 
 
+def coerce_payload(value: object) -> dict | None:
+    """Normalise a BigQuery JSON column value to a dict (or None)."""
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except (ValueError, TypeError):
+            return None
+        return parsed if isinstance(parsed, dict) else None
+    return None
+
+
 def walk(
     payload: dict[str, Any],
     top_level_kind: str | None = None,
@@ -83,4 +99,4 @@ def walk(
     yield from _walk_object(payload, depth=0, fallback_type=top_level_kind)
 
 
-__all__ = ["walk"]
+__all__ = ["walk", "coerce_payload"]

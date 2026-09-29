@@ -17,7 +17,6 @@ markdown reports:
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -29,6 +28,7 @@ from field_usage import model_catalog, queries
 from field_usage.aggregator import UsageAggregator, UsageResults
 from field_usage.model_spec import get_alternatives
 from field_usage.report import render_model_usage_report, render_per_dataset_dump
+from field_usage.walker import coerce_payload
 
 logger = logging.getLogger(__name__)
 
@@ -42,21 +42,6 @@ def _configure_logging(verbose: bool) -> None:
     logging.getLogger().setLevel(level)
     logging.getLogger("google").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
-
-
-def _coerce_payload(value: object) -> dict | None:
-    """Normalise a BigQuery JSON column value to a dict (or None)."""
-    if value is None:
-        return None
-    if isinstance(value, dict):
-        return value
-    if isinstance(value, str):
-        try:
-            parsed = json.loads(value)
-        except (ValueError, TypeError):
-            return None
-        return parsed if isinstance(parsed, dict) else None
-    return None
 
 
 def _stream_samples(
@@ -73,7 +58,7 @@ def _stream_samples(
     job = bigquery_ops._client().query(sql)
     rows = 0
     for row in job.result():
-        payload = _coerce_payload(row["json_data"])
+        payload = coerce_payload(row["json_data"])
         if payload is None:
             continue
         agg.add_payload(row["dataset_url"], row["feed_id"], row["kind"], payload)

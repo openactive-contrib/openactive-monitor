@@ -171,3 +171,26 @@ Append-only log of insight/analysis run outputs — high-level aggregate statist
 | `num_sad_unmatched` | INTEGER | NULLABLE | SAD entries with no match |
 | `percentage_sad_matched` | FLOAT | NULLABLE | % of SAD entries matched |
 | `percentage_sad_unmatched` | FLOAT | NULLABLE | % of SAD entries unmatched |
+
+---
+
+## Table: `custom_properties`
+Current-state table (WRITE_TRUNCATE each `opportunity-insights` run) listing the custom properties each feed publishes, i.e. keys that aren't in the OpenActive schema (`oa.jsonld` terms ∪ `field_usage/model_spec.py` fields). Based on a random sample of up to `CUSTOM_PROPERTIES_SAMPLES_PER_KIND` (default 500) `json_data` rows per `(dataset_url, feed_id, kind)`. One row per sampled feed; feeds with no custom properties have an empty `custom_properties` array. Clustered by `dataset_url, feed_id`.
+
+| Column | Type | Mode | Description |
+|--------|------|------|-------------|
+| `dataset_url` | STRING | REQUIRED | Dataset URL |
+| `dataset_name` | STRING | NULLABLE | From `feeds` |
+| `publisher_name` | STRING | NULLABLE | From `feeds` |
+| `feed_id` | STRING | REQUIRED | Feed ID |
+| `feed_url` | STRING | NULLABLE | From `feeds.url` |
+| `feed_type` | STRING | NULLABLE | From `feeds.type` |
+| `is_regular` | BOOL | NULLABLE | From `feeds` |
+| `sampled_items` | INTEGER | NULLABLE | Opportunity rows sampled for this feed |
+| `num_custom_properties` | INTEGER | NULLABLE | Distinct custom property names |
+| `num_custom_property_usages` | INTEGER | NULLABLE | Distinct `(entity_type, property)` pairs |
+| `custom_properties` | RECORD | REPEATED | One entry per `(property, entity_type)`: `property` STRING, `property_kind` STRING (`beta` / `prefixed` / `unprefixed`), `namespace` STRING (prefix before `:`, NULL if none), `entity_type` STRING (`@type` of the owning object), `occurrences` INTEGER (sampled instances containing it), `entity_instances` INTEGER (sampled instances of that type), `presence_pct` FLOAT |
+| `vocab_source` | STRING | NULLABLE | `oa.jsonld+model_spec`, or `model_spec (fallback)` if the vocab fetch failed |
+| `last_assessed` | TIMESTAMP | REQUIRED | Run timestamp |
+
+Frequency query: `SELECT cp.property, COUNT(DISTINCT feed_id) FROM custom_properties, UNNEST(custom_properties) cp GROUP BY 1 ORDER BY 2 DESC`.

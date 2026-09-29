@@ -5,7 +5,7 @@ how many opportunities in the database match each taxonomy (case-insensitive).
 Generates a markdown report with overall statistics and top 20 non-matching terms.
 
 Run with:
-    python jobs/opportunity-insights/report_runner/taxonomy_adherence.py
+    python jobs/opportunity-insights/report_runner/taxonomy_adherence/main.py
 """
 
 from __future__ import annotations
@@ -13,13 +13,24 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-import requests
 from dotenv import load_dotenv
 from google.cloud import bigquery
+
+# Make ``report_runner.`` importable when run as a script (sys.path[0] is this folder).
+_JOB_DIR = Path(__file__).resolve().parents[2]
+if str(_JOB_DIR) not in sys.path:
+    sys.path.insert(0, str(_JOB_DIR))
+
+from report_runner.taxonomy_adherence.openactive_vocab import (  # noqa: E402
+    ACTIVITY_LIST_URL,
+    FACILITY_LIST_URL,
+    fetch_taxonomy,
+)
 
 load_dotenv()
 
@@ -29,52 +40,8 @@ BIGQUERY_PROJECT = os.getenv("GCP_PROJECT_ID")
 BIGQUERY_DATASET = os.getenv("BQ_DATASET_ID")
 OPPORTUNITIES_TABLE = os.getenv("BQ_OPPORTUNITIES_TABLE")
 
-ACTIVITY_LIST_URL = "https://openactive.io/activity-list/activity-list.jsonld"
-FACILITY_LIST_URL = "https://openactive.io/facility-types/facility-types.jsonld"
-
-REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
+REPORTS_DIR = _JOB_DIR / "reports"
 REPORT_FILENAME = "taxonomy_adherence.md"
-
-
-def fetch_taxonomy(url: str) -> set[str]:
-    """Fetch and extract taxonomy terms from a JSON-LD file (case-insensitive)."""
-    try:
-        logger.info("Fetching taxonomy from %s", url)
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        data = response.json()
-
-        terms = set()
-
-        # Try "concept" array (OpenActive format)
-        if "concept" in data and isinstance(data["concept"], list):
-            for item in data["concept"]:
-                if "prefLabel" in item:
-                    label = item["prefLabel"]
-                    if isinstance(label, str):
-                        terms.add(label.lower())
-
-        # Fallback to @graph format
-        elif "@graph" in data and isinstance(data["@graph"], list):
-            for item in data["@graph"]:
-                if "prefLabel" in item:
-                    label = item["prefLabel"]
-                    if isinstance(label, str):
-                        terms.add(label.lower())
-                    elif isinstance(label, dict):
-                        for lang, value in label.items():
-                            if isinstance(value, str):
-                                terms.add(value.lower())
-                elif "name" in item:
-                    name = item["name"]
-                    if isinstance(name, str):
-                        terms.add(name.lower())
-
-        logger.info("Fetched %d terms from taxonomy", len(terms))
-        return terms
-    except Exception as e:
-        logger.error("Failed to fetch taxonomy from %s: %s", url, e)
-        return set()
 
 
 def query_opportunities_taxonomy_data() -> tuple[list[dict], list[dict]]:

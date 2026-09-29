@@ -634,6 +634,41 @@ def _run_quality_assessment(
     bigquery_ops.write_feed_quality(quality_rows)
 
 
+def _run_custom_properties(
+    run_date: datetime,
+    source: _SourceData,
+    opportunities_tbl: str,
+    reference_date: date,
+) -> None:
+    from report_runner.taxonomy_adherence.custom_properties import assess_custom_properties
+    from field_usage.queries import DEFAULT_SAMPLES_PER_KIND
+
+    samples_per_kind = int(
+        os.getenv("CUSTOM_PROPERTIES_SAMPLES_PER_KIND", str(DEFAULT_SAMPLES_PER_KIND))
+    )
+    logger.info("Running custom-property detection (samples_per_kind=%d)", samples_per_kind)
+    rows = assess_custom_properties(
+        run_date=run_date,
+        df_feeds=source.df_feeds,
+        opportunities_tbl=opportunities_tbl,
+        reference_date=reference_date,
+        samples_per_kind=samples_per_kind,
+    )
+
+    feeds_per_property: dict[str, int] = defaultdict(int)
+    for row in rows:
+        for prop in {cp["property"] for cp in row["custom_properties"]}:
+            feeds_per_property[prop] += 1
+    top = sorted(feeds_per_property.items(), key=lambda x: (-x[1], x[0]))[:10]
+    logger.info(
+        "Custom properties: %d feeds sampled, %d use at least one; top: %s",
+        len(rows),
+        sum(1 for r in rows if r["num_custom_properties"]),
+        ", ".join(f"{p} ({n} feeds)" for p, n in top) or "none",
+    )
+    bigquery_ops.write_custom_properties(rows)
+
+
 def _filter_active_feeds(
     df_feeds: pd.DataFrame,
     opportunity_ingestion_tbl: str,
@@ -786,6 +821,7 @@ def run(
     reference_date: date | None = None,
     skip_quality: bool = False,
     skip_export: bool = False,
+    skip_custom_properties: bool = False,
 ) -> None:
     run_date = datetime.now(timezone.utc)
     effective_reference_date = reference_date or run_date.date()
@@ -836,6 +872,12 @@ def run(
     else:
         logger.info("Skipping data-quality assessment (--skip-quality)")
 
+    # ---------- Custom-property detection ---------- #
+    if not skip_custom_properties:
+        _run_custom_properties(run_date, source, opportunities_tbl, effective_reference_date)
+    else:
+        logger.info("Skipping custom-property detection (--skip-custom-properties)")
+
     # ---------- API tables export ---------- #
     if not skip_export:
         _run_api_tables_export(
@@ -868,12 +910,19 @@ def run(
     default=False,
     help="Skip the API tables export step (active_opportunities_summary is not written).",
 )
+@click.option(
+    "--skip-custom-properties",
+    is_flag=True,
+    default=False,
+    help="Skip the custom-property detection step (custom_properties table is not updated).",
+)
 def cli(
     verbose: bool,
     init_tables: bool,
     reference_date: datetime | None,
     skip_quality: bool,
     skip_export: bool,
+    skip_custom_properties: bool,
 ) -> None:
     _configure_logging(verbose)
     run(
@@ -882,6 +931,7 @@ def cli(
         reference_date=reference_date.date() if reference_date else None,
         skip_quality=skip_quality,
         skip_export=skip_export,
+        skip_custom_properties=skip_custom_properties,
     )
 
 
