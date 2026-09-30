@@ -1,0 +1,24 @@
+[
+  {"name": "dataset_url",                "type": "STRING",    "mode": "REQUIRED"},
+  {"name": "dataset_name",               "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "publisher_name",             "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "feed_id",                    "type": "STRING",    "mode": "REQUIRED"},
+  {"name": "feed_url",                   "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "feed_type",                  "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "is_regular",                 "type": "BOOL",      "mode": "NULLABLE"},
+  {"name": "sampled_items",              "type": "INTEGER",   "mode": "NULLABLE", "description": "Opportunity rows sampled for this feed"},
+  {"name": "num_custom_properties",      "type": "INTEGER",   "mode": "NULLABLE", "description": "Distinct custom property names used by the feed"},
+  {"name": "num_custom_property_usages", "type": "INTEGER",   "mode": "NULLABLE", "description": "Distinct (entity_type, property) pairs"},
+  {"name": "custom_properties",          "type": "RECORD",    "mode": "REPEATED", "description": "One entry per (property, entity_type)",
+   "fields": [
+     {"name": "property",         "type": "STRING",  "mode": "NULLABLE", "description": "Property key as published, e.g. beta:formattedDescription"},
+     {"name": "property_kind",    "type": "STRING",  "mode": "NULLABLE", "description": "beta | prefixed | unprefixed"},
+     {"name": "namespace",        "type": "STRING",  "mode": "NULLABLE", "description": "Prefix before ':', NULL if unprefixed or a full URI"},
+     {"name": "entity_type",      "type": "STRING",  "mode": "NULLABLE", "description": "@type of the object the property belongs to"},
+     {"name": "occurrences",      "type": "INTEGER", "mode": "NULLABLE", "description": "Sampled entity instances containing the property"},
+     {"name": "entity_instances", "type": "INTEGER", "mode": "NULLABLE", "description": "Sampled instances of entity_type in the feed"},
+     {"name": "presence_pct",     "type": "FLOAT",   "mode": "NULLABLE", "description": "occurrences / entity_instances * 100"}
+   ]},
+  {"name": "vocab_source",               "type": "STRING",    "mode": "NULLABLE", "description": "Vocabulary used to decide known properties"},
+  {"name": "last_assessed",              "type": "TIMESTAMP", "mode": "REQUIRED"}
+]
