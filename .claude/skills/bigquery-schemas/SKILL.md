@@ -65,6 +65,8 @@ Denormalized opportunity data from RPDE feeds.
 | `inherited_data` | JSON | NULLABLE | Properties inherited from superEvent/parent |
 | `activity` | JSON | NULLABLE | Activity labels associated with the opportunity |
 | `facility` | JSON | NULLABLE | Facility label associated with the opportunity |
+| `activity_json` | JSON | NULLABLE | Raw `json_data.activity` (falls back to `activities`) exactly as published — Concept dict, list of Concepts and/or strings, or a plain string — so concept `id`/`inScheme` survive for vocabulary-adherence checks. Inherited from superEvent when missing. |
+| `facility_json` | JSON | NULLABLE | Raw `json_data.facilityType` exactly as published (no `facilities`/`category` fallback, unlike `facility`). Inherited from superEvent/FacilityUse when missing. |
 | `location` | JSON | NULLABLE | Geographical location (`latitude`, `longitude`, `postal_code`, …) |
 | `district_name` | STRING | NULLABLE | UK Local Authority District name resolved from location (`LAD24NM`) |
 | `region_name` | STRING | NULLABLE | UK region name resolved from location (`eer18nm`) |

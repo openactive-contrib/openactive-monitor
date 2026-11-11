@@ -119,6 +119,45 @@ def per_feed_completeness(opportunities_table: str, reference_date: date) -> str
     """
 
 
+# JSON literals treated as "no value" for the raw activity / facility payloads.
+_EMPTY_JSON_LITERALS = "('null', '[]', '\"\"', '{}')"
+
+
+def per_feed_vocabulary_values(opportunities_table: str, reference_date: date) -> str:
+    """Distinct raw ``activity_json`` / ``facility_json`` payloads per feed, with counts.
+
+    Same window as ``per_feed_completeness`` (opportunities updated within the
+    last ``QUALITY_WINDOW_DAYS`` days).  Feeds repeat a small set of payloads, so
+    grouping on ``TO_JSON_STRING`` keeps the result small while still covering
+    every item; classification against the OpenActive vocabularies happens in
+    ``quality.vocabulary_adherence``.
+
+    Columns: ``dataset_url, feed_id, field ('activity' | 'facility'), raw_value, n``.
+    """
+    return f"""
+        WITH recent AS (
+          SELECT
+            dataset_url,
+            feed_id,
+            TO_JSON_STRING(activity_json) AS activity_raw,
+            TO_JSON_STRING(facility_json) AS facility_raw
+          FROM `{opportunities_table}`
+          WHERE feed_id IS NOT NULL
+            AND last_updated >= DATE_SUB(DATE '{reference_date.isoformat()}', INTERVAL {QUALITY_WINDOW_DAYS} DAY)
+            AND (activity_json IS NOT NULL OR facility_json IS NOT NULL)
+        )
+        SELECT dataset_url, feed_id, 'activity' AS field, activity_raw AS raw_value, COUNT(*) AS n
+        FROM recent
+        WHERE activity_raw IS NOT NULL AND activity_raw NOT IN {_EMPTY_JSON_LITERALS}
+        GROUP BY dataset_url, feed_id, activity_raw
+        UNION ALL
+        SELECT dataset_url, feed_id, 'facility' AS field, facility_raw AS raw_value, COUNT(*) AS n
+        FROM recent
+        WHERE facility_raw IS NOT NULL AND facility_raw NOT IN {_EMPTY_JSON_LITERALS}
+        GROUP BY dataset_url, feed_id, facility_raw
+    """
+
+
 def sampled_opportunities_by_feed_and_kind(
     opportunities_table: str,
     reference_date: date,
