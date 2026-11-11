@@ -25,7 +25,8 @@ MAX_INHERITED_MERGE_DEPTH = 6
 
 DF_COLUMNS = [
     "dataset_url", "feed_id", "id", "data_id", "kind", "modified",
-    "json_data", "inherited_data", "activity", "facility", "location",
+    "json_data", "inherited_data", "activity", "facility",
+    "activity_json", "facility_json", "location",
     "district_name", "region_name",
     "publisher_name", "district_code", "region_code", "country_code", "country_name",
     "nhstrust_name", "nhstrust_code",
@@ -230,6 +231,48 @@ def get_facility(data: dict) -> list[Any]:
     return []
 
 
+def _first_non_empty_payload(data: dict, fields: tuple[str, ...]) -> Any | None:
+    """Return the first non-empty raw value among ``fields``, shape preserved.
+
+    Empty means ``None``, a blank string, or an empty list / dict.
+    """
+    for field in fields:
+        value = data.get(field)
+        if value is None:
+            continue
+        if isinstance(value, str):
+            if value.strip():
+                return value
+            continue
+        if isinstance(value, (dict, list)):
+            if value:
+                return value
+            continue
+        return value
+    return None
+
+
+def get_activity_payload(data: dict) -> Any | None:
+    """Return the raw ``activity`` payload exactly as published.
+
+    Keeps the original shape (Concept dict, list of Concepts and/or strings, or
+    a plain string) so ``id`` / ``@id`` / ``inScheme`` survive for vocabulary
+    adherence analysis.  Mirrors the field precedence of ``get_activity``:
+    ``activity`` first, then ``activities``.  Returns ``None`` when empty.
+    """
+    return _first_non_empty_payload(data, ("activity", "activities"))
+
+
+def get_facility_payload(data: dict) -> Any | None:
+    """Return the raw ``facilityType`` payload exactly as published.
+
+    Unlike ``get_facility`` this deliberately ignores the ``facilities`` and
+    ``category`` fallbacks: those are free-text fields, not references to the
+    OpenActive Facility Types vocabulary.  Returns ``None`` when empty.
+    """
+    return _first_non_empty_payload(data, ("facilityType",))
+
+
 def get_accessibility_support(data: dict) -> list[str] | None:
     """Normalise ``accessibilitySupport`` into a list of ``prefLabel`` strings.
 
@@ -362,6 +405,8 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
                 "inherited_data": {},
                 "activity":       get_activity(data),
                 "facility":       get_facility(data),
+                "activity_json":  get_activity_payload(data),
+                "facility_json":  get_facility_payload(data),
                 "location":       location,
                 "district_name":  district_name,
                 "region_name":    region_name,
@@ -590,6 +635,9 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
         df.at[idx, "activity"] = get_activity(inherited_data)
     if get_facility(inherited_data) and (not df.at[idx, "facility"] or df.at[idx, "facility"] == []):
         df.at[idx, "facility"] = get_facility(inherited_data)
+    # Raw (shape-preserving) twins of activity / facility, same fill-only-when-empty rule.
+    _set_if_empty(df, idx, "activity_json", get_activity_payload(inherited_data))
+    _set_if_empty(df, idx, "facility_json", get_facility_payload(inherited_data))
     if "location" in inherited_data and (not df.at[idx, "location"] or df.at[idx, "location"] == {}):
         new_location = _build_location(inherited_data["location"])
         df.at[idx, "location"] = new_location

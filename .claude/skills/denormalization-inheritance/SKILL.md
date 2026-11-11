@@ -19,7 +19,7 @@ Use this skill when working on superEvent/subEvent inheritance, the `denormalize
    - A string `@id` reference to another row's `data_id`
 2. The code builds a lookup `data_id → merged payload` from both the new DataFrame and existing BigQuery rows
 3. For each row with a superEvent, properties from the parent are inherited where the child lacks them
-4. Inherited properties are applied to: `activity`, `facility`, `location` (and its derived boundary columns `district_name`/`region_name`/`district_code`/`region_code`/`country_code`/`country_name`), `startDate`, `endDate`, `ageRange`, `level`, `accessibilitySupport`, `genderRestriction`, `organization_name`
+4. Inherited properties are applied to: `activity`, `facility`, `activity_json`, `facility_json` (raw payloads, same fill-only-when-empty rule), `location` (and its derived boundary columns `district_name`/`region_name`/`district_code`/`region_code`/`country_code`/`country_name`), `startDate`, `endDate`, `ageRange`, `level`, `accessibilitySupport`, `genderRestriction`, `organization_name`
 
 **Not inherited:** `organization_json` is intentionally excluded — it stays a faithful reflection of the row's own `json_data.organizer` / `json_data.provider`. Only the resolved `organization_name` propagates from a parent.
 

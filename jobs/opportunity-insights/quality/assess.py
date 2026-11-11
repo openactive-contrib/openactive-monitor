@@ -7,6 +7,8 @@ Builds rows for the ``feed_quality`` BigQuery table by combining:
 * Random-sample-based check for required-field presence in ``json_data``.
 * Top-level completeness percentages over the last ``QUALITY_WINDOW_DAYS`` days.
 * ``num_future_opportunity_items`` from the feed_insights rows built earlier.
+* Activity / facility vocabulary adherence (``quality.vocabulary_adherence``)
+  over the raw ``activity_json`` / ``facility_json`` payloads in the same window.
 """
 
 from __future__ import annotations
@@ -22,6 +24,19 @@ import bigquery_ops
 from quality import queries as quality_queries
 from quality.health_check import ProbeResult, probe_feeds
 from quality.required_fields import REQUIRED_FIELDS_BY_KIND
+from quality.vocabulary_adherence import (
+    ACTIVITY_FIELD,
+    FACILITY_FIELD,
+    build_adherence_by_feed,
+)
+from report_runner.taxonomy_adherence.openactive_vocab import (
+    ACTIVITY_LIST_NAMESPACE,
+    ACTIVITY_LIST_URL,
+    FACILITY_LIST_NAMESPACE,
+    FACILITY_LIST_URL,
+    ConceptScheme,
+    fetch_concept_scheme,
+)
 from quality.version_compliance import (
     compute_feed_score,
 )
@@ -62,6 +77,7 @@ def assess_feed_quality(
     }
 
     completeness_by_key = _fetch_completeness(opportunities_tbl, reference_date)
+    adherence_by_key = _fetch_vocabulary_adherence(opportunities_tbl, reference_date)
     samples_by_key, samples_by_kind_key = _fetch_samples(opportunities_tbl, reference_date)
 
     # Probe any feed whose latest ingestion was ERROR / WARNING, or where the
@@ -87,6 +103,7 @@ def assess_feed_quality(
         key = (dataset_url, feed_id)
 
         completeness = completeness_by_key.get(key, {})
+        adherence = adherence_by_key.get(key, {})
         ingestion_status = status_by_feed.get(feed_id)
         future_count = future_count_by_feed.get(feed_id, 0)
 
@@ -139,6 +156,8 @@ def assess_feed_quality(
         for field in COMPLETENESS_FIELDS:
             row[field] = _round(completeness.get(field))
         row.update({
+            "activity_vocabulary_adherence": adherence.get(ACTIVITY_FIELD),
+            "facility_vocabulary_adherence": adherence.get(FACILITY_FIELD),
             "num_future_opportunity_items": future_count,
             "grade":                   grade,
             "feed_version":            version_result["version"],
@@ -188,6 +207,43 @@ def _fetch_completeness(
             for field in COMPLETENESS_FIELDS
         }
     return out
+
+
+def _fetch_vocabulary_adherence(
+    opportunities_tbl: str,
+    reference_date: date,
+) -> dict[tuple[str | None, str], dict[str, dict[str, Any] | None]]:
+    """Per-feed activity / facility vocabulary adherence breakdowns.
+
+    Fetches the OpenActive Activity List and Facility Types once per run. A
+    vocabulary that fails to load leaves its column NULL for every feed rather
+    than failing the run.
+    """
+    schemes: dict[str, ConceptScheme | None] = {
+        ACTIVITY_FIELD: fetch_concept_scheme(ACTIVITY_LIST_URL, ACTIVITY_LIST_NAMESPACE),
+        FACILITY_FIELD: fetch_concept_scheme(FACILITY_LIST_URL, FACILITY_LIST_NAMESPACE),
+    }
+    for field, scheme in schemes.items():
+        if scheme is None:
+            logger.warning(
+                "%s vocabulary unavailable; %s_vocabulary_adherence will be NULL this run",
+                field, field,
+            )
+    if all(scheme is None for scheme in schemes.values()):
+        return {}
+
+    try:
+        df = bigquery_ops.run_query(
+            quality_queries.per_feed_vocabulary_values(opportunities_tbl, reference_date)
+        )
+    except Exception:
+        # e.g. activity_json / facility_json not yet added to opportunities
+        # (patches/add_activity_facility_json_columns.sql in ingest-opportunities).
+        logger.exception("Vocabulary adherence query failed; adherence columns will be NULL")
+        return {}
+    adherence = build_adherence_by_feed(df, schemes)
+    logger.info("Computed vocabulary adherence for %d feeds", len(adherence))
+    return adherence
 
 
 def _fetch_samples(

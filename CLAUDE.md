@@ -116,6 +116,9 @@ Stores denormalized opportunity data from RPDE feeds.
 | `json_data` | JSON | Full opportunity data payload |
 | `inherited_data` | JSON | Properties inherited from superEvent/parent |
 | `activity` | JSON | Extracted activity labels |
+| `facility` | JSON | Extracted facility labels (`facilityType`, falling back to `facilities` / `category`) |
+| `activity_json` | JSON | Raw `json_data.activity` (falls back to `activities`) exactly as published — Concept dict, list of Concepts and/or strings, or a plain string — so concept `id`/`inScheme` survive for vocabulary-adherence checks. Inherited from superEvent when missing. |
+| `facility_json` | JSON | Raw `json_data.facilityType` exactly as published (no `facilities`/`category` fallback, unlike `facility`). Inherited from superEvent/FacilityUse when missing. |
 | `location` | JSON | Extracted geolocation (`latitude`, `longitude`, `postal_code`, etc.) |
 | `district_name` | STRING | UK Local Authority District name resolved from `location.latitude/longitude` (`LAD24NM`) |
 | `region_name` | STRING | UK Region name resolved from `location.latitude/longitude` (`eer18nm`) |

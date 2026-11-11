@@ -18,6 +18,8 @@
   {"name": "level_completeness",                   "type": "FLOAT",     "mode": "NULLABLE"},
   {"name": "accessibility_support_completeness",   "type": "FLOAT",     "mode": "NULLABLE"},
   {"name": "gender_restriction_completeness",      "type": "FLOAT",     "mode": "NULLABLE"},
+  {"name": "activity_vocabulary_adherence",        "type": "JSON",      "mode": "NULLABLE", "description": "Adherence of activity values (opportunities.activity_json, last 5 days) to the OpenActive Activity List: {adherence_pct, items, valid_id, invalid_id, other_scheme, label_match_only, unrecognised, top_unmatched}. adherence_pct = valid_id / items * 100. NULL when no item has an activity or the vocabulary could not be fetched."},
+  {"name": "facility_vocabulary_adherence",        "type": "JSON",      "mode": "NULLABLE", "description": "Adherence of facilityType values (opportunities.facility_json, last 5 days) to the OpenActive Facility Types list. Same shape as activity_vocabulary_adherence."},
   {"name": "num_future_opportunity_items",         "type": "INTEGER",   "mode": "NULLABLE"},
   {"name": "grade",                        "type": "STRING",    "mode": "NULLABLE", "description": "None | Bronze | Silver | Gold"},
   {"name": "feed_version",                 "type": "STRING",    "mode": "NULLABLE", "description": "Detected OpenActive spec version (e.g. V0.x, V1.1, V2.0, V2.1)"},
