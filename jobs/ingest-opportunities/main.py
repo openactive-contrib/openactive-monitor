@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from bigquery_ops import (
     delete_dataset_opportunities,
     drain_deferred_deletes_until_timeout,
+    get_dataset_ancestor_opportunities,
     get_dataset_facility_uses,
     get_dataset_feed_opportunity_counts,
     get_dataset_opportunities,
@@ -316,6 +317,28 @@ def _persist_dataset_results(
     phase_start = perf_counter()
     dataset_referred_df = get_dataset_opportunities(dataset_url, required_data_ids=denormalization_reference_ids)
     logger.info("Persist phase get_dataset_opportunities completed in %.2fs (rows=%d)", perf_counter() - phase_start, len(dataset_referred_df))
+
+    # Multi-level inheritance: parents fetched above (or inline parents of new
+    # rows) may themselves reference a superEvent by @id (grandparent) that is
+    # neither in this batch nor fetched yet.  Walk those references hop by hop so whole ancestor chains resolve.
+    phase_start = perf_counter()
+    known_data_ids = {
+        d
+        for frame in (dataset_new_df, dataset_referred_df)
+        for d in frame["data_id"].tolist()
+        if isinstance(d, str) and d
+    }
+    ancestor_df = get_dataset_ancestor_opportunities(
+        dataset_url, [dataset_new_df, dataset_referred_df], known_data_ids
+    )
+    if not ancestor_df.empty:
+        dataset_referred_df = pd.concat([dataset_referred_df, ancestor_df], ignore_index=True)
+    logger.info(
+        "Persist phase get_dataset_ancestor_opportunities completed in %.2fs (rows=%d)",
+        perf_counter() - phase_start,
+        len(ancestor_df),
+    )
+    del ancestor_df
 
     # A Slot's ``facilityUse`` reference may point at an IndividualFacilityUse
     # embedded inside its parent FacilityUse (``json_data.individualFacilityUse``)

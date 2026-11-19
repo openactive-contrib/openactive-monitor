@@ -569,11 +569,138 @@ def _build_df_indices_by_data_id(df: pd.DataFrame, df_bigquery: pd.DataFrame) ->
     return index_lookup
 
 
+# Keys through which an opportunity points at its parent.  ``superEvent`` is the
+# Event/Session chain; ``facilityUse`` is the Slot → (Individual)FacilityUse link.
+_PARENT_LINK_KEYS: tuple[str, ...] = ("superEvent", "facilityUse")
+
+
+def _clean_ref(value: Any) -> str | None:
+    """Normalise a string ``@id`` reference (strip quotes / whitespace)."""
+    if not isinstance(value, str):
+        return None
+    cleaned = value.replace('"', "").strip()
+    return cleaned or None
+
+
+def _parent_link(payload: dict[str, Any]) -> dict[str, Any] | str | None:
+    """Return the payload's parent link: an inline dict, a string ``@id``, or None."""
+    for key in _PARENT_LINK_KEYS:
+        value = payload.get(key)
+        if isinstance(value, dict) and value:
+            return value
+        ref = _clean_ref(value)
+        if ref:
+            return ref
+    return None
+
+
+def _payload_identity(payload: dict[str, Any]) -> str | int:
+    """Stable identity used for cycle detection while walking an ancestor chain."""
+    for key in ("@id", "id"):
+        value = payload.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return id(payload)
+
+
+def _resolve_ancestry(
+    payload: dict[str, Any],
+    payload_by_data_id: dict[str, dict[str, Any]],
+    cache: dict[str, dict[str, Any]] | None = None,
+    cache_key: str | None = None,
+    _depth: int = 0,
+    _seen: frozenset[str | int] = frozenset(),
+) -> dict[str, Any]:
+    """Flatten ``payload`` with every ancestor reachable via its parent link.
+
+    ``inherited_data`` is never persisted to BigQuery and is still empty for
+    rows in the current batch when parent payloads are built, so a parent
+    payload alone only carries the parent's own ``json_data``.  This walks the
+    chain explicitly — following inline ``superEvent`` dicts and string
+    ``@id`` references (looked up in ``payload_by_data_id``) — and returns a
+    new dict where the closest level wins: parent over grandparent over
+    great-grandparent.  An empty value at a closer level (``None``, ``""``,
+    ``[]``, ``{}``) never masks a non-empty ancestor value.
+
+    ``payload`` itself is never mutated.  ``cache`` memoises resolved payloads
+    by ``data_id`` (many sessions share a handful of series); ``cache_key``
+    is the ``data_id`` under which ``payload`` was looked up, if any.
+    """
+    if cache is not None and cache_key is not None and cache_key in cache:
+        return cache[cache_key]
+
+    resolved = dict(payload)
+    identity = cache_key or _payload_identity(payload)
+    if identity in _seen:
+        logger.warning("Detected cyclic superEvent chain at %r; stopping ancestor walk", identity)
+        return resolved
+    if _depth >= MAX_INHERITED_MERGE_DEPTH:
+        logger.warning("Reached max inherited merge depth=%d; skipping deeper merge", MAX_INHERITED_MERGE_DEPTH)
+        return resolved
+
+    link = _parent_link(payload)
+    parent: dict[str, Any] | None = None
+    parent_key: str | None = None
+    if isinstance(link, dict):
+        parent = link
+    elif isinstance(link, str):
+        parent_key = link
+        parent = payload_by_data_id.get(link)
+
+    if parent:
+        ancestor = _resolve_ancestry(
+            parent,
+            payload_by_data_id,
+            cache,
+            parent_key,
+            _depth + 1,
+            _seen | {identity},
+        )
+        merged = dict(ancestor)
+        for key, value in resolved.items():
+            if _is_slot_empty(value) and not _is_slot_empty(merged.get(key)):
+                continue
+            merged[key] = value
+        resolved = merged
+
+    if cache is not None and cache_key is not None:
+        cache[cache_key] = resolved
+    return resolved
+
+
+def collect_super_event_refs(frame: pd.DataFrame) -> set[str]:
+    """Return every string parent ``@id`` referenced from ``frame``'s ``has_superEvent``.
+
+    Covers a top-level string reference as well as string references nested
+    inside inline parent dicts (e.g. an inline SessionSeries whose own
+    ``superEvent`` is an ``@id``), so callers can fetch whole ancestor chains.
+    """
+    refs: set[str] = set()
+    if frame.empty or "has_superEvent" not in frame.columns:
+        return refs
+    for value in frame["has_superEvent"].tolist():
+        depth = 0
+        while value is not None and depth < MAX_INHERITED_MERGE_DEPTH:
+            if isinstance(value, dict):
+                value = _parent_link(value)
+                depth += 1
+                continue
+            ref = _clean_ref(value)
+            if ref:
+                refs.add(ref)
+            break
+    return refs
+
+
 def handle_super_events(
     df: pd.DataFrame,
     super_event_payload_by_data_id: dict[str, dict[str, Any]],
+    cache: dict[str, dict[str, Any]] | None = None,
 ) -> None:
-    """For rows with a superEvent, inherit missing properties from the parent."""
+    """For rows with a superEvent, inherit missing properties from the parent
+    and, transitively, from every further ancestor (see ``_resolve_ancestry``)."""
+    if cache is None:
+        cache = {}
     super_events_mask = df["has_superEvent"].notnull()
     super_events_indices = df[super_events_mask].index.tolist()
 
@@ -582,17 +709,25 @@ def handle_super_events(
         super_event_data: dict[str, Any] | None = None
 
         if isinstance(super_event_ref, dict):
-            super_event_data = super_event_ref
+            if super_event_ref:
+                super_event_data = _resolve_ancestry(
+                    super_event_ref, super_event_payload_by_data_id, cache
+                )
         elif isinstance(super_event_ref, str):
             super_event_id = super_event_ref.strip('"')
             row_data_id = df.at[idx, "data_id"]
             if isinstance(row_data_id, str) and super_event_id == row_data_id:
                 logger.warning("Skipping self-referential superEvent for data_id=%s", row_data_id)
                 continue
-            super_event_data = super_event_payload_by_data_id.get(super_event_id)
+            parent_payload = super_event_payload_by_data_id.get(super_event_id)
+            if parent_payload:
+                super_event_data = _resolve_ancestry(
+                    parent_payload, super_event_payload_by_data_id, cache, super_event_id
+                )
 
         if super_event_data:
-            super_event_data = unpack_data(super_event_data)
+            # Copy: ``unpack_data`` mutates, and the resolved payload may be cached.
+            super_event_data = unpack_data(dict(super_event_data))
             current_json_data = df.at[idx, "json_data"]
             if not isinstance(current_json_data, dict):
                 current_json_data = {}
@@ -613,7 +748,12 @@ def _is_slot_empty(value: Any) -> bool:
         return len(value) == 0
     if isinstance(value, str):
         return value.strip() == ""
-    return False
+    # Rows read back from BigQuery carry pandas missing markers (NaN / NaT /
+    # pd.NA, e.g. in the nullable BOOL column) rather than ``None``.
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return False
 
 
 def _set_if_empty(df: DataFrame, idx, col: str, value: Any) -> None:
@@ -698,10 +838,19 @@ def _row_super_event_payload(df: pd.DataFrame, idx) -> dict[str, Any]:
     return payload
 
 
-def handle_sub_events(df: pd.DataFrame, sub_event_indices_by_data_id: dict[str, list[int]]) -> None:
+def handle_sub_events(
+    df: pd.DataFrame,
+    sub_event_indices_by_data_id: dict[str, list[int]],
+    super_event_payload_by_data_id: dict[str, dict[str, Any]] | None = None,
+    cache: dict[str, dict[str, Any]] | None = None,
+) -> None:
     """For rows that list subEvents, push the parent's inheritable fields into
     each subEvent row using the same fill-only-when-empty rules as
-    ``handle_super_events``."""
+    ``handle_super_events``.  When ``super_event_payload_by_data_id`` is given
+    the parent's own ancestors are folded in too, so a subEvent also receives
+    grandparent values the parent itself only inherits."""
+    if cache is None:
+        cache = {}
     sub_events_mask = df["has_subEvent"].notnull()
     sub_events_indices = df[sub_events_mask].index.tolist()
 
@@ -721,7 +870,13 @@ def handle_sub_events(df: pd.DataFrame, sub_event_indices_by_data_id: dict[str, 
                 continue
             if super_event_data is None:
                 super_event_data = _row_super_event_payload(df, idx)
-                super_event_data = unpack_data(super_event_data)
+                if super_event_payload_by_data_id is not None:
+                    # Not cached under the row's data_id: this payload comes from
+                    # the (possibly newer) df row, not the lookup table.
+                    super_event_data = _resolve_ancestry(
+                        super_event_data, super_event_payload_by_data_id, cache
+                    )
+                super_event_data = unpack_data(dict(super_event_data))
             for sub_idx in sub_event_target_indices:
                 if sub_idx == idx:
                     continue
@@ -738,8 +893,14 @@ def handle_sub_events(df: pd.DataFrame, sub_event_indices_by_data_id: dict[str, 
 
 
 def denormalize_dataset(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
-    """Apply superEvent → subEvent inheritance over a dataset's DataFrame in place."""
+    """Apply superEvent → subEvent inheritance over a dataset's DataFrame in place.
+
+    Inheritance is multi-level: a row inherits from its parent, grandparent and
+    so on (closest ancestor wins), whether the chain is linked by inline
+    ``superEvent`` dicts or by ``@id`` references to other rows.
+    """
     super_event_payload_by_data_id = _build_super_event_payload_by_data_id(df, df_bigquery)
     sub_event_indices_by_data_id = _build_df_indices_by_data_id(df, df_bigquery)
-    handle_super_events(df, super_event_payload_by_data_id)
-    handle_sub_events(df, sub_event_indices_by_data_id)
+    ancestry_cache: dict[str, dict[str, Any]] = {}
+    handle_super_events(df, super_event_payload_by_data_id, ancestry_cache)
+    handle_sub_events(df, sub_event_indices_by_data_id, super_event_payload_by_data_id, ancestry_cache)

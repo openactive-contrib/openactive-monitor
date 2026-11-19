@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 from google.api_core import exceptions as google_exceptions
 from google.cloud import bigquery
 
+from processing import MAX_INHERITED_MERGE_DEPTH, collect_super_event_refs
+
 # TODO reduce this to 200 on prod
 DELETE_BATCH_SIZE = 50000
 
@@ -441,6 +443,46 @@ def get_dataset_opportunities(
             len(target_ids),
         )
     return normalized_df
+
+
+def get_dataset_ancestor_opportunities(
+    dataset_url: str,
+    seed_frames: list[pd.DataFrame],
+    known_ids: set[str],
+    max_hops: int = MAX_INHERITED_MERGE_DEPTH,
+) -> pd.DataFrame:
+    """Fetch the not-yet-loaded ancestors of the rows in ``seed_frames``.
+
+    ``seed_frames`` are typically the new batch plus the parent rows fetched by
+    a targeted ``get_dataset_opportunities`` call.  Their ``has_superEvent``
+    string references (top-level or nested inside inline parent dicts) point at
+    (grand)parents that must also be present for multi-level inheritance.  This
+    keeps fetching one hop at a time until no new ``data_id`` appears or
+    ``max_hops`` is reached.  ``known_ids`` (data_ids already loaded) is
+    updated in place.  Returns the newly fetched rows only.
+    """
+    frames: list[pd.DataFrame] = []
+    frontier = list(seed_frames)
+    for _ in range(max_hops):
+        refs: set[str] = set()
+        for frame in frontier:
+            refs |= collect_super_event_refs(frame)
+        missing = sorted(refs - known_ids)
+        if not missing:
+            break
+        known_ids.update(missing)
+        fetched = get_dataset_opportunities(dataset_url, required_data_ids=missing)
+        if fetched.empty:
+            break
+        known_ids.update(d for d in fetched["data_id"].tolist() if isinstance(d, str) and d)
+        frames.append(fetched)
+        frontier = [fetched]
+
+    if not frames:
+        return pd.DataFrame(columns=OPPORTUNITIES_COLUMNS)
+    if len(frames) == 1:
+        return frames[0]
+    return pd.concat(frames, ignore_index=True)
 
 
 def get_dataset_facility_uses(dataset_url: str) -> pd.DataFrame:
