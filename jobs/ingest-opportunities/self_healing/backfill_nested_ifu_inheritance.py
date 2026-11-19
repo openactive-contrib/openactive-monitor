@@ -46,11 +46,8 @@ import logging
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 from pathlib import Path
 from time import perf_counter
-from typing import Any
-from uuid import uuid4
 
 import click
 import pandas as pd
@@ -70,13 +67,13 @@ from processing import (  # noqa: E402
     _build_super_event_payload_by_data_id,
     handle_super_events,
 )
-from self_healing._common import discover_affected_datasets, run_dml_with_retry  # noqa: E402
-from self_healing.backfill_super_event_inheritance import (  # noqa: E402
+from self_healing._common import (  # noqa: E402
     INHERITABLE_FIELDS,
-    _empty_mask,
-    _is_empty_value,
-    _strip_ref,
-    _values_equal,
+    discover_affected_datasets,
+    empty_mask as _empty_mask,
+    strip_ref as _strip_ref,
+    values_equal as _values_equal,
+    write_inherited_updates,
 )
 
 load_dotenv()
@@ -99,181 +96,6 @@ _AFFECTED_PREDICATE = (
     "AND TO_JSON_STRING(location) = '{}' "
     "AND has_superEvent IS NOT NULL "
 )
-
-# Inheritable columns partitioned by their BigQuery type, used to build the
-# targeted staging table + fill-only-when-empty MERGE.  Union must equal
-# ``INHERITABLE_FIELDS`` (the fields ``apply_inherited_data`` may fill).
-_JSON_COLUMNS: tuple[str, ...] = (
-    "activity",
-    "facility",
-    "location",
-    "ageRange",
-    "level",
-    "accessibilitySupport",
-)
-_TIMESTAMP_COLUMNS: tuple[str, ...] = ("startDate", "endDate")
-_STRING_COLUMNS: tuple[str, ...] = (
-    "genderRestriction",
-    "organization_name",
-    "district_name",
-    "region_name",
-    "district_code",
-    "region_code",
-    "country_code",
-    "country_name",
-    "nhstrust_name",
-    "nhstrust_code",
-)
-
-assert set(_JSON_COLUMNS) | set(_TIMESTAMP_COLUMNS) | set(_STRING_COLUMNS) == set(
-    INHERITABLE_FIELDS
-), "inheritable-column partition must cover exactly INHERITABLE_FIELDS"
-
-
-def _coerce_json(value: Any) -> Any:
-    """Return a JSON-loadable Python object (dict/list) or None for empty cells."""
-    if isinstance(value, (dict, list)):
-        return value
-    if value is None:
-        return None
-    try:
-        if pd.isna(value):
-            return None
-    except (TypeError, ValueError):
-        pass
-    if isinstance(value, str):
-        stripped = value.strip()
-        return stripped or None
-    return None
-
-
-def _coerce_timestamp(value: Any) -> str | None:
-    """Return a BigQuery TIMESTAMP-friendly string, or None."""
-    if value is None:
-        return None
-    if isinstance(value, str):
-        return value.strip() or None
-    try:
-        if pd.isna(value):
-            return None
-    except (TypeError, ValueError):
-        pass
-    if isinstance(value, (pd.Timestamp, datetime)):
-        return value.isoformat(sep=" ")
-    return None
-
-
-def _coerce_str(value: Any) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, str):
-        return value or None
-    try:
-        if pd.isna(value):
-            return None
-    except (TypeError, ValueError):
-        pass
-    return str(value)
-
-
-def _staging_schema() -> list[bigquery.SchemaField]:
-    fields = [
-        bigquery.SchemaField("dataset_url", "STRING"),
-        bigquery.SchemaField("feed_id", "STRING"),
-        bigquery.SchemaField("id", "STRING"),
-    ]
-    fields += [bigquery.SchemaField(c, "JSON") for c in _JSON_COLUMNS]
-    fields += [bigquery.SchemaField(c, "TIMESTAMP") for c in _TIMESTAMP_COLUMNS]
-    fields += [bigquery.SchemaField(c, "STRING") for c in _STRING_COLUMNS]
-    return fields
-
-
-def _empty_check_sql(col: str) -> str:
-    """SQL predicate that is TRUE when the target column is 'missing'."""
-    if col in _JSON_COLUMNS:
-        return f"(T.{col} IS NULL OR TO_JSON_STRING(T.{col}) IN ('{{}}', '[]', 'null'))"
-    if col in _TIMESTAMP_COLUMNS:
-        return f"T.{col} IS NULL"
-    return f"(T.{col} IS NULL OR T.{col} = '')"
-
-
-def _build_targeted_merge(staging_table_id: str) -> str:
-    """MERGE that fills only-when-empty and touches only the inheritable columns."""
-    update_set = ",\n                ".join(
-        f"T.{col} = IF({_empty_check_sql(col)}, S.{col}, T.{col})"
-        for col in INHERITABLE_FIELDS
-    )
-    return f"""
-        MERGE `{TABLE_ID}` AS T
-        USING `{staging_table_id}` AS S
-        ON  T.dataset_url = S.dataset_url
-        AND T.feed_id = S.feed_id
-        AND T.id = S.id
-        WHEN MATCHED THEN
-            UPDATE SET
-                {update_set}
-    """
-
-
-def _build_staging_rows(updates_df: pd.DataFrame) -> list[dict[str, Any]]:
-    """Coerce the changed-rows DataFrame into JSON-load-ready staging dicts."""
-    rows: list[dict[str, Any]] = []
-    for record in updates_df.to_dict(orient="records"):
-        row: dict[str, Any] = {
-            "dataset_url": record.get("dataset_url"),
-            "feed_id": record.get("feed_id"),
-            "id": record.get("id"),
-        }
-        for col in _JSON_COLUMNS:
-            row[col] = _coerce_json(record.get(col))
-        for col in _TIMESTAMP_COLUMNS:
-            row[col] = _coerce_timestamp(record.get(col))
-        for col in _STRING_COLUMNS:
-            row[col] = _coerce_str(record.get(col))
-        rows.append(row)
-    return rows
-
-
-def _write_inherited_updates(
-    client: bigquery.Client,
-    dataset_url: str,
-    updates_df: pd.DataFrame,
-) -> int:
-    """Upsert ONLY the inheritable columns for the given rows via a slim MERGE.
-
-    Loads a staging table (merge keys + inheritable columns) and MERGEs with
-    per-column fill-only-when-empty guards, so already-populated columns and the
-    heavy ``json_data`` payload are never rewritten.  Returns rows affected.
-    """
-    if updates_df.empty:
-        return 0
-
-    staging_table_id = (
-        f"{GCP_PROJECT_ID}.{BQ_DATASET_ID}.{BQ_OPPORTUNITIES_TABLE}"
-        f"_nested_ifu_staging_{uuid4().hex[:12]}"
-    )
-    staging_rows = _build_staging_rows(updates_df)
-
-    try:
-        load_job = client.load_table_from_json(
-            staging_rows,
-            staging_table_id,
-            job_config=bigquery.LoadJobConfig(
-                schema=_staging_schema(),
-                write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
-            ),
-        )
-        load_job.result()
-
-        affected = run_dml_with_retry(
-            client,
-            _build_targeted_merge(staging_table_id),
-            label=f"nested-ifu MERGE {dataset_url}",
-        )
-        logger.info("Updated %d rows for %s", affected, dataset_url)
-        return affected
-    finally:
-        client.delete_table(staging_table_id, not_found_ok=True)
 
 
 def _load_affected_rows(dataset_url: str) -> pd.DataFrame:
@@ -403,7 +225,7 @@ def _fix_dataset(
     if not dry_run:
         logger.info("[%d/%d] writing %d rows for %s", index, total, len(updates_df), dataset_url)
         client = bigquery.Client(project=GCP_PROJECT_ID)
-        _write_inherited_updates(client, dataset_url, updates_df)
+        write_inherited_updates(client, TABLE_ID, dataset_url, updates_df, label="nested_ifu")
 
     logger.info(
         "[%d/%d] DONE %s — examined=%d merged=%d location_filled=%d in %.2fs (dry_run=%s)",
