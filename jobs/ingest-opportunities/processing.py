@@ -17,7 +17,7 @@ import pandas as pd
 from pandas import DataFrame
 
 from boundary_lookup import enrich_from_district_lookup, lookup_boundaries, lookup_nhs_trust
-from geolocation import _build_location
+from geolocation import _build_location, extract_postcode, get_postcode_point
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +58,61 @@ def _resolve_boundaries(location: dict[str, Any]) -> tuple[str | None, str | Non
     if not location:
         return None, None
     return lookup_boundaries(location.get("latitude"), location.get("longitude"))
+
+
+def _first_postal_code(raw_location: object) -> str | None:
+    """Return the postcode of the first OpenActive location entry, if any.
+
+    Mirrors ``_build_location``, which only reads the first entry of a list.
+    ``address`` may be a ``PostalAddress`` dict or a free-text string.
+    """
+    first = raw_location[0] if isinstance(raw_location, list) and raw_location else raw_location
+    if not isinstance(first, dict):
+        return None
+    address = first.get("address")
+    postal_code: Any = None
+    if isinstance(address, dict):
+        postal_code = address.get("postalCode")
+    elif isinstance(address, str):
+        postal_code = extract_postcode(address)
+    if isinstance(postal_code, str) and postal_code.strip():
+        return postal_code.strip()
+    return None
+
+
+def _build_location_validated(raw_location: object) -> dict[str, Any]:
+    """``_build_location`` plus a postcode fallback for unusable ``geo`` values.
+
+    Some publishers emit swapped latitude/longitude (e.g. ``lat=0.25, lng=52.0``)
+    or a flipped longitude sign (``lng=3.81`` instead of ``-3.81``).  Such points
+    fall outside every UK district, so when the published ``geo`` does not
+    resolve to a district but the location also carries a postcode that does,
+    the postcode coordinates are used instead and ``geo_source`` is set to
+    ``"postcode_fallback"`` for auditability.  Points that resolve, and points
+    without a resolvable postcode, are returned unchanged.
+    """
+    location = _build_location(raw_location)
+    lat, lng = location.get("latitude"), location.get("longitude")
+    if lat is None or lng is None:
+        return location
+    if lookup_boundaries(lat, lng)[0]:
+        return location
+    postal_code = _first_postal_code(raw_location)
+    if not postal_code:
+        return location
+    pc_lat, pc_lng = get_postcode_point(postal_code)
+    if pc_lat is None or pc_lng is None:
+        return location
+    pc_lat, pc_lng = round(float(pc_lat), 6), round(float(pc_lng), 6)
+    if not lookup_boundaries(pc_lat, pc_lng)[0]:
+        return location
+    return {
+        **location,
+        "latitude": pc_lat,
+        "longitude": pc_lng,
+        "postal_code": location.get("postal_code") or postal_code,
+        "geo_source": "postcode_fallback",
+    }
 
 
 def _resolve_nhs_trust(location: dict[str, Any]) -> tuple[str | None, str | None]:
@@ -390,7 +445,7 @@ def extract_rows(dataset_url: str, feed_id: str, result: dict, publisher_name: s
         else:
             data = item.get("data") if isinstance(item.get("data"), dict) else {}
             data = unpack_data(data)
-            location = _build_location(data.get("location"))
+            location = _build_location_validated(data.get("location"))
             district_name, region_name = _resolve_boundaries(location)
             enriched = enrich_from_district_lookup(district_name)
             nhstrust_name, nhstrust_code = _resolve_nhs_trust(location)
@@ -779,7 +834,7 @@ def apply_inherited_data(df: DataFrame, idx, inherited_data: dict[str, Any]):
     _set_if_empty(df, idx, "activity_json", get_activity_payload(inherited_data))
     _set_if_empty(df, idx, "facility_json", get_facility_payload(inherited_data))
     if "location" in inherited_data and (not df.at[idx, "location"] or df.at[idx, "location"] == {}):
-        new_location = _build_location(inherited_data["location"])
+        new_location = _build_location_validated(inherited_data["location"])
         df.at[idx, "location"] = new_location
         district_name, region_name = _resolve_boundaries(new_location)
         enriched = enrich_from_district_lookup(district_name)
@@ -904,3 +959,89 @@ def denormalize_dataset(df: pd.DataFrame, df_bigquery: pd.DataFrame) -> None:
     ancestry_cache: dict[str, dict[str, Any]] = {}
     handle_super_events(df, super_event_payload_by_data_id, ancestry_cache)
     handle_sub_events(df, sub_event_indices_by_data_id, super_event_payload_by_data_id, ancestry_cache)
+    ensure_boundaries(df)
+
+
+def _has_coordinates(location: Any) -> bool:
+    return (
+        isinstance(location, dict)
+        and location.get("latitude") is not None
+        and location.get("longitude") is not None
+    )
+
+
+def ensure_boundaries(df: pd.DataFrame) -> None:
+    """Fill empty boundary columns for rows that have coordinates but no district.
+
+    Final safety net after inheritance: every row whose ``location`` carries
+    latitude/longitude but whose ``district_name`` is still empty gets the
+    district/region/NHS-trust lookup re-run (fill-only, never overwrites).
+    Rows were observed in production with an inherited location but NULL
+    district columns; this guarantees boundaries are derived from whatever
+    location a row ends up with, regardless of how it got there.
+    """
+    if df.empty or "location" not in df.columns or "district_name" not in df.columns:
+        return
+    mask = df["district_name"].apply(_is_slot_empty) & df["location"].apply(_has_coordinates)
+    if not mask.any():
+        return
+
+    filled = 0
+    unresolved = 0
+    unresolved_in_uk_bbox = 0
+    uk_bbox_example: tuple[Any, Any] | None = None
+    for idx in df.index[mask]:
+        location = df.at[idx, "location"]
+        district_name, region_name = _resolve_boundaries(location)
+        if not district_name:
+            unresolved += 1
+            if _in_uk_bbox(location):
+                unresolved_in_uk_bbox += 1
+                uk_bbox_example = uk_bbox_example or (location.get("latitude"), location.get("longitude"))
+            continue
+        enriched = enrich_from_district_lookup(district_name)
+        nhstrust_name, nhstrust_code = _resolve_nhs_trust(location)
+        _set_if_empty(df, idx, "district_name", district_name)
+        _set_if_empty(df, idx, "region_name", region_name)
+        _set_if_empty(df, idx, "district_code", enriched["district_code"])
+        _set_if_empty(df, idx, "region_code", enriched["region_code"])
+        _set_if_empty(df, idx, "country_code", enriched["country_code"])
+        _set_if_empty(df, idx, "country_name", enriched["country_name"])
+        _set_if_empty(df, idx, "nhstrust_name", nhstrust_name)
+        _set_if_empty(df, idx, "nhstrust_code", nhstrust_code)
+        filled += 1
+
+    if filled:
+        logger.warning(
+            "ensure_boundaries filled district columns for %d row(s) that had coordinates but no district",
+            filled,
+        )
+    if unresolved:
+        logger.info(
+            "ensure_boundaries: %d row(s) have coordinates outside every UK district", unresolved
+        )
+    if unresolved_in_uk_bbox:
+        # Points inside the UK bounding box should almost always resolve; many
+        # misses here indicate a broken boundary lookup (files / index), not data.
+        logger.error(
+            "ensure_boundaries: %d row(s) inside the UK bounding box resolved to no district "
+            "(e.g. lat=%s lng=%s); check the boundary files and lookup",
+            unresolved_in_uk_bbox,
+            *(uk_bbox_example or (None, None)),
+        )
+
+
+# Rough WGS84 bounding box of the UK (incl. Northern Ireland, Shetland).  Only
+# used to flag suspicious lookup misses; coastal/offshore points may legitimately
+# fall inside it without resolving.
+_UK_BBOX = (49.8, 60.9, -8.2, 1.8)  # lat_min, lat_max, lng_min, lng_max
+
+
+def _in_uk_bbox(location: dict[str, Any]) -> bool:
+    try:
+        lat = float(location.get("latitude"))
+        lng = float(location.get("longitude"))
+    except (TypeError, ValueError):
+        return False
+    lat_min, lat_max, lng_min, lng_max = _UK_BBOX
+    return lat_min <= lat <= lat_max and lng_min <= lng <= lng_max

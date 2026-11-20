@@ -11,7 +11,7 @@ with:
 
     cd jobs/ingest-opportunities
     source virt/bin/activate
-    RUN_NETWORK_TESTS=1 python -m unittest tests.test_problematic_feeds -v
+    RUN_NETWORK_TESTS=1 python -m unittest tests.test_rpde_crawling -v
 """
 
 from __future__ import annotations
@@ -114,6 +114,10 @@ def _crawl_feed(url: str) -> tuple[str, str | None]:
     return url, None
 
 
+@unittest.skipUnless(
+    os.getenv("RUN_NETWORK_TESTS") == "1",
+    "network test: set RUN_NETWORK_TESTS=1 to crawl live RPDE feeds",
+)
 class RPDECrawlingTest(unittest.TestCase):
 
     def test_problematic_feeds_ingest_successfully(self) -> None:

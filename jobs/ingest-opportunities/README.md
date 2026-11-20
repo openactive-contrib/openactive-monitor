@@ -4,6 +4,16 @@ Ingests RPDE opportunity data into BigQuery (`openactive_analytics.opportunities
 with incremental cursor tracking, superEvent/subEvent denormalization, and UK
 postcode/boundary geolocation.
 
+Geolocation safeguards (`processing.py`):
+- `_build_location_validated` falls back to postcode coordinates when a published
+  `geo` point resolves to no UK district (swapped lat/lng, flipped longitude sign)
+  and the location carries a resolvable postcode; such locations get
+  `geo_source = "postcode_fallback"`.
+- `ensure_boundaries` runs at the end of `denormalize_dataset` and fills empty
+  district/region/NHS-trust columns for any row that has coordinates, so
+  inherited locations always get boundaries. Existing rows can be repaired with
+  `self_healing/backfill_location_boundaries.py`.
+
 UK boundary GeoJSONs (`000-location-districts.geojson`,
 `000-location-regions.geojson`) and district enrichment lookup
 (`000-district-region-country.json`) live in the **`volume-1` GCS bucket** under

@@ -123,6 +123,40 @@ their Slots). It is computed by a separate query and merged onto the rows, so th
 main summary query stays unchanged. No table migration is needed — that table is
 rewritten with `WRITE_TRUNCATE` each run.
 
+### Interpreting changes in the active opportunity count
+
+`SUM(opportunity_count[_narrow])` counts every opportunity with
+`startDate >= today` that has a resolved `district_name` and publisher. It has no
+upper date bound, so it follows **how far ahead each publisher publishes** and
+seasonality (for example, Christmas weeks inside a rolling 9-week window).
+Day-to-day movement is usually publisher supply, not an ingestion fault. Rows
+from feeds that have dropped out of the catalog are still counted until their
+dates pass.
+
+To attribute a change to specific feeds, compare per-feed future counts recorded
+by `ingest-opportunities` at each run:
+
+```sql
+WITH daily AS (
+  SELECT DATE(ingestion_date) d, dataset_id, feed_id, kind,
+         total_future_opportunities fut, status
+  FROM `openactive-monitor.openactive_analytics.opportunity_ingestion`
+  WHERE ingestion_date >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 31 DAY)
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY DATE(ingestion_date), dataset_id, feed_id ORDER BY ingestion_date DESC) = 1
+)
+SELECT dataset_id, feed_id, ANY_VALUE(kind) kind,
+       MAX(IF(d = DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY), fut, NULL)) fut_30d_ago,
+       MAX(IF(d = CURRENT_DATE(), fut, NULL)) fut_today,
+       COUNTIF(status != 'COMPLETE') non_complete_runs
+FROM daily GROUP BY 1, 2
+ORDER BY fut_30d_ago - fut_today DESC
+LIMIT 25
+```
+
+If a feed is shrinking while its runs are `COMPLETE`, a from-scratch crawl of
+that feed is the definitive check against what is stored in BigQuery.
+
 ## Files
 
 | File | Purpose |
