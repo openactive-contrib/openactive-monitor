@@ -142,3 +142,37 @@ Available options:
 9. After all datasets are processed, keep draining any remaining deferred deletes until they succeed or the job reaches its timeout.
 
 This structure keeps the job incremental, reduces peak memory usage by persisting per batch, and avoids replacing the whole opportunities table on every run.
+
+## BigQuery MCP for Claude Code
+
+The repo ships a read-only BigQuery MCP server for Claude Code (`.mcp.json`, permissions in
+`.claude/settings.json`). It runs as a shared read-only service account, so it never uses your personal
+Google login. To use it on your laptop:
+
+1. Ask a project maintainer to grant your Google account access to the agent service account, and to
+   send you the service account's email address.
+
+2. Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install), [Node.js](https://nodejs.org/)
+   (for `npx`) and Claude Code.
+
+3. Create the agent's credentials. This opens a browser to sign in with your own account; the saved
+   credentials can only act as the read-only service account, and your normal `gcloud` login is unchanged:
+
+   ```bash
+   CLOUDSDK_CONFIG="$HOME/.config/gcloud-agent-bq" \
+     gcloud auth application-default login \
+     --impersonate-service-account=<service-account-email>
+   ```
+
+   The file is saved under `~/.config/gcloud-agent-bq/`, which is where `.mcp.json` looks for it.
+
+4. Open the repo in Claude Code and approve the `bigquery` server when prompted.
+
+5. Run `/mcp` inside Claude Code and check that `bigquery` shows as connected.
+
+6. Test with a prompt: `List the datasets in openactive-monitor and show me the schema of one table.`
+
+If you approved or rejected the server by mistake, run `claude mcp reset-project-choices` and restart
+Claude Code. A permission error in step 3 usually means your access hasn't been granted yet or hasn't
+taken effect — wait a few minutes and retry. On Windows, if `${HOME}` isn't set, set a `HOME`
+environment variable so the path in `.mcp.json` resolves.
