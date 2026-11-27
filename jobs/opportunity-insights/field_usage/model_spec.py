@@ -117,15 +117,18 @@ VERSION_SPECS: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     # --- IndividualFacilityUse (oa:IndividualFacilityUse) — subtype of FacilityUse ---
+    # Spec 5.12 defines a single property table shared by FacilityUse and
+    # IndividualFacilityUse, and does not let an IndividualFacilityUse inherit
+    # from its FacilityUse, so the statuses mirror FacilityUse exactly.
     "IndividualFacilityUse": {
         "V2.0": {
-            "@type": "required", "@id": "recommended", "url": "recommended",
+            "@type": "required", "@id": "required", "url": "required",
             "identifier": "optional", "name": "required", "description": "recommended",
-            "provider": "recommended", "image": "optional",
-            "activity": "required", "location": "recommended",
+            "provider": "required", "image": "recommended",
+            "activity": "required", "location": "required",
             "accessibilitySupport": "optional", "accessibilityInformation": "optional",
             "attendeeInstructions": "optional", "category": "optional",
-            "event": "recommended", "offers": "recommended",
+            "event": "recommended", "offers": "optional",
             "hoursAvailable": "optional", "aggregateFacilityUse": "optional",
             "potentialAction": "optional",
         },
@@ -338,6 +341,57 @@ GLOBAL_ALTERNATIVE_FIELDS: dict[str, list[str]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Per-kind status overrides (Event sub-types)
+# ---------------------------------------------------------------------------
+
+# The Event family shares one ``VERSION_SPECS["Event"]`` table, but spec 5.6.8
+# changes some statuses for specific sub-types. These overrides are layered on
+# top of the category table (V2.0+) by ``model_catalog.model_fields_for_kind``.
+# The category-level field-usage analysis does not apply them.
+KIND_STATUS_OVERRIDES: dict[str, dict[str, str]] = {
+    # 5.6.8.1: startDate REQUIRED (explicit or derived from a Schedule); url /
+    # eventStatus RECOMMENDED; descriptive properties OPTIONAL because they can
+    # be inherited from the parent SessionSeries.
+    "ScheduledSession": {
+        "startDate": "required",
+        "url": "recommended",
+        "eventStatus": "recommended",
+        "organizer": "optional",
+        "description": "optional",
+        "image": "optional",
+        "ageRange": "optional",
+        "genderRestriction": "optional",
+        "level": "optional",
+    },
+    # 5.6.8.1: these are OPTIONAL on a SessionSeries.
+    "SessionSeries": {
+        "startDate": "optional",
+        "endDate": "optional",
+        "maximumAttendeeCapacity": "optional",
+        "eventStatus": "optional",
+    },
+    # 5.6.8.2: a HeadlineEvent MUST provide startDate.
+    "HeadlineEvent": {
+        "startDate": "required",
+    },
+    # 5.6.8.4: location / startDate / endDate are only RECOMMENDED.
+    "EventSeries": {
+        "location": "recommended",
+        "startDate": "recommended",
+        "endDate": "recommended",
+    },
+}
+
+# ``ScheduledSessions`` is a plural alias some feeds use for the same kind.
+KIND_STATUS_OVERRIDES["ScheduledSessions"] = KIND_STATUS_OVERRIDES["ScheduledSession"]
+
+# Spec 5.6.7: properties a child event never inherits from its superEvent.
+INHERITANCE_EXCLUDED: frozenset[str] = frozenset(
+    {"@type", "@id", "url", "identifier", "eventSchedule"}
+)
+
+
 def get_alternatives(spec_category: str, prop: str) -> list[str]:
     """Alternative field names that satisfy ``prop`` for ``spec_category``.
 
@@ -355,5 +409,7 @@ __all__ = [
     "FEED_TYPE_TO_SPEC_CATEGORY",
     "ALTERNATIVE_FIELDS",
     "GLOBAL_ALTERNATIVE_FIELDS",
+    "KIND_STATUS_OVERRIDES",
+    "INHERITANCE_EXCLUDED",
     "get_alternatives",
 ]

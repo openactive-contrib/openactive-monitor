@@ -187,6 +187,14 @@ Current-state table (WRITE_TRUNCATE each `opportunity-insights` run): properties
 | `vocab_source` | STRING | `oa.jsonld+model_spec` or `model_spec (fallback)` |
 | `last_assessed` | TIMESTAMP | Run timestamp |
 
+### Table: `feed_quality_history`
+Twice-monthly snapshots of `feed_quality` (written by `opportunity-insights`). One snapshot per half-month period: the first successful run on or after the 1st / 15th copies that run's `feed_quality` rows in. DAY-partitioned on `snapshot_date`, clustered by `dataset_url, feed_id`. Key: `(snapshot_date, dataset_url, feed_id)`.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `snapshot_date` | DATE | Period start — always the 1st or the 15th of a month |
+| *(all `feed_quality` columns)* | — | Same names/types as `feed_quality`; `last_assessed` is the actual run timestamp. New `feed_quality` columns are added automatically (NULL in older snapshots). |
+
 
 ## Environment Variables
 
@@ -203,6 +211,7 @@ All BigQuery jobs require these environment variables (loaded via `.env` or Clou
 | `INGEST_MAX_WORKERS` | Thread pool size for parallel dataset processing (default: `4`) |
 | `OPPORTUNITY_CSV_OUTPUT_DIR` | Debug CSV output directory (default: `./opportunities/csv`) |
 | `BQ_CUSTOM_PROPERTIES_TABLE` | opportunity-insights custom_properties table name — `custom_properties` |
+| `BQ_FEED_QUALITY_HISTORY_TABLE` | opportunity-insights feed_quality_history table name — `feed_quality_history` |
 | `CUSTOM_PROPERTIES_SAMPLES_PER_KIND` | Random `json_data` samples per (dataset, feed, kind) for custom-property detection (default: `500`) |
 
 ## Development Setup

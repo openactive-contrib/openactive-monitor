@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from field_usage.model_spec import (
     FEED_TYPE_TO_SPEC_CATEGORY,
+    KIND_STATUS_OVERRIDES,
     VERSION_ORDER,
     VERSION_SPECS,
     get_alternatives,
@@ -74,6 +75,46 @@ def spec_category_for_kind(kind: str | None) -> str:
     return FEED_TYPE_TO_SPEC_CATEGORY.get(kind.strip(), "Event")
 
 
+# Spec categories that describe top-level opportunities (as opposed to nested
+# types such as Place / Organization / Offer).
+OPPORTUNITY_CATEGORIES: frozenset[str] = frozenset(
+    {"Event", "FacilityUse", "IndividualFacilityUse", "Slot"}
+)
+
+# Opportunity ``kind`` values that can be scored against a required-field list.
+SCORED_KINDS: tuple[str, ...] = tuple(
+    kind
+    for kind, category in FEED_TYPE_TO_SPEC_CATEGORY.items()
+    if category in OPPORTUNITY_CATEGORIES
+)
+
+
+def model_fields_for_kind(
+    kind: str, version: str = DEFAULT_MODEL_VERSION
+) -> dict[str, str]:
+    """Return ``{field: status}`` for an opportunity ``kind`` at ``version``.
+
+    Starts from the kind's spec-category table and applies the per-sub-type
+    ``KIND_STATUS_OVERRIDES`` (spec 5.6.8) for V2.0 and later.
+    """
+    kind = kind.strip()
+    fields = model_fields_for_category(spec_category_for_kind(kind), version)
+    if VERSION_ORDER.get(version, -1) >= VERSION_ORDER["V2.0"]:
+        fields.update(KIND_STATUS_OVERRIDES.get(kind, {}))
+    return fields
+
+
+def required_fields_for_kind(
+    kind: str, version: str = DEFAULT_MODEL_VERSION
+) -> list[str]:
+    """Sorted list of fields that are ``required`` for ``kind`` at ``version``."""
+    return sorted(
+        field
+        for field, status in model_fields_for_kind(kind, version).items()
+        if status == "required"
+    )
+
+
 def is_model_type(type_str: str | None) -> bool:
     """True if ``type_str`` maps to one of the four model spec categories.
 
@@ -109,6 +150,10 @@ __all__ = [
     "DEFAULT_MODEL_VERSION",
     "resolve_version_for_category",
     "model_fields_for_category",
+    "OPPORTUNITY_CATEGORIES",
+    "SCORED_KINDS",
+    "model_fields_for_kind",
+    "required_fields_for_kind",
     "spec_category_for_kind",
     "is_model_type",
     "field_is_present",

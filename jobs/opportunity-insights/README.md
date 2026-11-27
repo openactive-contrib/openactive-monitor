@@ -8,7 +8,8 @@ per-feed data-quality assessment into `feed_quality`.
 
 After the regular insight tables are written, the job assesses each feed's
 data quality and writes one row per `(dataset_url, feed_id)` to `feed_quality`
-(full overwrite per run — current state only, no history). The QA logic lives
+(full overwrite per run — current state; see
+[Quality history](#quality-history) for snapshots). The QA logic lives
 under `quality/` and is driven by the same `--reference-date` as the rest of
 the run.
 
@@ -21,12 +22,44 @@ For each feed it records:
 | `missing_required_fields` | JSON object keyed by opportunity kind (e.g. `SessionSeries`) listing required fields absent from **all** of up to 10 random `json_data` samples for that kind in the last 5 days. Required fields per kind are defined in `quality/required_fields.py` and follow the [OpenActive Modelling Opportunity Data](https://openactive.io/modelling-opportunity-data/) spec. |
 | `location_completeness`, `start_date_completeness`, `end_date_completeness`, `activities_completeness`, `facilities_completeness` | Percentage (0–100) of opportunities updated in the last 5 days where each top-level column is populated and non-empty. |
 | `activity_vocabulary_adherence`, `facility_vocabulary_adherence` | JSON breakdown of how well the raw `opportunities.activity_json` / `facility_json` payloads (same 5-day window, including values inherited from superEvents) reference the [OpenActive Activity List](https://openactive.io/activity-list/activity-list.jsonld) / [Facility Types](https://openactive.io/facility-types/facility-types.jsonld). Each item with a non-empty value lands in one bucket, taking its best value: `valid_id` (an `id`/`@id` or URI string that resolves to a concept — the only adherent bucket), `invalid_id` (an OA-namespace URI that doesn't resolve), `other_scheme` (a URI in another namespace), `label_match_only` (no id, but the label matches a `prefLabel`/`altLabel`, ignoring case) or `unrecognised`. Shape: `{adherence_pct, items, valid_id, invalid_id, other_scheme, label_match_only, unrecognised, top_unmatched}`, where `adherence_pct = valid_id / items * 100`. Facility looks at `facilityType` only, so its denominator can differ from `facilities_completeness`. NULL when no item has a value or the vocabulary fetch failed. Logic: `quality/vocabulary_adherence.py`. |
+| `required_properties_completeness`, `required_properties_breakdown` | Item-weighted percentage (0–100) of spec-REQUIRED properties present, over **every** item updated in the last 5 days: the mean over items of `required present / required total`, pooling all of the feed's kinds. Required lists per kind come from `field_usage/model_spec.py` (V2.0) via `model_catalog.required_fields_for_kind`, including the sub-type overrides in `KIND_STATUS_OVERRIDES` (e.g. ScheduledSession needs `@type`, `name`, `location`, `activity`, `startDate`, not `url`/`organizer`). A property counts if it, or an alternative key (`type` for `@type`, `facilityType` for FacilityUse `activity`), has a non-empty value. For Event-family items it also counts when inherited from up to two superEvent levels, inline or via the superEvent URI's own row; `@type`, `@id`, `url`, `identifier` and `eventSchedule` are never inherited (spec 5.6.7). The breakdown is `{model_version, items, kinds: {kind: {items, pct, fields: {field: pct}}}}`. NULL when the feed has no scorable items or the query failed. Logic: `quality/required_completeness.py`. |
 | `num_future_opportunity_items` | Carried over from the in-memory `feed_insights` row built earlier in the same run. |
 | `grade` | `Gold` / `Silver` / `Bronze` / `None` per the rules in `quality/assess.py` — driven by future-event volume, completeness thresholds, and missing-required-fields. |
 
 To skip the QA step (e.g. when iterating on the analytic queries), pass
 `--skip-quality`. To create the `feed_quality` table on first run, pass
 `--init-tables` (existing behaviour).
+
+### Quality history
+
+`feed_quality_history` keeps **one snapshot of `feed_quality` per half-month
+period** (periods start on the 1st and the 15th). After writing `feed_quality`,
+each run works out its period start from `--reference-date` (default: today),
+and if that period has no snapshot yet, it copies the run's rows in with
+`snapshot_date` set to the period start. The job runs daily, so if the run on
+the 1st fails, the next successful run fills the gap. `last_assessed` keeps
+the real run time.
+
+- Table: DAY-partitioned on `snapshot_date`, clustered by `dataset_url, feed_id`,
+  key `(snapshot_date, dataset_url, feed_id)`. Created automatically.
+- Schema: `snapshot_date` + every `feed_quality` column, derived from
+  `schemas/feed_quality.json`. New columns are added automatically
+  (`ALLOW_FIELD_ADDITION`) and are NULL in older snapshots.
+- Each snapshot is written to its own partition (`feed_quality_history$YYYYMMDD`)
+  with `WRITE_TRUNCATE`, so reruns never duplicate rows.
+- `--force-quality-snapshot` overwrites the current period's snapshot.
+  `--skip-quality` skips the snapshot as well.
+- A failed snapshot is logged and does not fail the run. The next run retries it.
+
+Grade trend per feed:
+
+```sql
+SELECT snapshot_date, dataset_name, feed_id, grade, status,
+       required_properties_completeness, num_future_opportunity_items
+FROM `openactive-monitor.openactive_analytics.feed_quality_history`
+WHERE snapshot_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+ORDER BY dataset_name, feed_id, snapshot_date;
+```
 
 ## Custom-property detection
 
