@@ -47,6 +47,7 @@ INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE = os.getenv(
     "BQ_INSIGHT_SPORT_DISCIPLINE_MASTER_TABLE", "insight_sport_discipline_master"
 )
 FEED_QUALITY_TABLE = os.getenv("BQ_FEED_QUALITY_TABLE", "feed_quality")
+FEED_QUALITY_HISTORY_TABLE = os.getenv("BQ_FEED_QUALITY_HISTORY_TABLE", "feed_quality_history")
 ACTIVE_OPPORTUNITIES_SUMMARY_TABLE = os.getenv(
     "BQ_ACTIVE_OPPORTUNITIES_SUMMARY_TABLE", "active_opportunities_summary"
 )
@@ -127,6 +128,90 @@ def ensure_tables() -> None:
             "Created table: %s (clustering=%s, partition=%s)",
             full_id, clustering, partition_field,
         )
+    _ensure_feed_quality_history_table(client)
+
+
+# ---------------------------------------------------------------------------
+# feed_quality_history (twice-monthly snapshots of feed_quality)
+# ---------------------------------------------------------------------------
+
+_FEED_QUALITY_HISTORY_CLUSTERING = ["dataset_url", "feed_id"]
+
+
+def _feed_quality_history_schema() -> list[bigquery.SchemaField]:
+    """``snapshot_date`` followed by every ``feed_quality`` column.
+
+    Derived from ``feed_quality.json`` so the two tables can't drift apart.
+    """
+    schema_file, _, _ = _TABLE_CONFIGS[FEED_QUALITY_TABLE]
+    return [
+        bigquery.SchemaField(
+            "snapshot_date", "DATE", mode="REQUIRED",
+            description="Snapshot period start (1st or 15th of the month)",
+        ),
+        *_load_schema_json(schema_file),
+    ]
+
+
+def _ensure_feed_quality_history_table(client: bigquery.Client) -> None:
+    """Create ``feed_quality_history`` if missing (DAY-partitioned on snapshot_date)."""
+    full_id = table_id(FEED_QUALITY_HISTORY_TABLE)
+    try:
+        client.get_table(full_id)
+        return
+    except google_exceptions.NotFound:
+        pass
+
+    table = bigquery.Table(full_id, schema=_feed_quality_history_schema())
+    table.time_partitioning = bigquery.TimePartitioning(
+        type_=bigquery.TimePartitioningType.DAY,
+        field="snapshot_date",
+    )
+    table.clustering_fields = _FEED_QUALITY_HISTORY_CLUSTERING
+    client.create_table(table)
+    logger.info(
+        "Created table: %s (clustering=%s, partition=snapshot_date)",
+        full_id, _FEED_QUALITY_HISTORY_CLUSTERING,
+    )
+
+
+def feed_quality_snapshot_exists(snapshot_date: date) -> bool:
+    """Return True if ``feed_quality_history`` already has rows for ``snapshot_date``."""
+    client = _client()
+    _ensure_feed_quality_history_table(client)
+    query = (
+        f"SELECT COUNT(*) AS n FROM `{table_id(FEED_QUALITY_HISTORY_TABLE)}` "
+        "WHERE snapshot_date = @snapshot_date"
+    )
+    config = bigquery.QueryJobConfig(
+        query_parameters=[bigquery.ScalarQueryParameter("snapshot_date", "DATE", snapshot_date)]
+    )
+    rows = list(client.query(query, job_config=config).result())
+    return bool(rows and rows[0]["n"])
+
+
+def write_feed_quality_snapshot(rows: list[dict[str, Any]], snapshot_date: date) -> None:
+    """Write ``rows`` as the ``snapshot_date`` partition of ``feed_quality_history``.
+
+    Uses a partition decorator with WRITE_TRUNCATE, so only that snapshot is
+    replaced and reruns never duplicate rows. ALLOW_FIELD_ADDITION lets new
+    ``feed_quality`` columns flow into history automatically.
+    """
+    client = _client()
+    _ensure_feed_quality_history_table(client)
+    schema = _feed_quality_history_schema()
+    # _normalize_scalar passes DATE values through, so the ISO string is kept as-is.
+    prepared = _prepare_rows(
+        [{**row, "snapshot_date": snapshot_date.isoformat()} for row in rows], schema
+    )
+    destination = f"{table_id(FEED_QUALITY_HISTORY_TABLE)}${snapshot_date:%Y%m%d}"
+    _load_job(
+        prepared,
+        destination,
+        schema,
+        bigquery.WriteDisposition.WRITE_TRUNCATE,
+        schema_update_options=[bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -243,11 +328,19 @@ def _prepare_rows(rows: list[dict[str, Any]], schema: list[bigquery.SchemaField]
 # Writes
 # ---------------------------------------------------------------------------
 
-def _load_job(rows: list[dict[str, Any]], destination: str, schema: list[bigquery.SchemaField], write_disposition: str) -> None:
+def _load_job(
+    rows: list[dict[str, Any]],
+    destination: str,
+    schema: list[bigquery.SchemaField],
+    write_disposition: str,
+    schema_update_options: list[str] | None = None,
+) -> None:
     if not rows:
         logger.info("No rows to load into %s", destination)
         return
     config = bigquery.LoadJobConfig(schema=schema, write_disposition=write_disposition)
+    if schema_update_options:
+        config.schema_update_options = schema_update_options
     client = _client()
     job = client.load_table_from_json(rows, destination, job_config=config)
     job.result()

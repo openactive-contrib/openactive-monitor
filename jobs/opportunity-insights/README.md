@@ -8,7 +8,8 @@ per-feed data-quality assessment into `feed_quality`.
 
 After the regular insight tables are written, the job assesses each feed's
 data quality and writes one row per `(dataset_url, feed_id)` to `feed_quality`
-(full overwrite per run — current state only, no history). The QA logic lives
+(full overwrite per run — current state; see
+[Quality history](#quality-history) for snapshots). The QA logic lives
 under `quality/` and is driven by the same `--reference-date` as the rest of
 the run.
 
@@ -28,6 +29,37 @@ For each feed it records:
 To skip the QA step (e.g. when iterating on the analytic queries), pass
 `--skip-quality`. To create the `feed_quality` table on first run, pass
 `--init-tables` (existing behaviour).
+
+### Quality history
+
+`feed_quality_history` keeps **one snapshot of `feed_quality` per half-month
+period** (periods start on the 1st and the 15th). After writing `feed_quality`,
+each run works out its period start from `--reference-date` (default: today),
+and if that period has no snapshot yet, it copies the run's rows in with
+`snapshot_date` set to the period start. The job runs daily, so if the run on
+the 1st fails, the next successful run fills the gap. `last_assessed` keeps
+the real run time.
+
+- Table: DAY-partitioned on `snapshot_date`, clustered by `dataset_url, feed_id`,
+  key `(snapshot_date, dataset_url, feed_id)`. Created automatically.
+- Schema: `snapshot_date` + every `feed_quality` column, derived from
+  `schemas/feed_quality.json`. New columns are added automatically
+  (`ALLOW_FIELD_ADDITION`) and are NULL in older snapshots.
+- Each snapshot is written to its own partition (`feed_quality_history$YYYYMMDD`)
+  with `WRITE_TRUNCATE`, so reruns never duplicate rows.
+- `--force-quality-snapshot` overwrites the current period's snapshot.
+  `--skip-quality` skips the snapshot as well.
+- A failed snapshot is logged and does not fail the run. The next run retries it.
+
+Grade trend per feed:
+
+```sql
+SELECT snapshot_date, dataset_name, feed_id, grade, status,
+       required_properties_completeness, num_future_opportunity_items
+FROM `openactive-monitor.openactive_analytics.feed_quality_history`
+WHERE snapshot_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+ORDER BY dataset_name, feed_id, snapshot_date;
+```
 
 ## Custom-property detection
 

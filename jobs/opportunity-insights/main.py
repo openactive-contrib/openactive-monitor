@@ -611,6 +611,7 @@ def _run_quality_assessment(
     opportunities_tbl: str,
     opportunity_ingestion_tbl: str,
     reference_date: date,
+    force_snapshot: bool = False,
 ) -> None:
     from quality.assess import assess_feed_quality
 
@@ -632,6 +633,46 @@ def _run_quality_assessment(
         max_workers=int(os.getenv("INGEST_MAX_WORKERS", "4")),
     )
     bigquery_ops.write_feed_quality(quality_rows)
+    _maybe_snapshot_feed_quality(quality_rows, reference_date, force_snapshot)
+
+
+def _snapshot_period_start(d: date) -> date:
+    """Start of the half-month snapshot period containing ``d`` (the 1st or the 15th)."""
+    return d.replace(day=1 if d.day < 15 else 15)
+
+
+def _maybe_snapshot_feed_quality(
+    quality_rows: list[dict[str, Any]],
+    reference_date: date,
+    force: bool,
+) -> None:
+    """Copy ``quality_rows`` into ``feed_quality_history`` once per half-month period.
+
+    The first successful run on or after the 1st / 15th writes the snapshot, so
+    a failed run on those days is filled in by the next one. ``force`` overwrites
+    the current period's snapshot. A failure here is logged and never fails the
+    run; the next daily run retries it.
+    """
+    if not quality_rows:
+        logger.info("No feed_quality rows; skipping feed_quality_history snapshot")
+        return
+    snapshot_date = _snapshot_period_start(reference_date)
+    try:
+        if not force and bigquery_ops.feed_quality_snapshot_exists(snapshot_date):
+            logger.info(
+                "feed_quality_history snapshot for %s already exists; skipping",
+                snapshot_date.isoformat(),
+            )
+            return
+        bigquery_ops.write_feed_quality_snapshot(quality_rows, snapshot_date)
+        logger.info(
+            "Wrote feed_quality_history snapshot for %s (%d rows%s)",
+            snapshot_date.isoformat(), len(quality_rows), ", forced" if force else "",
+        )
+    except Exception:
+        logger.exception(
+            "Failed to write feed_quality_history snapshot for %s", snapshot_date.isoformat()
+        )
 
 
 def _run_custom_properties(
@@ -822,6 +863,7 @@ def run(
     skip_quality: bool = False,
     skip_export: bool = False,
     skip_custom_properties: bool = False,
+    force_quality_snapshot: bool = False,
 ) -> None:
     run_date = datetime.now(timezone.utc)
     effective_reference_date = reference_date or run_date.date()
@@ -868,6 +910,7 @@ def run(
         _run_quality_assessment(
             run_date, source, feed_rows, opportunities_tbl,
             opportunity_ingestion_tbl, effective_reference_date,
+            force_snapshot=force_quality_snapshot,
         )
     else:
         logger.info("Skipping data-quality assessment (--skip-quality)")
@@ -916,6 +959,12 @@ def run(
     default=False,
     help="Skip the custom-property detection step (custom_properties table is not updated).",
 )
+@click.option(
+    "--force-quality-snapshot",
+    is_flag=True,
+    default=False,
+    help="Overwrite the current half-month feed_quality_history snapshot even if it already exists.",
+)
 def cli(
     verbose: bool,
     init_tables: bool,
@@ -923,6 +972,7 @@ def cli(
     skip_quality: bool,
     skip_export: bool,
     skip_custom_properties: bool,
+    force_quality_snapshot: bool,
 ) -> None:
     _configure_logging(verbose)
     run(
@@ -932,6 +982,7 @@ def cli(
         skip_quality=skip_quality,
         skip_export=skip_export,
         skip_custom_properties=skip_custom_properties,
+        force_quality_snapshot=force_quality_snapshot,
     )
 
 
