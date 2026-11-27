@@ -9,6 +9,8 @@ Builds rows for the ``feed_quality`` BigQuery table by combining:
 * ``num_future_opportunity_items`` from the feed_insights rows built earlier.
 * Activity / facility vocabulary adherence (``quality.vocabulary_adherence``)
   over the raw ``activity_json`` / ``facility_json`` payloads in the same window.
+* Completeness of spec-REQUIRED properties (``quality.required_completeness``)
+  over every item in the same window.
 """
 
 from __future__ import annotations
@@ -22,6 +24,7 @@ import pandas as pd
 
 import bigquery_ops
 from quality import queries as quality_queries
+from quality import required_completeness
 from quality.health_check import ProbeResult, probe_feeds
 from quality.required_fields import REQUIRED_FIELDS_BY_KIND
 from quality.vocabulary_adherence import (
@@ -78,6 +81,7 @@ def assess_feed_quality(
 
     completeness_by_key = _fetch_completeness(opportunities_tbl, reference_date)
     adherence_by_key = _fetch_vocabulary_adherence(opportunities_tbl, reference_date)
+    required_by_key = _fetch_required_completeness(opportunities_tbl, reference_date)
     samples_by_key, samples_by_kind_key = _fetch_samples(opportunities_tbl, reference_date)
 
     # Probe any feed whose latest ingestion was ERROR / WARNING, or where the
@@ -104,6 +108,7 @@ def assess_feed_quality(
 
         completeness = completeness_by_key.get(key, {})
         adherence = adherence_by_key.get(key, {})
+        required_pct, required_breakdown = required_by_key.get(key, (None, None))
         ingestion_status = status_by_feed.get(feed_id)
         future_count = future_count_by_feed.get(feed_id, 0)
 
@@ -158,6 +163,8 @@ def assess_feed_quality(
         row.update({
             "activity_vocabulary_adherence": adherence.get(ACTIVITY_FIELD),
             "facility_vocabulary_adherence": adherence.get(FACILITY_FIELD),
+            "required_properties_completeness": required_pct,
+            "required_properties_breakdown": required_breakdown,
             "num_future_opportunity_items": future_count,
             "grade":                   grade,
             "feed_version":            version_result["version"],
@@ -244,6 +251,29 @@ def _fetch_vocabulary_adherence(
     adherence = build_adherence_by_feed(df, schemes)
     logger.info("Computed vocabulary adherence for %d feeds", len(adherence))
     return adherence
+
+
+def _fetch_required_completeness(
+    opportunities_tbl: str,
+    reference_date: date,
+) -> dict[tuple[str | None, str], tuple[float | None, dict[str, Any] | None]]:
+    """Per-feed required-properties completeness ``(pct, breakdown)``.
+
+    A failed query leaves both columns NULL for every feed rather than failing
+    the run.
+    """
+    try:
+        df = bigquery_ops.run_query(
+            required_completeness.build_query(opportunities_tbl, reference_date)
+        )
+    except Exception:
+        logger.exception(
+            "Required-properties completeness query failed; columns will be NULL"
+        )
+        return {}
+    result = required_completeness.summarise(df)
+    logger.info("Computed required-properties completeness for %d feeds", len(result))
+    return result
 
 
 def _fetch_samples(
